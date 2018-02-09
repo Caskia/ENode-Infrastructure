@@ -36,22 +36,23 @@ namespace ENode.EventStore.MongoDb
         public Task<AsyncTaskResult<EventAppendResult>> AppendAsync(DomainEventStream eventStream)
         {
             var record = ConvertTo(eventStream);
-
             return _ioHelper.TryIOFuncAsync(async () =>
             {
                 try
                 {
-                    await _eventStreamCollection.GetCollection(record.AggregateRootId).InsertOneAsync(record);
+                    var collection = _eventStreamCollection.GetCollection(record.AggregateRootId);
+
+                    await collection.InsertOneAsync(record);
 
                     return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Success, EventAppendResult.Success);
                 }
                 catch (MongoWriteException ex)
                 {
-                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.Version)))
+                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.Version)))
                     {
                         return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Success, EventAppendResult.DuplicateEvent);
                     }
-                    else if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.CommandId)))
+                    else if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.CommandId)))
                     {
                         return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Success, EventAppendResult.DuplicateCommand);
                     }
@@ -231,7 +232,7 @@ namespace ENode.EventStore.MongoDb
                 record.AggregateRootTypeName,
                 record.Version,
                 record.CreatedOn,
-                _eventSerializer.Deserialize<IDomainEvent>(record.Events));
+                _eventSerializer.Deserialize<IDomainEvent>(_jsonSerializer.Deserialize<IDictionary<string, string>>(record.Events)));
         }
 
         private EventStream ConvertTo(DomainEventStream eventStream)
@@ -243,7 +244,7 @@ namespace ENode.EventStore.MongoDb
                 AggregateRootTypeName = eventStream.AggregateRootTypeName,
                 Version = eventStream.Version,
                 CreatedOn = eventStream.Timestamp,
-                Events = _eventSerializer.Serialize(eventStream.Events)
+                Events = _jsonSerializer.Serialize(_eventSerializer.Serialize(eventStream.Events))
             };
         }
 

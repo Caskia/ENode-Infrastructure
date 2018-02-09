@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 using ENode.Configurations;
+using System.Reflection;
 
 namespace ENode.EventStore.MongoDb.Tests
 {
@@ -20,15 +21,21 @@ namespace ENode.EventStore.MongoDb.Tests
 
         public MongoDbEventStore_Tests()
         {
-            ECommonConfiguration.Create()
-              .UseAutofac()
-              .RegisterCommonComponents()
-              .UseLog4Net()
-              .UseJsonNet()
-              .CreateENode(new ConfigurationSetting())
-              .RegisterENodeComponents()
-              .GetCommonConfiguration()
+            var assemblies = new[] { Assembly.GetExecutingAssembly() };
+
+            var enode = ECommonConfiguration.Create()
+                .UseAutofac()
+                .RegisterCommonComponents()
+                .UseLog4Net()
+                .UseJsonNet()
+                .CreateENode(new ConfigurationSetting())
+                .RegisterBusinessComponents(assemblies)
+                .RegisterENodeComponents();
+
+            enode.GetCommonConfiguration()
               .BuildContainer();
+
+            enode.InitializeBusinessAssemblies(assemblies);
         }
 
         [Fact(DisplayName = "Should_Append_EventStream")]
@@ -43,25 +50,25 @@ namespace ENode.EventStore.MongoDb.Tests
             await store.AppendAsync(eventStream);
 
             //Assert
-            var result = store.FindAsync(eventStream.AggregateRootId, eventStream.Version);
+            var result = await store.FindAsync(eventStream.AggregateRootId, eventStream.Version);
             result.ShouldNotBeNull();
         }
 
         private DomainEventStream GetTestDomainEventStream()
         {
-            return new DomainEventStream("1", "1", "typename", 1, DateTime.Now, new List<TestDomainEvent>()
+            return new DomainEventStream("1", "1", "typename", 0, DateTime.Now, new List<DomainEvent<long>>()
             {
-                new TestDomainEvent()
+                new Test1DomainEvent()
                 {
                     AggregateRootId = 1,
                     Name = "test1"
                 },
-                new TestDomainEvent()
+                new Test2DomainEvent()
                 {
                     AggregateRootId = 2,
                     Name = "test2"
                 },
-                new TestDomainEvent()
+                new Test3DomainEvent()
                 {
                     AggregateRootId = 3,
                     Name = "test3"
@@ -70,7 +77,17 @@ namespace ENode.EventStore.MongoDb.Tests
         }
     }
 
-    public class TestDomainEvent : DomainEvent<long>
+    public class Test1DomainEvent : DomainEvent<long>
+    {
+        public string Name { get; set; }
+    }
+
+    public class Test2DomainEvent : DomainEvent<long>
+    {
+        public string Name { get; set; }
+    }
+
+    public class Test3DomainEvent : DomainEvent<long>
     {
         public string Name { get; set; }
     }

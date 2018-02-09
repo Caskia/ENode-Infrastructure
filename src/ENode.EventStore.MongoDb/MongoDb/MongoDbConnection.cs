@@ -6,8 +6,8 @@ namespace ENode.EventStore.MongoDb
 {
     public abstract class MongoDbConnection
     {
-        private const string EventCollectionNameFormat = "`{0}_{1}`";
-        private const string EventSingleCollectionNameFormat = "`{0}`";
+        private const string EventCollectionNameFormat = "{0}_{1}";
+        private const string EventSingleCollectionNameFormat = "{0}";
 
         #region Private Variables
 
@@ -30,6 +30,7 @@ namespace ENode.EventStore.MongoDb
             )
         {
             _configuration = configuration;
+            _storeEntityName = storeEntityName;
             _collectionCount = collectionCount;
 
             Ensure.NotNull(_configuration, "_configuration");

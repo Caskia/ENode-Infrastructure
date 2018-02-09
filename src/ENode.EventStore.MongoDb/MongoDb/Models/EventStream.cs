@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 
@@ -14,7 +15,7 @@ namespace ENode.EventStore.MongoDb.Models
 
         public DateTime CreatedOn { get; set; }
 
-        public IDictionary<string, string> Events { get; set; }
+        public string Events { get; set; }
 
         public ObjectId Id { get; set; }
 

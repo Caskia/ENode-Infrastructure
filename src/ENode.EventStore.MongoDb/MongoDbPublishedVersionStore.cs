@@ -78,7 +78,7 @@ namespace ENode.EventStore.MongoDb
                 }
                 catch (MongoWriteException ex)
                 {
-                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.Version)))
+                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.ProcessorName)) && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.Version)))
                     {
                         return AsyncTaskResult.Success;
                     }
