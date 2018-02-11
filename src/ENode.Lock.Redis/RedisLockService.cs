@@ -2,12 +2,8 @@
 using ECommon.Logging;
 using ECommon.Utilities;
 using ENode.Infrastructure;
-using ENode.Lock.Redis.Exceptions;
-using RedLockNet.SERedis;
-using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 using System;
-using System.Collections.Generic;
 
 namespace ENode.Lock.Redis
 {
@@ -15,13 +11,11 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private static readonly TimeSpan DefaultExpiriesTimeSpan = TimeSpan.FromSeconds(30);
-        private static readonly TimeSpan DefaultRetryTimeSpan = TimeSpan.FromMilliseconds(1);
-        private static readonly TimeSpan DefaultWaitTimeSpan = TimeSpan.FromMilliseconds(10);
+        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
         private ILogger _logger;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
-        private RedLockFactory _redLockFactory;
+        private TimeSpan _timeoutTimeSpan = TimeSpan.FromSeconds(30);
 
         #endregion Private Variables
 
@@ -34,20 +28,17 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            using (var redLock = _redLockFactory.CreateLock(GetRedisKey(lockKey), DefaultExpiriesTimeSpan, DefaultWaitTimeSpan, DefaultRetryTimeSpan)) // there are also non async Create() methods
+            using (RedisLock.Acquire(_redisProvider.GetDatabase(), GetRedisKey(lockKey), _timeoutTimeSpan, _holdDurationTimeSpan))
             {
-                if (redLock.IsAcquired)
-                {
-                    action();
-                }
-                else
-                {
-                    throw new DistributedLockAcquireException(lockKey);
-                }
+                action();
             }
         }
 
-        public RedisLockService Initialize(RedisOptions redisOptions)
+        public RedisLockService Initialize(
+            RedisOptions redisOptions,
+            TimeSpan? timeout = null,
+            TimeSpan? holdDuration = null
+            )
         {
             _redisOptions = redisOptions;
 
@@ -55,13 +46,19 @@ namespace ENode.Lock.Redis
             Ensure.NotNull(_redisOptions.ConnectionString, "_redisOptions.ConnectionString");
             Ensure.Positive(_redisOptions.DatabaseId, "_redisOptions.DatabaseId");
 
+            if (timeout.HasValue)
+            {
+                _timeoutTimeSpan = timeout.Value;
+            }
+
+            if (holdDuration.HasValue)
+            {
+                _holdDurationTimeSpan = holdDuration.Value;
+            }
+
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
 
             _redisProvider = new RedisProvider(_redisOptions);
-            _redLockFactory = RedLockFactory.Create(new List<RedLockMultiplexer>
-            {
-                _redisProvider.CreateConnectionMultiplexer()
-            });
 
             return this;
         }

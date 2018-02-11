@@ -80,7 +80,7 @@ namespace ENode.Lock.Redis
             }
             while (DateTime.UtcNow < lockExpirationTime);
 
-            throw new Exception($"Failed to acquire lock on {key} within given timeout ({timeOut})");
+            throw new DistributedLockTimeoutException($"Failed to acquire lock on {key} within given timeout ({timeOut})");
         }
 
         public void Dispose()

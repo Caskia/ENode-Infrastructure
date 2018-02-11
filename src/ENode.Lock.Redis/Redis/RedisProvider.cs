@@ -17,6 +17,9 @@ namespace ENode.Lock.Redis
             _connectionMultiplexer = new Lazy<ConnectionMultiplexer>(CreateConnectionMultiplexer);
         }
 
+        /// <summary>
+        /// Create connection
+        /// </summary>
         public ConnectionMultiplexer CreateConnectionMultiplexer()
         {
             return ConnectionMultiplexer.Connect(_options.ConnectionString);
