@@ -1,5 +1,7 @@
-﻿using ECommon.Configurations;
+﻿using ECommon.Components;
+using ECommon.Configurations;
 using ENode.Configurations;
+using ENode.Infrastructure;
 using Shouldly;
 using System.Collections.Generic;
 using System.Reflection;
@@ -17,7 +19,7 @@ namespace ENode.Lock.Redis.Tests
             DatabaseId = 3
         };
 
-        private RedisLockService _redisLockService;
+        private ILockService _lockService;
 
         public RedisLockService_Tests()
         {
@@ -30,15 +32,16 @@ namespace ENode.Lock.Redis.Tests
                 .UseJsonNet()
                 .CreateENode(new ConfigurationSetting())
                 .RegisterBusinessComponents(assemblies)
-                .RegisterENodeComponents();
+                .RegisterENodeComponents()
+                .UseRedisLockService();
 
             enode.GetCommonConfiguration()
               .BuildContainer();
 
-            enode.InitializeBusinessAssemblies(assemblies);
+            enode.InitializeBusinessAssemblies(assemblies)
+                .InitializeRedisLockService(_redisOptions);
 
-            _redisLockService = new RedisLockService();
-            _redisLockService.Initialize(_redisOptions);
+            _lockService = ObjectContainer.Resolve<ILockService>();
         }
 
         [Fact(DisplayName = "Should_Execute_In_Lock_By_Multiple_Threads")]
@@ -50,7 +53,7 @@ namespace ENode.Lock.Redis.Tests
             //Act
             Parallel.For(0, 10, i =>
             {
-                _redisLockService.ExecuteInLock("test", () =>
+                _lockService.ExecuteInLock("test", () =>
                 {
                     hs.Add(i);
                 });

@@ -7,6 +7,8 @@ using ECommonConfiguration = ECommon.Configurations.Configuration;
 using Shouldly;
 using ECommon.IO;
 using Xunit;
+using ECommon.Components;
+using ENode.Infrastructure;
 
 namespace ENode.EventStore.MongoDb.Tests
 {
@@ -18,7 +20,7 @@ namespace ENode.EventStore.MongoDb.Tests
             DatabaseName = "eventsotre_test",
         };
 
-        private readonly MongoDbPublishedVersionStore _store;
+        private readonly IPublishedVersionStore _store;
 
         public MongoDbPublishedVersionStore_Tests()
         {
@@ -31,15 +33,16 @@ namespace ENode.EventStore.MongoDb.Tests
                 .UseJsonNet()
                 .CreateENode(new ConfigurationSetting())
                 .RegisterBusinessComponents(assemblies)
-                .RegisterENodeComponents();
+                .RegisterENodeComponents()
+                .UseMongoDbPublishedVersionStore();
 
             enode.GetCommonConfiguration()
               .BuildContainer();
 
-            enode.InitializeBusinessAssemblies(assemblies);
+            enode.InitializeBusinessAssemblies(assemblies)
+                .InitializeMongoDbPublishedVersionStore(_mongoDbConfiguration);
 
-            _store = new MongoDbPublishedVersionStore();
-            _store.Initialize(_mongoDbConfiguration);
+            _store = ObjectContainer.Resolve<IPublishedVersionStore>();
         }
 
         [Fact(DisplayName = "Should_Insert_Published_Version")]

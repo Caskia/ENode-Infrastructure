@@ -11,6 +11,7 @@ using System.Reflection;
 using ECommon.IO;
 using System.Linq;
 using ECommon.Utilities;
+using ECommon.Components;
 
 namespace ENode.EventStore.MongoDb.Tests
 {
@@ -22,7 +23,7 @@ namespace ENode.EventStore.MongoDb.Tests
             DatabaseName = "eventsotre_test",
         };
 
-        private readonly MongoDbEventStore _store;
+        private readonly IEventStore _store;
 
         public MongoDbEventStore_Tests()
         {
@@ -35,15 +36,16 @@ namespace ENode.EventStore.MongoDb.Tests
                 .UseJsonNet()
                 .CreateENode(new ConfigurationSetting())
                 .RegisterBusinessComponents(assemblies)
-                .RegisterENodeComponents();
+                .RegisterENodeComponents()
+                .UseMongoDbEventStore();
 
             enode.GetCommonConfiguration()
               .BuildContainer();
 
-            enode.InitializeBusinessAssemblies(assemblies);
+            enode.InitializeBusinessAssemblies(assemblies)
+                .InitializeMongoDbEventStore(_mongoDbConfiguration);
 
-            _store = new MongoDbEventStore();
-            _store.Initialize(_mongoDbConfiguration);
+            _store = ObjectContainer.Resolve<IEventStore>();
         }
 
         [Fact(DisplayName = "Should_Append_EventStream")]

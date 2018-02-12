@@ -1,0 +1,36 @@
+﻿using ECommon.Components;
+using ENode.Configurations;
+using ENode.Infrastructure;
+using System;
+
+namespace ENode.Lock.Redis
+{
+    public static class ENodeExtensions
+    {
+        /// <summary>
+        /// Initialize the RedisLockService with option setting.
+        /// </summary>
+        /// <param name="eNodeConfiguration"></param>
+        /// <param name="connectionString"></param>
+        /// <param name="tableName"></param>
+        /// <returns></returns>
+        public static ENodeConfiguration InitializeRedisLockService(this ENodeConfiguration eNodeConfiguration,
+            RedisOptions redisOptions,
+            TimeSpan? timeout = null,
+            TimeSpan? holdDuration = null)
+        {
+            ((RedisLockService)ObjectContainer.Resolve<ILockService>()).Initialize(redisOptions, timeout, holdDuration);
+            return eNodeConfiguration;
+        }
+
+        /// <summary>
+        /// Use the RedisLockService as the ILockService.
+        /// </summary>
+        /// <returns></returns>
+        public static ENodeConfiguration UseRedisLockService(this ENodeConfiguration eNodeConfiguration)
+        {
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<ILockService, RedisLockService>();
+            return eNodeConfiguration;
+        }
+    }
+}
