@@ -12,10 +12,11 @@ namespace ENode.Lock.Redis
         #region Private Variables
 
         private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
+        private string _keyPrefix;
         private ILogger _logger;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
-        private TimeSpan _timeoutTimeSpan = TimeSpan.FromSeconds(30);
+        private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(30);
 
         #endregion Private Variables
 
@@ -28,7 +29,7 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            using (RedisLock.Acquire(_redisProvider.GetDatabase(), GetRedisKey(lockKey), _timeoutTimeSpan, _holdDurationTimeSpan))
+            using (RedisLock.Acquire(_redisProvider.GetDatabase(), GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
             {
                 action();
             }
@@ -36,19 +37,22 @@ namespace ENode.Lock.Redis
 
         public RedisLockService Initialize(
             RedisOptions redisOptions,
-            TimeSpan? timeout = null,
+            string keyPrefix = "default",
+            TimeSpan? timeOut = null,
             TimeSpan? holdDuration = null
             )
         {
             _redisOptions = redisOptions;
+            _keyPrefix = keyPrefix;
 
-            Ensure.NotNull(_redisOptions, "_redisOptions");
-            Ensure.NotNull(_redisOptions.ConnectionString, "_redisOptions.ConnectionString");
-            Ensure.Positive(_redisOptions.DatabaseId, "_redisOptions.DatabaseId");
+            Ensure.NotNull(_redisOptions, "redisOptions");
+            Ensure.NotNull(_redisOptions.ConnectionString, "redisOptions.ConnectionString");
+            Ensure.Positive(_redisOptions.DatabaseId, "redisOptions.DatabaseId");
+            Ensure.NotNull(_keyPrefix, "keyPrefix");
 
-            if (timeout.HasValue)
+            if (timeOut.HasValue)
             {
-                _timeoutTimeSpan = timeout.Value;
+                _timeOutTimeSpan = timeOut.Value;
             }
 
             if (holdDuration.HasValue)
@@ -69,7 +73,7 @@ namespace ENode.Lock.Redis
 
         private RedisKey GetRedisKey(string key)
         {
-            return $"enode:lock:{key}";
+            return $"enode:lock:{_keyPrefix}:{key}";
         }
 
         #endregion Private Methods

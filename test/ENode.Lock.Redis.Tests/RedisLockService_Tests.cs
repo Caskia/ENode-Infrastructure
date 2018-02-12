@@ -3,6 +3,7 @@ using ECommon.Configurations;
 using ENode.Configurations;
 using ENode.Infrastructure;
 using Shouldly;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -48,19 +49,19 @@ namespace ENode.Lock.Redis.Tests
         public void Should_Execute_In_Lock_By_Multiple_Threads()
         {
             //Arrange
-            var hs = new HashSet<int>();
+            var list = new List<int>();
 
             //Act
-            Parallel.For(0, 10, i =>
+            Parallel.For(0, 50, i =>
             {
                 _lockService.ExecuteInLock("test", () =>
                 {
-                    hs.Add(i);
+                    list.Add(i);
                 });
             });
 
             //Assert
-            hs.Count.ShouldBe(100);
+            list.Count.ShouldBe(50);
         }
     }
 }
