@@ -6,6 +6,7 @@ using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
@@ -40,7 +41,7 @@ namespace ENode.Lock.Redis.Tests
               .BuildContainer();
 
             enode.InitializeBusinessAssemblies(assemblies)
-                .InitializeRedisLockService(_redisOptions);
+                .InitializeRedisLockService(_redisOptions, "default");
 
             _lockService = ObjectContainer.Resolve<ILockService>();
         }
@@ -49,19 +50,21 @@ namespace ENode.Lock.Redis.Tests
         public void Should_Execute_In_Lock_By_Multiple_Threads()
         {
             //Arrange
-            var list = new List<int>();
+            var hs = new HashSet<int>();
+            var hs1 = new HashSet<int>();
 
             //Act
             Parallel.For(0, 50, i =>
             {
+                hs1.Add(i);
                 _lockService.ExecuteInLock("test", () =>
                 {
-                    list.Add(i);
+                    hs.Add(i);
                 });
             });
 
             //Assert
-            list.Count.ShouldBe(50);
+            hs.Count.ShouldBe(50);
         }
     }
 }

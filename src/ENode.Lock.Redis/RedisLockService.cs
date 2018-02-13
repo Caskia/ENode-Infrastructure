@@ -29,7 +29,7 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            using (RedisLock.Acquire(_redisProvider.GetDatabase(), GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
+            using (var redisLock = RedisLock.Acquire(_redisProvider.GetDatabase(), GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
             {
                 action();
             }
