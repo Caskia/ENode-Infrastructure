@@ -50,13 +50,13 @@ namespace ENode.Lock.Redis.Tests
         public void Should_Execute_In_Lock_By_Multiple_Threads()
         {
             //Arrange
+            ThreadPool.SetMinThreads(60, 60);
+            ThreadPool.SetMaxThreads(60, 60);
             var hs = new HashSet<int>();
-            var hs1 = new HashSet<int>();
 
             //Act
             Parallel.For(0, 50, i =>
             {
-                hs1.Add(i);
                 _lockService.ExecuteInLock("test", () =>
                 {
                     hs.Add(i);
