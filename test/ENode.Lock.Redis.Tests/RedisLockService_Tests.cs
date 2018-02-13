@@ -41,7 +41,7 @@ namespace ENode.Lock.Redis.Tests
               .BuildContainer();
 
             enode.InitializeBusinessAssemblies(assemblies)
-                .InitializeRedisLockService(_redisOptions, "default");
+                .InitializeRedisLockService(_redisOptions);
 
             _lockService = ObjectContainer.Resolve<ILockService>();
         }
