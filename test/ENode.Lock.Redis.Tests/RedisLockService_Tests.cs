@@ -55,7 +55,7 @@ namespace ENode.Lock.Redis.Tests
             var hs = new HashSet<int>();
 
             //Act
-            Parallel.For(0, 50, i =>
+            Parallel.For(0, 100, i =>
             {
                 _lockService.ExecuteInLock("test", () =>
                 {
@@ -65,6 +65,27 @@ namespace ENode.Lock.Redis.Tests
 
             //Assert
             hs.Count.ShouldBe(50);
+        }
+
+        [Fact(DisplayName = "Should_Redis_Set_Multiple_Threads")]
+        public void Should_Redis_Set_Multiple_Threads()
+        {
+            var redisProvider = new RedisProvider(_redisOptions);
+            var database = redisProvider.GetDatabase();
+            var tasks = new List<Task>();
+            for (int i = 0; i < 200000; i++)
+            {
+                tasks.Add(Task.Factory.StartNew(t =>
+                {
+                    //_lockService.ExecuteInLock("test", () =>
+                    //{
+                    //});
+
+                    database.StringSet(t.ToString(), "test", TimeSpan.FromSeconds(30));
+                }, i));
+            }
+
+            Task.WaitAll(tasks.ToArray());
         }
     }
 }

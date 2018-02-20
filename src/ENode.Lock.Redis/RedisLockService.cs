@@ -16,6 +16,7 @@ namespace ENode.Lock.Redis
         private ILogger _logger;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
+        private IDatabase _redisDatabase;
         private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(30);
 
         #endregion Private Variables
@@ -29,7 +30,7 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            using (var redisLock = RedisLock.Acquire(_redisProvider.GetDatabase(), GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
+            using (var redisLock = RedisLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
             {
                 action();
             }
@@ -63,6 +64,8 @@ namespace ENode.Lock.Redis
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
 
             _redisProvider = new RedisProvider(_redisOptions);
+
+            _redisDatabase = _redisProvider.GetDatabase();
 
             return this;
         }

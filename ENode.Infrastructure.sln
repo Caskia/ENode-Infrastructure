@@ -1,19 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2024
+VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4664B4BD-BA04-48AF-A5F5-BE12709B2256}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.EventStore.MongoDb", "src\ENode.EventStore.MongoDb\ENode.EventStore.MongoDb.csproj", "{03A78AE7-24D3-426E-A474-9C051A530465}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.EventStore.MongoDb", "src\ENode.EventStore.MongoDb\ENode.EventStore.MongoDb.csproj", "{03A78AE7-24D3-426E-A474-9C051A530465}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.Lock.Redis", "src\ENode.Lock.Redis\ENode.Lock.Redis.csproj", "{5BA46B22-D59E-481C-8FAD-E9DA0EC0BA95}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.Lock.Redis", "src\ENode.Lock.Redis\ENode.Lock.Redis.csproj", "{5BA46B22-D59E-481C-8FAD-E9DA0EC0BA95}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.EventStore.MongoDb.Tests", "test\ENode.EventStore.MongoDb.Tests\ENode.EventStore.MongoDb.Tests.csproj", "{B1FD28C7-1F13-4817-ACC0-649A7B65A276}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.EventStore.MongoDb.Tests", "test\ENode.EventStore.MongoDb.Tests\ENode.EventStore.MongoDb.Tests.csproj", "{B1FD28C7-1F13-4817-ACC0-649A7B65A276}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.Lock.Redis.Tests", "test\ENode.Lock.Redis.Tests\ENode.Lock.Redis.Tests.csproj", "{7CE1505E-B366-4AB7-AF0D-91D975D9B586}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.Lock.Redis.Tests", "test\ENode.Lock.Redis.Tests\ENode.Lock.Redis.Tests.csproj", "{7CE1505E-B366-4AB7-AF0D-91D975D9B586}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
