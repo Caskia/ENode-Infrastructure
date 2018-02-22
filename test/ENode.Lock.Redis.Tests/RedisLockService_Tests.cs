@@ -80,12 +80,13 @@ namespace ENode.Lock.Redis.Tests
                     //_lockService.ExecuteInLock("test", () =>
                     //{
                     //});
-
-                    database.StringSet(t.ToString(), "test", TimeSpan.FromSeconds(30));
+                    database.StringSetAsync(t.ToString(), "test", TimeSpan.FromSeconds(30)).Wait();
                 }, i));
             }
 
             Task.WaitAll(tasks.ToArray());
+
+            Thread.Sleep(2000);
         }
     }
 }
