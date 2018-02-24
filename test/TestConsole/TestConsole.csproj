@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net462</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ecommon.autofac" Version="2.5.0" />
+    <PackageReference Include="ecommon.jsonnet" Version="2.5.0" />
+    <PackageReference Include="ecommon.log4net" Version="2.5.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ENode.Lock.Redis\ENode.Lock.Redis.csproj" />
+  </ItemGroup>
+</Project>

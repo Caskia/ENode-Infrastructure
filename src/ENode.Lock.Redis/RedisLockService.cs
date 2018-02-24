@@ -1,9 +1,9 @@
 ﻿using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Utilities;
-using ENode.Infrastructure;
 using StackExchange.Redis;
 using System;
+using System.Threading.Tasks;
 
 namespace ENode.Lock.Redis
 {
@@ -14,9 +14,9 @@ namespace ENode.Lock.Redis
         private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
         private ILogger _logger;
+        private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
-        private IDatabase _redisDatabase;
         private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(30);
 
         #endregion Private Variables
@@ -33,6 +33,19 @@ namespace ENode.Lock.Redis
             using (var redisLock = RedisLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
             {
                 action();
+            }
+        }
+
+        public async Task ExecuteInLockAsync(string lockKey, Action action)
+        {
+            var redisLock = await RedisLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            try
+            {
+                action();
+            }
+            finally
+            {
+                await redisLock.DisposeAsync();
             }
         }
 

@@ -1,6 +1,5 @@
 ﻿using ECommon.Components;
 using ENode.Configurations;
-using ENode.Infrastructure;
 using System;
 
 namespace ENode.Lock.Redis
