@@ -23,30 +23,27 @@ namespace ENode.EventStore.MongoDb
 
         #region Public Methods
 
-        public Task<AsyncTaskResult<int>> GetPublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId)
+        public async Task<AsyncTaskResult<int>> GetPublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId)
         {
-            return _ioHelper.TryIOFuncAsync(async () =>
+            try
             {
-                try
-                {
-                    var builder = Builders<PublishedVersion>.Filter;
-                    var filter = builder.Eq(e => e.ProcessorName, processorName) & builder.Eq(e => e.AggregateRootId, aggregateRootId);
-                    var result = await _publishedVersionStoreCollection.GetCollection(aggregateRootId).Find(filter).ToListAsync();
-                    var version = result.Select(r => r.Version).SingleOrDefault();
+                var builder = Builders<PublishedVersion>.Filter;
+                var filter = builder.Eq(e => e.ProcessorName, processorName) & builder.Eq(e => e.AggregateRootId, aggregateRootId);
+                var result = await _publishedVersionStoreCollection.GetCollection(aggregateRootId).Find(filter).ToListAsync();
+                var version = result.Select(r => r.Version).SingleOrDefault();
 
-                    return new AsyncTaskResult<int>(AsyncTaskStatus.Success, version);
-                }
-                catch (MongoQueryException ex)
-                {
-                    _logger.Error("Get aggregate published version has query exception.", ex);
-                    return new AsyncTaskResult<int>(AsyncTaskStatus.IOException, ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("Get aggregate published version has unknown exception.", ex);
-                    return new AsyncTaskResult<int>(AsyncTaskStatus.Failed, ex.Message);
-                }
-            }, "GetPublishedVersionAsync");
+                return new AsyncTaskResult<int>(AsyncTaskStatus.Success, version);
+            }
+            catch (MongoQueryException ex)
+            {
+                _logger.Error("Get aggregate published version has query exception.", ex);
+                return new AsyncTaskResult<int>(AsyncTaskStatus.IOException, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Get aggregate published version has unknown exception.", ex);
+                return new AsyncTaskResult<int>(AsyncTaskStatus.Failed, ex.Message);
+            }
         }
 
         public MongoDbPublishedVersionStore Initialize(
@@ -63,70 +60,67 @@ namespace ENode.EventStore.MongoDb
             return this;
         }
 
-        public Task<AsyncTaskResult> UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
+        public async Task<AsyncTaskResult> UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
         {
-            return _ioHelper.TryIOFuncAsync(async () =>
+            if (publishedVersion == 1)
             {
-                if (publishedVersion == 1)
+                var record = new PublishedVersion()
                 {
-                    var record = new PublishedVersion()
-                    {
-                        ProcessorName = processorName,
-                        AggregateRootTypeName = aggregateRootTypeName,
-                        AggregateRootId = aggregateRootId,
-                        Version = 1,
-                        CreatedOn = DateTime.UtcNow
-                    };
-                    try
-                    {
-                        await _publishedVersionStoreCollection.GetCollection(aggregateRootId).InsertOneAsync(record);
+                    ProcessorName = processorName,
+                    AggregateRootTypeName = aggregateRootTypeName,
+                    AggregateRootId = aggregateRootId,
+                    Version = 1,
+                    CreatedOn = DateTime.UtcNow
+                };
+                try
+                {
+                    await _publishedVersionStoreCollection.GetCollection(aggregateRootId).InsertOneAsync(record);
 
+                    return AsyncTaskResult.Success;
+                }
+                catch (MongoWriteException ex)
+                {
+                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.ProcessorName)) && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.Version)))
+                    {
                         return AsyncTaskResult.Success;
                     }
-                    catch (MongoWriteException ex)
-                    {
-                        if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.ProcessorName)) && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.Version)))
-                        {
-                            return AsyncTaskResult.Success;
-                        }
-                        _logger.Error("Insert aggregate published version has write exception.", ex);
-                        return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error("Insert aggregate published version has unknown exception.", ex);
-                        return new AsyncTaskResult(AsyncTaskStatus.Failed, ex.Message);
-                    }
+                    _logger.Error("Insert aggregate published version has write exception.", ex);
+                    return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
                 }
-                else
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        var builder = Builders<PublishedVersion>.Filter;
-                        var filter = builder.Eq(e => e.ProcessorName, processorName)
-                            & builder.Eq(e => e.AggregateRootId, aggregateRootId)
-                            & builder.Eq(e => e.Version, publishedVersion - 1);
-                        var update = Builders<PublishedVersion>.Update
-                            .Set(e => e.Version, publishedVersion)
-                            .Set(e => e.CreatedOn, DateTime.UtcNow);
-
-                        await _publishedVersionStoreCollection.GetCollection(aggregateRootId)
-                            .UpdateOneAsync(filter, update);
-
-                        return AsyncTaskResult.Success;
-                    }
-                    catch (MongoException ex)
-                    {
-                        _logger.Error("Update aggregate published version has update exception.", ex);
-                        return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error("Update aggregate published version has unknown exception.", ex);
-                        return new AsyncTaskResult(AsyncTaskStatus.Failed, ex.Message);
-                    }
+                    _logger.Error("Insert aggregate published version has unknown exception.", ex);
+                    return new AsyncTaskResult(AsyncTaskStatus.Failed, ex.Message);
                 }
-            }, "UpdatePublishedVersionAsync");
+            }
+            else
+            {
+                try
+                {
+                    var builder = Builders<PublishedVersion>.Filter;
+                    var filter = builder.Eq(e => e.ProcessorName, processorName)
+                        & builder.Eq(e => e.AggregateRootId, aggregateRootId)
+                        & builder.Eq(e => e.Version, publishedVersion - 1);
+                    var update = Builders<PublishedVersion>.Update
+                        .Set(e => e.Version, publishedVersion)
+                        .Set(e => e.CreatedOn, DateTime.UtcNow);
+
+                    await _publishedVersionStoreCollection.GetCollection(aggregateRootId)
+                        .UpdateOneAsync(filter, update);
+
+                    return AsyncTaskResult.Success;
+                }
+                catch (MongoException ex)
+                {
+                    _logger.Error("Update aggregate published version has update exception.", ex);
+                    return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("Update aggregate published version has unknown exception.", ex);
+                    return new AsyncTaskResult(AsyncTaskStatus.Failed, ex.Message);
+                }
+            }
         }
 
         #endregion Public Methods
