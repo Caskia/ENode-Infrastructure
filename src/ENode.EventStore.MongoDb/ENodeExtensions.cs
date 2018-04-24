@@ -48,6 +48,26 @@ namespace ENode.EventStore.MongoDb
         }
 
         /// <summary>
+        /// Initialize the MongoDbPublishedVersionStoreSync with option setting.
+        /// </summary>
+        /// <param name="eNodeConfiguration"></param>
+        /// <param name="mongoDbConfiguration"></param>
+        /// <param name="storeEntityName"></param>
+        /// <param name="collectionCount"></param>
+        /// <returns></returns>
+        public static ENodeConfiguration InitializeMongoDbPublishedVersionStoreSync(this ENodeConfiguration eNodeConfiguration,
+            MongoDbConfiguration mongoDbConfiguration,
+            string storeEntityName = "PublishedVersion",
+            int collectionCount = 1)
+        {
+            ((MongoDbPublishedVersionStoreSync)ObjectContainer.Resolve<IPublishedVersionStore>()).Initialize(
+                mongoDbConfiguration,
+                storeEntityName,
+                collectionCount);
+            return eNodeConfiguration;
+        }
+
+        /// <summary>
         /// Use the MongoDbEventStore as the IEventStore.
         /// </summary>
         /// <returns></returns>
@@ -64,6 +84,16 @@ namespace ENode.EventStore.MongoDb
         public static ENodeConfiguration UseMongoDbPublishedVersionStore(this ENodeConfiguration eNodeConfiguration)
         {
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IPublishedVersionStore, MongoDbPublishedVersionStore>();
+            return eNodeConfiguration;
+        }
+
+        /// <summary>
+        /// Use the MongoDbPublishedVersionStoreSync as the IPublishedVersionStore.
+        /// </summary>
+        /// <returns></returns>
+        public static ENodeConfiguration UseMongoDbPublishedVersionStoreSync(this ENodeConfiguration eNodeConfiguration)
+        {
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IPublishedVersionStore, MongoDbPublishedVersionStoreSync>();
             return eNodeConfiguration;
         }
     }
