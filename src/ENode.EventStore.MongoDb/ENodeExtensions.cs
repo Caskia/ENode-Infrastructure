@@ -28,6 +28,26 @@ namespace ENode.EventStore.MongoDb
         }
 
         /// <summary>
+        /// Initialize the MongoDbEventStoreSync with option setting.
+        /// </summary>
+        /// <param name="eNodeConfiguration"></param>
+        /// <param name="mongoDbConfiguration"></param>
+        /// <param name="storeEntityName"></param>
+        /// <param name="collectionCount"></param>
+        /// <returns></returns>
+        public static ENodeConfiguration InitializeMongoDbEventStoreSync(this ENodeConfiguration eNodeConfiguration,
+            MongoDbConfiguration mongoDbConfiguration,
+            string storeEntityName = "EventStream",
+            int collectionCount = 1)
+        {
+            ((MongoDbEventStoreSync)ObjectContainer.Resolve<IEventStore>()).Initialize(
+                mongoDbConfiguration,
+                storeEntityName,
+                collectionCount);
+            return eNodeConfiguration;
+        }
+
+        /// <summary>
         /// Initialize the MongoDbPublishedVersionStore with option setting.
         /// </summary>
         /// <param name="eNodeConfiguration"></param>
@@ -74,6 +94,16 @@ namespace ENode.EventStore.MongoDb
         public static ENodeConfiguration UseMongoDbEventStore(this ENodeConfiguration eNodeConfiguration)
         {
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IEventStore, MongoDbEventStore>();
+            return eNodeConfiguration;
+        }
+
+        /// <summary>
+        /// Use the MongoDbEventStoreSync as the IEventStore.
+        /// </summary>
+        /// <returns></returns>
+        public static ENodeConfiguration UseMongoDbEventStoreSync(this ENodeConfiguration eNodeConfiguration)
+        {
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IEventStore, MongoDbEventStoreSync>();
             return eNodeConfiguration;
         }
 
