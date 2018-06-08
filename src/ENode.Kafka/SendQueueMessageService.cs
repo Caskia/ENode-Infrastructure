@@ -1,12 +1,9 @@
 ﻿using Confluent.Kafka;
-using Confluent.Kafka.Serialization;
 using ECommon.Components;
 using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Serializing;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka
