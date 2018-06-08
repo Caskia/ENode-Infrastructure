@@ -15,7 +15,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.EventStore.MongoDb.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.Lock.Redis.Tests", "test\ENode.Lock.Redis.Tests\ENode.Lock.Redis.Tests.csproj", "{7CE1505E-B366-4AB7-AF0D-91D975D9B586}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "test\TestConsole\TestConsole.csproj", "{75134C1C-F943-4FCF-BD86-E436E1651E19}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestConsole", "test\TestConsole\TestConsole.csproj", "{75134C1C-F943-4FCF-BD86-E436E1651E19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.Kafka", "src\ENode.Kafka\ENode.Kafka.csproj", "{33BEB292-6702-4A64-A642-42E729F53882}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -43,6 +45,10 @@ Global
 		{75134C1C-F943-4FCF-BD86-E436E1651E19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75134C1C-F943-4FCF-BD86-E436E1651E19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75134C1C-F943-4FCF-BD86-E436E1651E19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33BEB292-6702-4A64-A642-42E729F53882}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33BEB292-6702-4A64-A642-42E729F53882}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33BEB292-6702-4A64-A642-42E729F53882}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33BEB292-6702-4A64-A642-42E729F53882}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +59,7 @@ Global
 		{B1FD28C7-1F13-4817-ACC0-649A7B65A276} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 		{7CE1505E-B366-4AB7-AF0D-91D975D9B586} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 		{75134C1C-F943-4FCF-BD86-E436E1651E19} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
+		{33BEB292-6702-4A64-A642-42E729F53882} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5674F7FB-D3F7-43F3-B00F-B514DBF892D5}
