@@ -131,6 +131,10 @@ namespace ENode.Kafka
             {
                 _commandResultProcessor.Start();
             }
+
+            _producer.OnLog += (_, info) => _logger.Info($"ENode CommandService: {info}");
+            _producer.OnError += (_, error) => _logger.Error($"ENode CommandService has an error: {error}");
+
             return this;
         }
 

@@ -26,6 +26,7 @@ namespace ENode.Kafka
         private SendReplyService _sendReplyService;
         private ITypeNameProvider _typeNameProvider;
         private bool isStopped = false;
+
         public Consumer<Ignore, string> Consumer { get { return _consumer; } }
 
         public CommandConsumer InitializeENode()
