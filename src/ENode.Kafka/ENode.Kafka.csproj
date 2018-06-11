@@ -18,4 +18,9 @@
     <PackageReference Include="Confluent.Kafka" Version="0.11.4" />
     <PackageReference Include="ENode" Version="2.8.8" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DomainEvent\" />
+    <Folder Include="PublishExceptions\" />
+  </ItemGroup>
 </Project>
