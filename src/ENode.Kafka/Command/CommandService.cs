@@ -64,7 +64,7 @@ namespace ENode.Kafka
                 var taskCompletionSource = new TaskCompletionSource<AsyncTaskResult<CommandResult>>();
                 _commandResultProcessor.RegisterProcessingCommand(command, commandReturnType, taskCompletionSource);
 
-                var result = await _sendMessageService.SendMessageAsync(_producer, BuildCommandMessage(command, true), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null).ConfigureAwait(false);
+                var result = await _sendMessageService.SendMessageAsync(_producer, CreateKafaMessage(command, true), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null).ConfigureAwait(false);
                 if (result.Status == AsyncTaskStatus.Success)
                 {
                     return await taskCompletionSource.Task.ConfigureAwait(false);
@@ -100,14 +100,14 @@ namespace ENode.Kafka
 
         public void Send(ICommand command)
         {
-            _sendMessageService.SendMessage(_producer, BuildCommandMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
+            _sendMessageService.SendMessage(_producer, CreateKafaMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
         }
 
         public Task<AsyncTaskResult> SendAsync(ICommand command)
         {
             try
             {
-                return _sendMessageService.SendMessageAsync(_producer, BuildCommandMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
+                return _sendMessageService.SendMessageAsync(_producer, CreateKafaMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
             }
             catch (Exception ex)
             {
@@ -138,7 +138,7 @@ namespace ENode.Kafka
             return this;
         }
 
-        private KafkaMessage BuildCommandMessage(ICommand command, bool needReply = false)
+        private KafkaMessage CreateKafaMessage(ICommand command, bool needReply = false)
         {
             Ensure.NotNull(command.AggregateRootId, "aggregateRootId");
             var commandData = _jsonSerializer.Serialize(command);

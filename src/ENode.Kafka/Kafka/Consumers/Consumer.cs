@@ -1,0 +1,132 @@
+﻿using Confluent.Kafka;
+using Confluent.Kafka.Serialization;
+using ECommon.Components;
+using ECommon.Logging;
+using ECommon.Scheduling;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace ENode.Kafka.Consumers
+{
+    public class Consumer
+    {
+        #region Private Variables
+
+        private readonly ILogger _logger;
+        private readonly ConcurrentDictionary<string, ProcessQueue<Ignore, string>> _messageConsumingQueue;
+        private readonly ConcurrentDictionary<string, ProcessQueue<Ignore, string>> _messageRetryQueue;
+        private readonly Worker _pollingMessageWorker;
+        private readonly IScheduleService _scheduleService;
+        private Consumer<Ignore, string> _kafkaConsumer;
+        private IMessageHandler<Ignore, string> _messageHandler;
+
+        #endregion Private Variables
+
+        #region Public Variables
+
+        public Action<object, Message> OnConsumeError;
+        public Action<object, Error> OnError;
+        public Action<object, LogMessage> OnLog;
+
+        #endregion Public Variables
+
+        public Consumer(ConsumerSetting setting)
+        {
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            _scheduleService = ObjectContainer.Resolve<IScheduleService>();
+
+            _pollingMessageWorker = new Worker("PollingMessage", () => _kafkaConsumer.Poll(TimeSpan.FromMilliseconds(100)));
+
+            InitializeKafkaConsumer(setting);
+        }
+
+        #region Public Methods
+
+        public Consumer SetMessageHandler(IMessageHandler<Ignore, string> messageHandler)
+        {
+            _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+            return this;
+        }
+
+        public void Start()
+        {
+            if (_messageHandler == null)
+            {
+                throw new Exception("Cannot start as no messageHandler was set, please call SetMessageHandler first.");
+            }
+
+            RegisterKafkaConsumerEvent();
+
+            _pollingMessageWorker.Start();
+
+            _logger.InfoFormat("{0} startted.", GetType().Name);
+        }
+
+        public void Stop()
+        {
+            _kafkaConsumer.Dispose();
+
+            _pollingMessageWorker.Stop();
+
+            _logger.InfoFormat("{0} stopped.", GetType().Name);
+        }
+
+        public Consumer Subscribe(string topic)
+        {
+            _kafkaConsumer.Subscribe(topic);
+            return this;
+        }
+
+        public Consumer Subscribe(IList<string> topics)
+        {
+            _kafkaConsumer.Subscribe(topics);
+            return this;
+        }
+
+        #endregion Public Methods
+
+        #region Private Methods
+
+        private void InitializeKafkaConsumer(ConsumerSetting setting)
+        {
+            var kafkaConfig = new Dictionary<string, object>()
+            {
+                { "enable.auto.commit", false },
+                { "session.timeout.ms", 6000 },
+                { "auto.offset.reset", "smallest" }
+            };
+
+            if (!string.IsNullOrEmpty(setting.GroupName))
+            {
+                kafkaConfig.Add("group.id", setting.GroupName);
+            }
+
+            kafkaConfig.Add("bootstrap.servers", string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port)));
+
+            _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig, null, new StringDeserializer(Encoding.UTF8));
+        }
+
+        private void RegisterKafkaConsumerEvent()
+        {
+            if (OnError != null)
+            {
+                _kafkaConsumer.OnError += (sender, error) => { OnError(sender, error); };
+            }
+
+            if (OnConsumeError != null)
+            {
+                _kafkaConsumer.OnConsumeError += (sender, message) => { OnConsumeError(sender, message); };
+            }
+
+            if (OnLog != null)
+            {
+                _kafkaConsumer.OnLog += (sender, message) => { OnLog(sender, message); };
+            }
+        }
+
+        #endregion Private Methods
+    }
+}
