@@ -15,9 +15,8 @@ namespace ENode.Kafka.Consumers
     {
         #region Private Variables
 
+        private readonly ConsumingMessageService<Ignore, string> _consumingMessageService;
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<string, ProcessQueue<Ignore, string>> _messageConsumingQueue;
-        private readonly ConcurrentDictionary<string, ProcessQueue<Ignore, string>> _messageRetryQueue;
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
         private Consumer<Ignore, string> _kafkaConsumer;
@@ -38,16 +37,18 @@ namespace ENode.Kafka.Consumers
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
 
+            InitializeKafkaConsumer(setting);
+
             _pollingMessageWorker = new Worker("PollingMessage", () => _kafkaConsumer.Poll(TimeSpan.FromMilliseconds(100)));
 
-            InitializeKafkaConsumer(setting);
+            _consumingMessageService = new ConsumingMessageService<Ignore, string>(_kafkaConsumer);
         }
 
         #region Public Methods
 
         public Consumer SetMessageHandler(IMessageHandler<Ignore, string> messageHandler)
         {
-            _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+            _consumingMessageService.SetMessageHandler(messageHandler);
             return this;
         }
 
@@ -125,6 +126,8 @@ namespace ENode.Kafka.Consumers
             {
                 _kafkaConsumer.OnLog += (sender, message) => { OnLog(sender, message); };
             }
+
+            _kafkaConsumer.OnMessage += (sender, message) => { _consumingMessageService.EnterConsumingQueue(message); };
         }
 
         #endregion Private Methods
