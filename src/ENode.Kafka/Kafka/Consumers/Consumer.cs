@@ -4,7 +4,6 @@ using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +14,7 @@ namespace ENode.Kafka.Consumers
     {
         #region Private Variables
 
-        private readonly ConsumingMessageService<Ignore, string> _consumingMessageService;
+        private readonly ConsumingMessageService _consumingMessageService;
         private readonly ILogger _logger;
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
@@ -32,6 +31,14 @@ namespace ENode.Kafka.Consumers
 
         #endregion Public Variables
 
+        #region Public Properties
+
+        public ConsumerSetting Setting { get; private set; }
+
+        public bool Stopped { get; private set; }
+
+        #endregion Public Properties
+
         public Consumer(ConsumerSetting setting)
         {
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
@@ -41,7 +48,7 @@ namespace ENode.Kafka.Consumers
 
             _pollingMessageWorker = new Worker("PollingMessage", () => _kafkaConsumer.Poll(TimeSpan.FromMilliseconds(100)));
 
-            _consumingMessageService = new ConsumingMessageService<Ignore, string>(_kafkaConsumer);
+            _consumingMessageService = new ConsumingMessageService(this);
         }
 
         #region Public Methods
@@ -54,11 +61,6 @@ namespace ENode.Kafka.Consumers
 
         public void Start()
         {
-            if (_messageHandler == null)
-            {
-                throw new Exception("Cannot start as no messageHandler was set, please call SetMessageHandler first.");
-            }
-
             RegisterKafkaConsumerEvent();
 
             _pollingMessageWorker.Start();
@@ -68,6 +70,7 @@ namespace ENode.Kafka.Consumers
 
         public void Stop()
         {
+            Stopped = true;
             _kafkaConsumer.Dispose();
 
             _pollingMessageWorker.Stop();
@@ -93,6 +96,8 @@ namespace ENode.Kafka.Consumers
 
         private void InitializeKafkaConsumer(ConsumerSetting setting)
         {
+            Setting = setting;
+
             var kafkaConfig = new Dictionary<string, object>()
             {
                 { "enable.auto.commit", false },

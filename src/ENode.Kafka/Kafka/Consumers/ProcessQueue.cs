@@ -14,6 +14,27 @@ namespace ENode.Kafka.Consumers
         private int _messageCount = 0;
         private long _previousConsumedQueueOffset = -1L;
 
+        public void AddMessage(Message<TKey, TValue> consumingMessage)
+        {
+            lock (_lockObj)
+            {
+                if (_messageDict.ContainsKey(consumingMessage.Offset.Value))
+                {
+                    return;
+                }
+                _messageDict[consumingMessage.Offset.Value] = consumingMessage;
+                if (_maxQueueOffset == -1 && consumingMessage.Offset.Value >= 0)
+                {
+                    _maxQueueOffset = consumingMessage.Offset.Value;
+                }
+                else if (consumingMessage.Offset.Value > _maxQueueOffset)
+                {
+                    _maxQueueOffset = consumingMessage.Offset.Value;
+                }
+                _messageCount++;
+            }
+        }
+
         public void AddMessages(IEnumerable<Message<TKey, TValue>> consumingMessages)
         {
             lock (_lockObj)
@@ -48,7 +69,7 @@ namespace ENode.Kafka.Consumers
             return _messageCount;
         }
 
-        public void RemoveMessage(Message consumingMessage)
+        public void RemoveMessage(Message<TKey, TValue> consumingMessage)
         {
             lock (_lockObj)
             {
