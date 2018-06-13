@@ -15,10 +15,9 @@ namespace ENode.Kafka
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private ITopicProvider<IApplicationMessage> _messageTopicProvider;
-        private Producer _producer;
         private SendQueueMessageService _sendMessageService;
         private ITypeNameProvider _typeNameProvider;
-        public Producer Producer { get { return _producer; } }
+        public Producer Producer { get; private set; }
 
         public ApplicationMessagePublisher InitializeENode()
         {
@@ -33,27 +32,27 @@ namespace ENode.Kafka
         public ApplicationMessagePublisher InitializeKafka(ProducerSetting producerSetting, Dictionary<string, object> kafkaConfig = null)
         {
             InitializeENode();
-            _producer = new Producer(producerSetting);
+            Producer = new Producer(producerSetting);
             return this;
         }
 
         public Task<AsyncTaskResult> PublishAsync(IApplicationMessage message)
         {
             var queueMessage = CreateKafkaMessage(message);
-            return _sendMessageService.SendMessageAsync(_producer, queueMessage, message.GetRoutingKey() ?? message.Id, message.Id, null);
+            return _sendMessageService.SendMessageAsync(Producer, queueMessage, message.GetRoutingKey() ?? message.Id, message.Id, null);
         }
 
         public ApplicationMessagePublisher Shutdown()
         {
-            _producer.Stop();
+            Producer.Stop();
             return this;
         }
 
         public ApplicationMessagePublisher Start()
         {
-            _producer.OnLog = (_, info) => _logger.Info($"ENode ApplicationMessagePublisher: {info}");
-            _producer.OnError = (_, error) => _logger.Error($"ENode ApplicationMessagePublisher has an error: {error}");
-            _producer.Start();
+            Producer.OnLog = (_, info) => _logger.Info($"ENode ApplicationMessagePublisher: {info}");
+            Producer.OnError = (_, error) => _logger.Error($"ENode ApplicationMessagePublisher has an error: {error}");
+            Producer.Start();
 
             return this;
         }
