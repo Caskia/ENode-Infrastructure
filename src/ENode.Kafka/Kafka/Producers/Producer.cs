@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ENode.Kafka.Producers
 {
@@ -46,6 +47,11 @@ namespace ENode.Kafka.Producers
 
         #region Public Methods
 
+        public async Task<Message<string, string>> ProduceAsync(string topic, string routingKey, string content)
+        {
+            return await _kafkaProducer.ProduceAsync(topic, routingKey, content);
+        }
+
         public void Start()
         {
             RegisterKafkaProducerEvent();
@@ -67,7 +73,7 @@ namespace ENode.Kafka.Producers
 
         private void InitializeKafkaProducer(ProducerSetting setting)
         {
-            Setting = setting;
+            Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 
             var kafkaConfig = new Dictionary<string, object>()
             {

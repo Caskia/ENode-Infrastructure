@@ -1,8 +1,8 @@
-﻿using Confluent.Kafka;
-using ECommon.Components;
+﻿using ECommon.Components;
 using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Serializing;
+using ENode.Kafka.Producers;
 using System;
 using System.Threading.Tasks;
 
@@ -21,7 +21,7 @@ namespace ENode.Kafka
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
         }
 
-        public void SendMessage(Producer<string, string> producer, KafkaMessage message, string routingKey, string messageId, string version)
+        public void SendMessage(Producer producer, KafkaMessage message, string routingKey, string messageId, string version)
         {
             try
             {
@@ -44,7 +44,7 @@ namespace ENode.Kafka
             }
         }
 
-        public async Task<AsyncTaskResult> SendMessageAsync(Producer<string, string> producer, KafkaMessage message, string routingKey, string messageId, string version)
+        public async Task<AsyncTaskResult> SendMessageAsync(Producer producer, KafkaMessage message, string routingKey, string messageId, string version)
         {
             try
             {

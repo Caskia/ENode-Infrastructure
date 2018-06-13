@@ -1,6 +1,4 @@
-﻿using Confluent.Kafka;
-using Confluent.Kafka.Serialization;
-using ECommon.Components;
+﻿using ECommon.Components;
 using ECommon.Extensions;
 using ECommon.IO;
 using ECommon.Logging;
@@ -8,8 +6,8 @@ using ECommon.Serializing;
 using ECommon.Utilities;
 using ENode.Commanding;
 using ENode.Infrastructure;
+using ENode.Kafka.Producers;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,7 +21,7 @@ namespace ENode.Kafka
         private IOHelper _ioHelper;
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
-        private Producer<string, string> _producer;
+        private Producer _producer;
         private SendQueueMessageService _sendMessageService;
         private ITypeNameProvider _typeNameProvider;
 
@@ -90,11 +88,11 @@ namespace ENode.Kafka
             return this;
         }
 
-        public CommandService InitializeKafka(CommandResultProcessor commandResultProcessor = null, Dictionary<string, object> kafkaConfig = null)
+        public CommandService InitializeKafka(ProducerSetting producerSetting, CommandResultProcessor commandResultProcessor = null)
         {
             InitializeENode();
             _commandResultProcessor = commandResultProcessor;
-            _producer = new Producer<string, string>(kafkaConfig, new StringSerializer(Encoding.UTF8), new StringSerializer(Encoding.UTF8));
+            _producer = new Producer(producerSetting);
             return this;
         }
 
@@ -117,11 +115,12 @@ namespace ENode.Kafka
 
         public CommandService Shutdown()
         {
-            _producer.Dispose();
+            _producer.Stop();
             if (_commandResultProcessor != null)
             {
                 _commandResultProcessor.Shutdown();
             }
+
             return this;
         }
 
@@ -131,9 +130,9 @@ namespace ENode.Kafka
             {
                 _commandResultProcessor.Start();
             }
-
-            _producer.OnLog += (_, info) => _logger.Info($"ENode CommandService: {info}");
-            _producer.OnError += (_, error) => _logger.Error($"ENode CommandService has an error: {error}");
+            _producer.OnLog = (_, info) => _logger.Info($"ENode CommandService: {info}");
+            _producer.OnError = (_, error) => _logger.Error($"ENode CommandService has an error: {error}");
+            _producer.Start();
 
             return this;
         }

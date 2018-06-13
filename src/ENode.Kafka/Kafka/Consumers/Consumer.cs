@@ -135,7 +135,7 @@ namespace ENode.Kafka.Consumers
 
         private void InitializeKafkaConsumer(ConsumerSetting setting)
         {
-            Setting = setting;
+            Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 
             var kafkaConfig = new Dictionary<string, object>()
             {

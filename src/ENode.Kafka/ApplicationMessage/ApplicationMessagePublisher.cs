@@ -1,10 +1,9 @@
-﻿using Confluent.Kafka;
-using Confluent.Kafka.Serialization;
-using ECommon.Components;
+﻿using ECommon.Components;
 using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Infrastructure;
+using ENode.Kafka.Producers;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,10 +15,10 @@ namespace ENode.Kafka
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private ITopicProvider<IApplicationMessage> _messageTopicProvider;
-        private Producer<string, string> _producer;
+        private Producer _producer;
         private SendQueueMessageService _sendMessageService;
         private ITypeNameProvider _typeNameProvider;
-        public Producer<string, string> Producer { get { return _producer; } }
+        public Producer Producer { get { return _producer; } }
 
         public ApplicationMessagePublisher InitializeENode()
         {
@@ -31,10 +30,10 @@ namespace ENode.Kafka
             return this;
         }
 
-        public ApplicationMessagePublisher InitializeKafka(Dictionary<string, object> kafkaConfig = null)
+        public ApplicationMessagePublisher InitializeKafka(ProducerSetting producerSetting, Dictionary<string, object> kafkaConfig = null)
         {
             InitializeENode();
-            _producer = new Producer<string, string>(kafkaConfig, new StringSerializer(Encoding.UTF8), new StringSerializer(Encoding.UTF8));
+            _producer = new Producer(producerSetting);
             return this;
         }
 
@@ -46,14 +45,15 @@ namespace ENode.Kafka
 
         public ApplicationMessagePublisher Shutdown()
         {
-            _producer.Dispose();
+            _producer.Stop();
             return this;
         }
 
         public ApplicationMessagePublisher Start()
         {
-            _producer.OnLog += (_, info) => _logger.Info($"ENode ApplicationMessagePublisher: {info}");
-            _producer.OnError += (_, error) => _logger.Error($"ENode ApplicationMessagePublisher has an error: {error}");
+            _producer.OnLog = (_, info) => _logger.Info($"ENode ApplicationMessagePublisher: {info}");
+            _producer.OnError = (_, error) => _logger.Error($"ENode ApplicationMessagePublisher has an error: {error}");
+            _producer.Start();
 
             return this;
         }
