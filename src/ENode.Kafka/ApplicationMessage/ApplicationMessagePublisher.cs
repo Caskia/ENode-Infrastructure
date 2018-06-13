@@ -57,13 +57,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        private KafkaMessage CreateKafkaMessage(IApplicationMessage message)
+        private EnodeMessage CreateKafkaMessage(IApplicationMessage message)
         {
             var topic = _messageTopicProvider.GetTopic(message);
             var data = _jsonSerializer.Serialize(message);
-            return new KafkaMessage(
+            return new EnodeMessage(
                 topic,
-                (int)KafkaMessageTypeCode.ApplicationMessage,
+                (int)EnodeMessageTypeCode.ApplicationMessage,
                 Encoding.UTF8.GetBytes(data),
                 _typeNameProvider.GetTypeName(message.GetType()));
         }

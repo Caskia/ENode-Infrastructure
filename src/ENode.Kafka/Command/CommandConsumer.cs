@@ -1,33 +1,45 @@
-﻿using Confluent.Kafka;
-using Confluent.Kafka.Serialization;
-using ECommon.Components;
+﻿using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Commanding;
 using ENode.Domain;
 using ENode.Infrastructure;
+using ENode.Kafka.Consumers;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
+using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
+using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
+using KafkaMessage = Confluent.Kafka.Message<Confluent.Kafka.Ignore, string>;
 
 namespace ENode.Kafka
 {
-    public class CommandConsumer
+    public class CommandConsumer : IKafkaMessageHandler
     {
         private const string DefaultCommandConsumerGroup = "CommandConsumerGroup";
         private IAggregateStorage _aggregateStorage;
         private ICommandProcessor _commandProcessor;
-        private Consumer<Ignore, string> _consumer;
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private IRepository _repository;
         private SendReplyService _sendReplyService;
         private ITypeNameProvider _typeNameProvider;
-        private bool isStopped = false;
 
-        public Consumer<Ignore, string> Consumer { get { return _consumer; } }
+        public Consumer Consumer { get; private set; }
+
+        void IKafkaMessageHandler.Handle(KafkaMessage message, IKafkaMessageContext context)
+        {
+            var commandItems = new Dictionary<string, string>();
+            var enodeMessage = _jsonSerializer.Deserialize<EnodeMessage>(message.Value);
+            var commandMessage = _jsonSerializer.Deserialize<CommandMessage>(Encoding.UTF8.GetString(enodeMessage.Body));
+            var commandType = _typeNameProvider.GetType(enodeMessage.Tag);
+            var command = _jsonSerializer.Deserialize(commandMessage.CommandData, commandType) as ICommand;
+            var commandExecuteContext = new CommandExecuteContext(_repository, _aggregateStorage, message, context, commandMessage, _sendReplyService);
+            commandItems["CommandReplyAddress"] = commandMessage.ReplyAddress;
+            _logger.InfoFormat("ENode command message received, messageId: {0}, aggregateRootId: {1}", command.Id, command.AggregateRootId);
+            _commandProcessor.Process(new ProcessingCommand(command, commandExecuteContext, commandItems));
+        }
 
         public CommandConsumer InitializeENode()
         {
@@ -41,23 +53,18 @@ namespace ENode.Kafka
             return this;
         }
 
-        public CommandConsumer InitializeKafka(Dictionary<string, object> kafkaConfig = null)
+        public CommandConsumer InitializeKafka(ConsumerSetting consumerSetting)
         {
             InitializeENode();
 
-            if (!kafkaConfig.ContainsKey("group.id"))
-            {
-                kafkaConfig.Add("group.id", DefaultCommandConsumerGroup);
-            }
-            _consumer = new Consumer<Ignore, string>(kafkaConfig, null, new StringDeserializer(Encoding.UTF8));
+            Consumer = new Consumer(consumerSetting);
 
             return this;
         }
 
         public CommandConsumer Shutdown()
         {
-            isStopped = true;
-            _consumer.Dispose();
+            Consumer.Stop();
             _sendReplyService.Stop();
             return this;
         }
@@ -66,63 +73,37 @@ namespace ENode.Kafka
         {
             _sendReplyService.Start();
 
-            _consumer.OnError += (_, error) => _logger.Error($"ENode CommandConsumer has an error: {error}");
-
-            _consumer.OnConsumeError += (_, error) => _logger.Error($"ENode CommandConsumer consume message has an error: {error}");
-
-            Task.Factory.StartNew(() =>
-            {
-                while (!isStopped)
-                {
-                    if (!_consumer.Consume(out var message, TimeSpan.FromMilliseconds(100)))
-                    {
-                        continue;
-                    }
-
-                    HandleMessage(message);
-                }
-            });
+            Consumer.OnError += (_, error) => _logger.Error($"ENode CommandConsumer has an error: {error}");
+            Consumer.OnConsumeError += (_, error) => _logger.Error($"ENode CommandConsumer consume message has an error: {error}");
+            Consumer.Start();
 
             return this;
         }
 
         public CommandConsumer Subscribe(string topic)
         {
-            _consumer.Subscribe(topic);
+            Consumer.Subscribe(topic);
             return this;
         }
 
-        public CommandConsumer Subscribe(IEnumerable<string> topics)
+        public CommandConsumer Subscribe(IList<string> topics)
         {
-            _consumer.Subscribe(topics);
+            Consumer.Subscribe(topics);
             return this;
-        }
-
-        private void HandleMessage(Message<Ignore, string> message)
-        {
-            var commandItems = new Dictionary<string, string>();
-            var kafkaMessage = _jsonSerializer.Deserialize<KafkaMessage>(message.Value);
-            var commandMessage = _jsonSerializer.Deserialize<CommandMessage>(Encoding.UTF8.GetString(kafkaMessage.Body));
-            var commandType = _typeNameProvider.GetType(kafkaMessage.Tag);
-            var command = _jsonSerializer.Deserialize(commandMessage.CommandData, commandType) as ICommand;
-            var commandExecuteContext = new CommandExecuteContext(_repository, _aggregateStorage, message, _consumer, commandMessage, _sendReplyService);
-            commandItems["CommandReplyAddress"] = commandMessage.ReplyAddress;
-            _logger.InfoFormat("ENode command message received, messageId: {0}, aggregateRootId: {1}", command.Id, command.AggregateRootId);
-            _commandProcessor.Process(new ProcessingCommand(command, commandExecuteContext, commandItems));
         }
 
         private class CommandExecuteContext : ICommandExecuteContext
         {
             private readonly IAggregateStorage _aggregateRootStorage;
             private readonly CommandMessage _commandMessage;
-            private readonly Consumer<Ignore, string> _consumer;
-            private readonly Message<Ignore, string> _message;
+            private readonly KafkaMessage _message;
+            private readonly IKafkaMessageContext _messageContext;
             private readonly IRepository _repository;
             private readonly SendReplyService _sendReplyService;
             private readonly ConcurrentDictionary<string, IAggregateRoot> _trackingAggregateRootDict;
             private string _result;
 
-            public CommandExecuteContext(IRepository repository, IAggregateStorage aggregateRootStorage, Message<Ignore, string> message, Consumer<Ignore, string> consumer, CommandMessage commandMessage, SendReplyService sendReplyService)
+            public CommandExecuteContext(IRepository repository, IAggregateStorage aggregateRootStorage, KafkaMessage message, IKafkaMessageContext messageContext, CommandMessage commandMessage, SendReplyService sendReplyService)
             {
                 _trackingAggregateRootDict = new ConcurrentDictionary<string, IAggregateRoot>();
                 _repository = repository;
@@ -130,7 +111,7 @@ namespace ENode.Kafka
                 _sendReplyService = sendReplyService;
                 _message = message;
                 _commandMessage = commandMessage;
-                _consumer = consumer;
+                _messageContext = messageContext;
             }
 
             public void Add(IAggregateRoot aggregateRoot)
@@ -194,7 +175,7 @@ namespace ENode.Kafka
 
             public void OnCommandExecuted(CommandResult commandResult)
             {
-                _consumer.CommitAsync(_message);
+                _messageContext.OnMessageHandled(_message);
 
                 if (string.IsNullOrEmpty(_commandMessage.ReplyAddress))
                 {

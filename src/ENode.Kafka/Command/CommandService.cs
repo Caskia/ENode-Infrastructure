@@ -137,7 +137,7 @@ namespace ENode.Kafka
             return this;
         }
 
-        private KafkaMessage CreateKafaMessage(ICommand command, bool needReply = false)
+        private EnodeMessage CreateKafaMessage(ICommand command, bool needReply = false)
         {
             Ensure.NotNull(command.AggregateRootId, "aggregateRootId");
             var commandData = _jsonSerializer.Serialize(command);
@@ -148,9 +148,9 @@ namespace ENode.Kafka
                 CommandData = commandData,
                 ReplyAddress = replyAddress
             });
-            return new KafkaMessage(
+            return new EnodeMessage(
                 topic,
-                (int)KafkaMessageTypeCode.CommandMessage,
+                (int)EnodeMessageTypeCode.CommandMessage,
                 Encoding.UTF8.GetBytes(messageData),
                 _typeNameProvider.GetTypeName(command.GetType()));
         }

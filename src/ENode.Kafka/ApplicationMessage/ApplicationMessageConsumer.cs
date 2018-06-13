@@ -5,6 +5,8 @@ using ENode.Infrastructure;
 using ENode.Kafka.Consumers;
 using System.Text;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
+using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
+using KafkaMessage = Confluent.Kafka.Message<Confluent.Kafka.Ignore, string>;
 
 namespace ENode.Kafka
 {
@@ -18,15 +20,15 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        void IKafkaMessageHandler.Handle(Confluent.Kafka.Message<Confluent.Kafka.Ignore, string> message, IMessageContext<Confluent.Kafka.Ignore, string> context)
+        void IKafkaMessageHandler.Handle(KafkaMessage message, IKafkaMessageContext context)
         {
-            //var kafkaMessage = _jsonSerializer.Deserialize<KafkaMessage>(message.Value);
-            //var applicationMessageType = _typeNameProvider.GetType(kafkaMessage.Tag);
-            //var applicationMessage = _jsonSerializer.Deserialize(Encoding.UTF8.GetString(kafkaMessage.Body), applicationMessageType) as IApplicationMessage;
-            //var processContext = new KafkaProcessContext(Consumer, message);
-            //var processingMessage = new ProcessingApplicationMessage(applicationMessage, processContext);
-            //_logger.InfoFormat("ENode application message received, messageId: {0}, routingKey: {1}", applicationMessage.Id, applicationMessage.GetRoutingKey());
-            //_processor.Process(processingMessage);
+            var enodeMessage = _jsonSerializer.Deserialize<EnodeMessage>(message.Value);
+            var applicationMessageType = _typeNameProvider.GetType(enodeMessage.Tag);
+            var applicationMessage = _jsonSerializer.Deserialize(Encoding.UTF8.GetString(enodeMessage.Body), applicationMessageType) as IApplicationMessage;
+            var processContext = new KafkaMessageProcessContext(message, context);
+            var processingMessage = new ProcessingApplicationMessage(applicationMessage, processContext);
+            _logger.InfoFormat("ENode application message received, messageId: {0}, routingKey: {1}", applicationMessage.Id, applicationMessage.GetRoutingKey());
+            _processor.Process(processingMessage);
         }
 
         public ApplicationMessageConsumer InitializeENode()
