@@ -7,12 +7,15 @@ namespace ENode.Kafka.Consumers
     {
         public ConsumerSetting()
         {
+            CommitConsumerOffsetInterval = 1000;
             GroupName = "DefaultGroup";
             MessageHandleMode = MessageHandleMode.Parallel;
             RetryMessageInterval = 1000;
         }
 
         public IList<IPEndPoint> BrokerEndPoints { get; set; } = new List<IPEndPoint>();
+
+        public int CommitConsumerOffsetInterval { get; set; }
 
         public string GroupName { get; set; }
 

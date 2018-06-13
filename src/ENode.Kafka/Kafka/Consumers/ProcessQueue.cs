@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Confluent.Kafka;
+﻿using Confluent.Kafka;
 using ECommon.Extensions;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ENode.Kafka.Consumers
 {
@@ -18,20 +18,7 @@ namespace ENode.Kafka.Consumers
         {
             lock (_lockObj)
             {
-                if (_messageDict.ContainsKey(consumingMessage.Offset.Value))
-                {
-                    return;
-                }
-                _messageDict[consumingMessage.Offset.Value] = consumingMessage;
-                if (_maxQueueOffset == -1 && consumingMessage.Offset.Value >= 0)
-                {
-                    _maxQueueOffset = consumingMessage.Offset.Value;
-                }
-                else if (consumingMessage.Offset.Value > _maxQueueOffset)
-                {
-                    _maxQueueOffset = consumingMessage.Offset.Value;
-                }
-                _messageCount++;
+                AddMessageWithoutLock(consumingMessage);
             }
         }
 
@@ -41,20 +28,7 @@ namespace ENode.Kafka.Consumers
             {
                 foreach (var consumingMessage in consumingMessages)
                 {
-                    if (_messageDict.ContainsKey(consumingMessage.Offset.Value))
-                    {
-                        continue;
-                    }
-                    _messageDict[consumingMessage.Offset.Value] = consumingMessage;
-                    if (_maxQueueOffset == -1 && consumingMessage.Offset.Value >= 0)
-                    {
-                        _maxQueueOffset = consumingMessage.Offset.Value;
-                    }
-                    else if (consumingMessage.Offset.Value > _maxQueueOffset)
-                    {
-                        _maxQueueOffset = consumingMessage.Offset.Value;
-                    }
-                    _messageCount++;
+                    AddMessageWithoutLock(consumingMessage);
                 }
             }
         }
@@ -108,6 +82,24 @@ namespace ENode.Kafka.Consumers
                 return true;
             }
             return false;
+        }
+
+        private void AddMessageWithoutLock(Message<TKey, TValue> consumingMessage)
+        {
+            if (_messageDict.ContainsKey(consumingMessage.Offset.Value))
+            {
+                return;
+            }
+            _messageDict[consumingMessage.Offset.Value] = consumingMessage;
+            if (_maxQueueOffset == -1 && consumingMessage.Offset.Value >= 0)
+            {
+                _maxQueueOffset = consumingMessage.Offset.Value;
+            }
+            else if (consumingMessage.Offset.Value > _maxQueueOffset)
+            {
+                _maxQueueOffset = consumingMessage.Offset.Value;
+            }
+            _messageCount++;
         }
     }
 }

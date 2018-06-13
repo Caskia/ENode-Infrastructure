@@ -15,7 +15,7 @@ namespace ENode.Kafka.Consumers
 
         private readonly Worker _consumeMessageWorker;
         private readonly BlockingCollection<Message<Ignore, string>> _consumeWaitingQueue;
-        private readonly ConcurrentDictionary<string, ProcessQueue<Ignore, string>> _consumingQueues;
+        private readonly ConcurrentDictionary<string, TopicPartitionProcessQueue<Ignore, string>> _consumingQueues;
         private readonly ILogger _logger;
         private readonly BlockingCollection<Message<Ignore, string>> _retryQueue;
         private readonly IScheduleService _scheduleService;
@@ -40,13 +40,14 @@ namespace ENode.Kafka.Consumers
         {
             _consumer = consumer;
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            _scheduleService = ObjectContainer.Resolve<IScheduleService>();
 
             if (_isSequentialConsume)
             {
                 _consumeWaitingQueue = new BlockingCollection<Message<Ignore, string>>();
                 _consumeMessageWorker = new Worker("ConsumeMessage", () => HandleMessage(_consumeWaitingQueue.Take()));
             }
-            _consumingQueues = new ConcurrentDictionary<string, ProcessQueue<Ignore, string>>();
+            _consumingQueues = new ConcurrentDictionary<string, TopicPartitionProcessQueue<Ignore, string>>();
             _retryQueue = new BlockingCollection<Message<Ignore, string>>();
         }
 
@@ -60,7 +61,7 @@ namespace ENode.Kafka.Consumers
             }
             else
             {
-                var queue = new ProcessQueue<Ignore, string>();
+                var queue = new TopicPartitionProcessQueue<Ignore, string>(message.Topic, message.Partition);
                 queue.AddMessage(message);
                 _consumingQueues.TryAdd(message.ToKeyString(), queue);
             }
@@ -92,6 +93,7 @@ namespace ENode.Kafka.Consumers
             }
 
             _scheduleService.StartTask("RetryMessage", RetryMessage, 1000, _consumer.Setting.RetryMessageInterval);
+            _scheduleService.StartTask("CommitOffsets", async () => { await CommitOffsetsAsync(); }, 1000, _consumer.Setting.CommitConsumerOffsetInterval);
 
             _logger.InfoFormat("{0} startted.", GetType().Name);
         }
@@ -104,6 +106,7 @@ namespace ENode.Kafka.Consumers
             }
 
             _scheduleService.StopTask("RetryMessage");
+            _scheduleService.StopTask("CommitOffsets");
 
             _logger.InfoFormat("{0} stopped.", GetType().Name);
         }
@@ -111,6 +114,22 @@ namespace ENode.Kafka.Consumers
         #endregion Public Methods
 
         #region Private Methods
+
+        private async Task CommitOffsetsAsync()
+        {
+            foreach (var consumerQueue in _consumingQueues)
+            {
+                var consumedOffset = consumerQueue.Value.GetConsumedQueueOffset();
+                if (consumedOffset >= 0)
+                {
+                    if (!consumerQueue.Value.TryUpdatePreviousConsumedQueueOffset(consumedOffset))
+                    {
+                        continue;
+                    }
+                    await _consumer.CommitConsumeOffsetAsync(consumerQueue.Value.Topic, consumerQueue.Value.Partition, consumedOffset);
+                }
+            }
+        }
 
         private void HandleMessage(object parameter)
         {

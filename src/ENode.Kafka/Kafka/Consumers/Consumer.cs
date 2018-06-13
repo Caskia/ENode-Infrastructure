@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ENode.Kafka.Consumers
 {
@@ -52,6 +53,41 @@ namespace ENode.Kafka.Consumers
         }
 
         #region Public Methods
+
+        public async Task CommitConsumeOffsetAsync(string topic, int partition, long offset)
+        {
+            try
+            {
+                await _kafkaConsumer.CommitAsync(new List<TopicPartitionOffset>()
+                {
+                    new TopicPartitionOffset(topic,partition,offset)
+                });
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug($"CommitConsumeOffset success, consumerGroup:{Setting.GroupName}, topic:{topic}, partition:{partition}, offset:{offset}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"CommitConsumeOffset has exception, consumerGroup:{Setting.GroupName}, topic:{topic}, partition:{partition}, offset:{offset}", ex);
+            }
+        }
+
+        public async Task CommitConsumeOffsetsAsync(List<(string, int, long)> topicPartitionOffset)
+        {
+            try
+            {
+                await _kafkaConsumer.CommitAsync(topicPartitionOffset.Select(t => new TopicPartitionOffset(t.Item1, t.Item2, t.Item3)));
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.Debug($"CommitConsumeOffsets success, consumerGroup:{Setting.GroupName}, TopicPartitionOffset:{string.Join(",", topicPartitionOffset.Select(t => $"topic:{t.Item1}, partition:{t.Item2}, offset:{t.Item3}"))}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"CommitConsumeOffsets has exception, consumerGroup:{Setting.GroupName}, TopicPartitionOffset:{string.Join(",", topicPartitionOffset.Select(t => $"topic:{t.Item1}, partition:{t.Item2}, offset:{t.Item3}"))}", ex);
+            }
+        }
 
         public Consumer SetMessageHandler(IMessageHandler<Ignore, string> messageHandler)
         {
