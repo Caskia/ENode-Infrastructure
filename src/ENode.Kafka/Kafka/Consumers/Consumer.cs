@@ -20,7 +20,6 @@ namespace ENode.Kafka.Consumers
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
         private Consumer<Ignore, string> _kafkaConsumer;
-        private IMessageHandler<Ignore, string> _messageHandler;
 
         #endregion Private Variables
 
@@ -40,6 +39,8 @@ namespace ENode.Kafka.Consumers
 
         #endregion Public Properties
 
+        #region Ctor
+
         public Consumer(ConsumerSetting setting)
         {
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
@@ -51,6 +52,8 @@ namespace ENode.Kafka.Consumers
 
             _consumingMessageService = new ConsumingMessageService(this);
         }
+
+        #endregion Ctor
 
         #region Public Methods
 
@@ -136,6 +139,7 @@ namespace ENode.Kafka.Consumers
 
             var kafkaConfig = new Dictionary<string, object>()
             {
+                { "bootstrap.servers",string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port))},
                 { "enable.auto.commit", false },
                 { "session.timeout.ms", 6000 },
                 { "auto.offset.reset", "smallest" }
@@ -145,8 +149,6 @@ namespace ENode.Kafka.Consumers
             {
                 kafkaConfig.Add("group.id", setting.GroupName);
             }
-
-            kafkaConfig.Add("bootstrap.servers", string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port)));
 
             _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig, null, new StringDeserializer(Encoding.UTF8));
         }
