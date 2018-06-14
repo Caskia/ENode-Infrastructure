@@ -75,7 +75,7 @@ namespace ENode.Kafka
 
             Consumer.OnError += (_, error) => _logger.Error($"ENode CommandConsumer has an error: {error}");
             Consumer.OnConsumeError += (_, error) => _logger.Error($"ENode CommandConsumer consume message has an error: {error}");
-            Consumer.Start();
+            Consumer.SetMessageHandler(this).Start();
 
             return this;
         }
