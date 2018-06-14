@@ -1,2 +1,7 @@
 # ENode-Infrastructure
-Infrastructure for enode
+
+## Mongodb implement event store
+
+## Redis implement lock service
+
+## Kafka implement message queue
