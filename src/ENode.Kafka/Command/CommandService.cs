@@ -62,7 +62,7 @@ namespace ENode.Kafka
                 var taskCompletionSource = new TaskCompletionSource<AsyncTaskResult<CommandResult>>();
                 _commandResultProcessor.RegisterProcessingCommand(command, commandReturnType, taskCompletionSource);
 
-                var result = await _sendMessageService.SendMessageAsync(_producer, CreateEnodeMessage(command, true), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null).ConfigureAwait(false);
+                var result = await _sendMessageService.SendMessageAsync(_producer, CreateENodeMessage(command, true), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null).ConfigureAwait(false);
                 if (result.Status == AsyncTaskStatus.Success)
                 {
                     return await taskCompletionSource.Task.ConfigureAwait(false);
@@ -98,14 +98,14 @@ namespace ENode.Kafka
 
         public void Send(ICommand command)
         {
-            _sendMessageService.SendMessage(_producer, CreateEnodeMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
+            _sendMessageService.SendMessage(_producer, CreateENodeMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
         }
 
         public Task<AsyncTaskResult> SendAsync(ICommand command)
         {
             try
             {
-                return _sendMessageService.SendMessageAsync(_producer, CreateEnodeMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
+                return _sendMessageService.SendMessageAsync(_producer, CreateENodeMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
             }
             catch (Exception ex)
             {
@@ -137,7 +137,7 @@ namespace ENode.Kafka
             return this;
         }
 
-        private EnodeMessage CreateEnodeMessage(ICommand command, bool needReply = false)
+        private ENodeMessage CreateENodeMessage(ICommand command, bool needReply = false)
         {
             Ensure.NotNull(command.AggregateRootId, "aggregateRootId");
             var commandData = _jsonSerializer.Serialize(command);
@@ -148,9 +148,9 @@ namespace ENode.Kafka
                 CommandData = commandData,
                 ReplyAddress = replyAddress
             });
-            return new EnodeMessage(
+            return new ENodeMessage(
                 topic,
-                (int)EnodeMessageTypeCode.CommandMessage,
+                (int)ENodeMessageTypeCode.CommandMessage,
                 Encoding.UTF8.GetBytes(messageData),
                 _typeNameProvider.GetTypeName(command.GetType()));
         }

@@ -22,9 +22,9 @@ namespace ENode.Kafka
 
         void IKafkaMessageHandler.Handle(KafkaMessage message, IKafkaMessageContext context)
         {
-            var enodeMessage = _jsonSerializer.Deserialize<EnodeMessage>(message.Value);
-            var applicationMessageType = _typeNameProvider.GetType(enodeMessage.Tag);
-            var applicationMessage = _jsonSerializer.Deserialize(Encoding.UTF8.GetString(enodeMessage.Body), applicationMessageType) as IApplicationMessage;
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(message.Value);
+            var applicationMessageType = _typeNameProvider.GetType(eNodeMessage.Tag);
+            var applicationMessage = _jsonSerializer.Deserialize(Encoding.UTF8.GetString(eNodeMessage.Body), applicationMessageType) as IApplicationMessage;
             var processContext = new KafkaMessageProcessContext(message, context);
             var processingMessage = new ProcessingApplicationMessage(applicationMessage, processContext);
             _logger.InfoFormat("ENode application message received, messageId: {0}, routingKey: {1}", applicationMessage.Id, applicationMessage.GetRoutingKey());

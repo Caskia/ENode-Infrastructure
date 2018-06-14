@@ -1,6 +1,6 @@
 ﻿namespace ENode.Kafka
 {
-    public enum EnodeMessageTypeCode
+    public enum ENodeMessageTypeCode
     {
         CommandMessage = 1,
         DomainEventStreamMessage = 2,

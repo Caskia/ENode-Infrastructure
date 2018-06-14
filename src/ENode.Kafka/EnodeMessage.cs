@@ -3,17 +3,17 @@ using System;
 
 namespace ENode.Kafka
 {
-    public class EnodeMessage
+    public class ENodeMessage
     {
-        public EnodeMessage()
+        public ENodeMessage()
         {
         }
 
-        public EnodeMessage(string topic, int code, byte[] body, string tag = null) : this(topic, code, body, DateTime.Now, tag)
+        public ENodeMessage(string topic, int code, byte[] body, string tag = null) : this(topic, code, body, DateTime.Now, tag)
         {
         }
 
-        public EnodeMessage(string topic, int code, byte[] body, DateTime createdTime, string tag = null)
+        public ENodeMessage(string topic, int code, byte[] body, DateTime createdTime, string tag = null)
         {
             Ensure.NotNull(topic, "topic");
             Ensure.Positive(code, "code");

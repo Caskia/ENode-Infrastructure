@@ -41,7 +41,7 @@ namespace ENode.Kafka
 
         public Task<AsyncTaskResult> PublishAsync(DomainEventStreamMessage eventStream)
         {
-            var message = CreateEnodeMessage(eventStream);
+            var message = CreateENodeMessage(eventStream);
             return _sendMessageService.SendMessageAsync(Producer, message, eventStream.GetRoutingKey() ?? eventStream.AggregateRootId, eventStream.Id, eventStream.Version.ToString());
         }
 
@@ -59,13 +59,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        private EnodeMessage CreateEnodeMessage(DomainEventStreamMessage eventStream)
+        private ENodeMessage CreateENodeMessage(DomainEventStreamMessage eventStream)
         {
             Ensure.NotNull(eventStream.AggregateRootId, "aggregateRootId");
             var eventMessage = CreateEventMessage(eventStream);
             var topic = _eventTopicProvider.GetTopic(eventStream.Events.First());
             var data = _jsonSerializer.Serialize(eventMessage);
-            return new EnodeMessage(topic, (int)EnodeMessageTypeCode.DomainEventStreamMessage, Encoding.UTF8.GetBytes(data));
+            return new ENodeMessage(topic, (int)ENodeMessageTypeCode.DomainEventStreamMessage, Encoding.UTF8.GetBytes(data));
         }
 
         private EventStreamMessage CreateEventMessage(DomainEventStreamMessage eventStream)
