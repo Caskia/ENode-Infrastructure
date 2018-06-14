@@ -70,8 +70,8 @@ namespace ENode.Kafka
         {
             _sendReplyService.Start();
 
-            Consumer.OnError += (_, error) => _logger.Error($"ENode CommandConsumer has an error: {error}");
-            Consumer.OnConsumeError += (_, error) => _logger.Error($"ENode CommandConsumer consume message has an error: {error}");
+            Consumer.OnError += (_, error) => _logger.Error($"ENode DomainEventConsumer has an error: {error}");
+            Consumer.OnConsumeError += (_, error) => _logger.Error($"ENode DomainEventConsumer consume message has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
 
             return this;
