@@ -38,7 +38,7 @@ namespace ENode.Kafka
 
         public Task<AsyncTaskResult> PublishAsync(IApplicationMessage message)
         {
-            var queueMessage = CreateKafkaMessage(message);
+            var queueMessage = CreateEnodeMessage(message);
             return _sendMessageService.SendMessageAsync(Producer, queueMessage, message.GetRoutingKey() ?? message.Id, message.Id, null);
         }
 
@@ -57,7 +57,7 @@ namespace ENode.Kafka
             return this;
         }
 
-        private EnodeMessage CreateKafkaMessage(IApplicationMessage message)
+        private EnodeMessage CreateEnodeMessage(IApplicationMessage message)
         {
             var topic = _messageTopicProvider.GetTopic(message);
             var data = _jsonSerializer.Serialize(message);
