@@ -4,6 +4,7 @@ using DotNetty.Transport.Channels;
 using DotNetty.Transport.Libuv;
 using ECommon.Components;
 using ECommon.Logging;
+using ENode.Kafka.Netty.Codecs;
 using System;
 using System.Net;
 using System.Threading.Tasks;
@@ -60,8 +61,8 @@ namespace ENode.Kafka.Netty
                    {
                        var pipeline = channel.Pipeline;
 
-                       pipeline.AddLast("string-encoder", new StringEncoder());
-                       pipeline.AddLast("string-decoder", new StringDecoder());
+                       pipeline.AddLast("request-encoder", new RequestEncoder());
+                       pipeline.AddLast("request-decoder", new RequestDecoder());
 
                        if (_setting.ChannelHandlers != null && _setting.ChannelHandlers.Count > 0)
                        {
