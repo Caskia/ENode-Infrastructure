@@ -1,5 +1,8 @@
-﻿namespace ENode.Kafka.Netty
+﻿using System;
+
+namespace ENode.Kafka.Netty
 {
+    [Serializable]
     public class Response
     {
         public short RequestCode { get; set; }
