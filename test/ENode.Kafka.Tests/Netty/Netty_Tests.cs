@@ -1,4 +1,5 @@
-﻿using DotNetty.Transport.Channels;
+﻿using DotNetty.Common.Internal.Logging;
+using DotNetty.Transport.Channels;
 using ECommon.Components;
 using ENode.Kafka.Netty;
 using Shouldly;
