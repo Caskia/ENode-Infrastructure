@@ -25,7 +25,7 @@ namespace ENode.Kafka.Netty.Codecs
                 var inputMemoryStream = new MemoryStream();
                 inputStream.CopyTo(inputMemoryStream);
 
-                var decoded = ObjectUtils.DeserializeFromStream(inputMemoryStream);
+                var decoded = ObjectUtils.DeserializeFromStream(inputMemoryStream) as Request;
 
                 output.Add(decoded);
             }
