@@ -18,8 +18,13 @@ namespace ENode.Kafka.Netty
         private readonly NettyServerSetting _setting;
         private ServerBootstrap _bootstrap;
         private DispatcherEventLoopGroup _bossGroup;
-        private IChannel _channel;
         private WorkerEventLoopGroup _workerGroup;
+
+        #region Public Properties
+
+        public IChannel Channel { get; private set; }
+
+        #endregion Public Properties
 
         public NettyServer(IPEndPoint listeningEndPoint, NettyServerSetting setting = null) : this("Netty server", listeningEndPoint, setting)
         {
@@ -68,7 +73,7 @@ namespace ENode.Kafka.Netty
                        {
                            foreach (var channelHandler in _setting.ChannelHandlers)
                            {
-                               pipeline.AddLast("echo", channelHandler);
+                               pipeline.AddLast(channelHandler.GetType().Name, channelHandler);
                            }
                        }
                    })); ;
@@ -89,16 +94,15 @@ namespace ENode.Kafka.Netty
 
         private async Task ShutdownNettyServerAsync()
         {
-            await _channel.CloseAsync();
+            await Channel.CloseAsync();
             await ShutdownGroupAsync();
         }
 
         private async Task StartNettyServerAsync()
         {
-            InitializeNetty();
             try
             {
-                _channel = await _bootstrap.BindAsync(_listeningEndPoint.Port);
+                Channel = await _bootstrap.BindAsync(_listeningEndPoint.Port);
             }
             catch
             {

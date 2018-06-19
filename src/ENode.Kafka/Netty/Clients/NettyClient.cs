@@ -1,10 +1,103 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using DotNetty.Transport.Bootstrapping;
+using DotNetty.Transport.Channels;
+using DotNetty.Transport.Channels.Sockets;
+using ECommon.Components;
+using ECommon.Logging;
+using ENode.Kafka.Netty.Codecs;
+using System;
+using System.Net;
+using System.Threading.Tasks;
 
 namespace ENode.Kafka.Netty
 {
     public class NettyClient
     {
+        private readonly ILogger _logger;
+        private readonly IPEndPoint _serverEndPoint;
+        private readonly NettyClientSetting _setting;
+        private Bootstrap _bootstrap;
+        private MultithreadEventLoopGroup _group;
+
+        #region Public Properties
+
+        public IChannel Channel { get; private set; }
+
+        #endregion Public Properties
+
+        public NettyClient(IPEndPoint serverEndPoint, NettyClientSetting setting)
+        {
+            _serverEndPoint = serverEndPoint;
+
+            _setting = setting ?? new NettyClientSetting();
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().Name);
+
+            InitializeNetty();
+        }
+
+        public NettyClient Shutdown()
+        {
+            ShutdownNettyClientAsync().Wait();
+            return this;
+        }
+
+        public NettyClient Start()
+        {
+            StartNettyClientAsync().Wait();
+            return this;
+        }
+
+        private void InitializeNetty()
+        {
+            var group = new MultithreadEventLoopGroup();
+
+            _bootstrap =
+                    new Bootstrap()
+                   .Group(group)
+                   .Channel<TcpSocketChannel>()
+                   .Option(ChannelOption.TcpNodelay, true)
+                   .Handler(new ActionChannelInitializer<ISocketChannel>(channel =>
+                   {
+                       var pipeline = channel.Pipeline;
+
+                       pipeline.AddLast("request-encoder", new RequestEncoder());
+                       pipeline.AddLast("request-decoder", new RequestDecoder());
+
+                       if (_setting.ChannelHandlers != null && _setting.ChannelHandlers.Count > 0)
+                       {
+                           foreach (var channelHandler in _setting.ChannelHandlers)
+                           {
+                               pipeline.AddLast(channelHandler.GetType().Name, channelHandler);
+                           }
+                       }
+                   }));
+        }
+
+        private async Task ShutdownGroupAsync()
+        {
+            if (_group == null)
+            {
+                throw new NotImplementedException("Need initialize netty client");
+            }
+
+            await _group.ShutdownGracefullyAsync(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(1));
+        }
+
+        private async Task ShutdownNettyClientAsync()
+        {
+            await Channel.CloseAsync();
+            await ShutdownGroupAsync();
+        }
+
+        private async Task StartNettyClientAsync()
+        {
+            try
+            {
+                Channel = await _bootstrap.ConnectAsync(_serverEndPoint);
+            }
+            catch
+            {
+                await ShutdownGroupAsync();
+            }
+        }
     }
 }
