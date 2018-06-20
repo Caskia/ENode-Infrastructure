@@ -11,9 +11,35 @@
     <PackageReference Include="Shouldly" Version="3.0.0" />
     <PackageReference Include="xunit" Version="2.3.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.1.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="appsettings.Development.json">
+      <DependentUpon>appsettings.json</DependentUpon>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="appsettings.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="appsettings.Production.json">
+      <DependentUpon>appsettings.json</DependentUpon>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ENode.EventStore.MongoDb\ENode.EventStore.MongoDb.csproj" />
     <ProjectReference Include="..\..\src\ENode.Kafka\ENode.Kafka.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

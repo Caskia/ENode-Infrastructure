@@ -102,7 +102,7 @@ namespace ENode.Kafka.Netty
         {
             try
             {
-                Channel = await _bootstrap.BindAsync(_listeningEndPoint.Port);
+                Channel = await _bootstrap.BindAsync(_listeningEndPoint);
             }
             catch
             {

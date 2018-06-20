@@ -55,7 +55,7 @@ namespace ENode.Kafka.Consumers
 
         public void EnterConsumingQueue(Message<Ignore, string> message)
         {
-            if (!_consumingQueues.TryGetValue(message.ToKeyString(), out var processQueue))
+            if (_consumingQueues.TryGetValue(message.ToKeyString(), out var processQueue))
             {
                 processQueue.AddMessage(message);
             }

@@ -3,7 +3,7 @@ using ENode.Configurations;
 using System.Reflection;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 
-namespace ENode.Kafka.Tests
+namespace ENode.Kafka.Tests.Netty
 {
     public class TestBase
     {
