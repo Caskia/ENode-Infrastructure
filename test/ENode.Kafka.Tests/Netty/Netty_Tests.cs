@@ -3,6 +3,7 @@ using DotNetty.Transport.Channels;
 using ECommon.Components;
 using ENode.Kafka.Netty;
 using Shouldly;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -20,14 +21,14 @@ namespace ENode.Kafka.Tests.Netty
             //Arrange
             var serverEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9019);
 
-            var serverChannelHandlers = new List<IChannelHandler>();
-            serverChannelHandlers.Add(ObjectContainer.Resolve<ServerHandler>());
-            var server = new NettyServer(serverEndPoint, new NettyServerSetting() { ChannelHandlers = serverChannelHandlers });
+            var serverChannelHandlerTypes = new List<ChannelHandlerInstance>();
+            serverChannelHandlerTypes.Add(new ChannelHandlerInstance() { Type = typeof(ServerHandler), Args = new List<object>() { ObjectContainer.Resolve<ServerMessageBox>() } });
+            var server = new NettyServer(serverEndPoint, new NettyServerSetting() { ChannelHandlerInstances = serverChannelHandlerTypes });
             server.Start();
 
-            var clientChannelHandlers = new List<IChannelHandler>();
-            clientChannelHandlers.Add(ObjectContainer.Resolve<ClientHandler>());
-            var client = new NettyClient(serverEndPoint, new NettyClientSetting() { ChannelHandlers = clientChannelHandlers });
+            var clientChannelHandlerTypes = new List<ChannelHandlerInstance>();
+            clientChannelHandlerTypes.Add(new ChannelHandlerInstance() { Type = typeof(ClientHandler), Args = new List<object>() { ObjectContainer.Resolve<ClientMessageBox>() } });
+            var client = new NettyClient(serverEndPoint, new NettyClientSetting() { ChannelHandlerInstances = clientChannelHandlerTypes });
             client.Start();
 
             var request = new Request()

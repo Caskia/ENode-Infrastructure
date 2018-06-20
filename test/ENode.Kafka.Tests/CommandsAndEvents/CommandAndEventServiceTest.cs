@@ -449,14 +449,21 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         [Fact]
         public void async_command_handler_test()
         {
-            var command = new AsyncHandlerCommand()
+            var command1 = new AsyncHandlerCommand()
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var asyncResult1 = _commandService.ExecuteAsync(command1).Result;
+
+            var command2 = new AsyncHandlerCommand()
+            {
+                AggregateRootId = ObjectId.GenerateNewStringId()
+            };
+            var asyncResult2 = _commandService.ExecuteAsync(command2).Result;
+
+            Assert.NotNull(asyncResult1);
+            Assert.Equal(AsyncTaskStatus.Success, asyncResult1.Status);
+            var commandResult = asyncResult1.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
         }

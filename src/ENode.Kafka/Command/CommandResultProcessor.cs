@@ -53,9 +53,9 @@ namespace ENode.Kafka
         public CommandResultProcessor Initialize(IPEndPoint bindingAddress)
         {
             var serverSetting = new NettyServerSetting();
-            serverSetting.ChannelHandlers = new List<IChannelHandler>()
+            serverSetting.ChannelHandlerInstances = new List<ChannelHandlerInstance>()
             {
-                new CommandResultChannelHandler(this)
+                 new ChannelHandlerInstance(){ Type = typeof(CommandResultChannelHandler), Args = new List<object>{ this } }
             };
             _server = new NettyServer("CommandResultProcessor.RemotingServer", bindingAddress, serverSetting);
             _commandTaskDict = new ConcurrentDictionary<string, CommandTaskCompletionSource>();

@@ -103,6 +103,7 @@ namespace ENode.Kafka.Consumers
             RegisterKafkaConsumerEvent();
 
             _pollingMessageWorker.Start();
+            _consumingMessageService.Start();
 
             _logger.InfoFormat("{0} startted.", GetType().Name);
         }
@@ -113,6 +114,7 @@ namespace ENode.Kafka.Consumers
             _kafkaConsumer.Dispose();
 
             _pollingMessageWorker.Stop();
+            _consumingMessageService.Stop();
 
             _logger.InfoFormat("{0} stopped.", GetType().Name);
         }

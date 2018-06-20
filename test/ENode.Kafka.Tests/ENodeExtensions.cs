@@ -80,7 +80,8 @@ namespace ENode.Kafka.Tests
 
             var consumerSetting = new ConsumerSetting()
             {
-                BrokerEndPoints = _brokerEndPoints
+                BrokerEndPoints = _brokerEndPoints,
+                CommitConsumerOffsetInterval = 100
             };
             _commandConsumer = new CommandConsumer().InitializeKafka(consumerSetting).Subscribe("CommandTopic");
             _eventConsumer = new DomainEventConsumer().InitializeKafka(consumerSetting).Subscribe("EventTopic");

@@ -24,6 +24,7 @@ namespace ENode.Kafka
         private readonly ConcurrentDictionary<string, NettyClient> _remotingClientDict;
         private readonly string _scanInactiveCommandRemotingClientTaskName;
         private readonly IScheduleService _scheduleService;
+        private readonly Object lockObject = new object();
 
         public SendReplyService()
         {
@@ -84,10 +85,13 @@ namespace ENode.Kafka
 
         private NettyClient CreateReplyRemotingClient(string replyAddress, IPEndPoint replyEndpoint)
         {
-            return _remotingClientDict.GetOrAdd(replyAddress, key =>
+            lock (lockObject)
             {
-                return new NettyClient(replyEndpoint, null).Start();
-            });
+                return _remotingClientDict.GetOrAdd(replyAddress, key =>
+                {
+                    return new NettyClient(replyEndpoint, null).Start();
+                });
+            }
         }
 
         private NettyClient GetRemotingClient(string replyAddress)

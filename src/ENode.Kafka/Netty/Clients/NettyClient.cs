@@ -62,11 +62,11 @@ namespace ENode.Kafka.Netty
                        pipeline.AddLast("request-encoder", new RequestEncoder());
                        pipeline.AddLast("request-decoder", new RequestDecoder());
 
-                       if (_setting.ChannelHandlers != null && _setting.ChannelHandlers.Count > 0)
+                       if (_setting.ChannelHandlerInstances != null && _setting.ChannelHandlerInstances.Count > 0)
                        {
-                           foreach (var channelHandler in _setting.ChannelHandlers)
+                           foreach (var channelHandler in _setting.ChannelHandlerInstances)
                            {
-                               pipeline.AddLast(channelHandler.GetType().Name, channelHandler);
+                               pipeline.AddLast(channelHandler.Type.Name, Activator.CreateInstance(channelHandler.Type, channelHandler.Args.ToArray()) as IChannelHandler);
                            }
                        }
                    }));
