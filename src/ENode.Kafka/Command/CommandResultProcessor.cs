@@ -13,6 +13,7 @@ using ECommon.Scheduling;
 using ECommon.Serializing;
 using ENode.Commanding;
 using ENode.Kafka.Netty;
+using ENode.Kafka.Netty.Codecs;
 
 namespace ENode.Kafka
 {
@@ -52,12 +53,18 @@ namespace ENode.Kafka
 
         public CommandResultProcessor Initialize(IPEndPoint bindingAddress)
         {
-            var serverSetting = new NettyServerSetting();
-            serverSetting.ChannelHandlerInstances = new List<ChannelHandlerInstance>()
-            {
-                 new ChannelHandlerInstance(){ Type = typeof(CommandResultChannelHandler), Args = new List<object>{ this } }
-            };
+            var serverSetting = new NettyServerSetting(
+                channel =>
+                {
+                    var pipeline = channel.Pipeline;
+
+                    pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
+                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+                    pipeline.AddLast(typeof(CommandResultChannelHandler).Name, new CommandResultChannelHandler(this));
+                }
+            );
             _server = new NettyServer("CommandResultProcessor.RemotingServer", bindingAddress, serverSetting);
+
             _commandTaskDict = new ConcurrentDictionary<string, CommandTaskCompletionSource>();
             _commandExecutedMessageLocalQueue = new BlockingCollection<CommandResult>(new ConcurrentQueue<CommandResult>());
             _domainEventHandledMessageLocalQueue = new BlockingCollection<DomainEventHandledMessage>(new ConcurrentQueue<DomainEventHandledMessage>());

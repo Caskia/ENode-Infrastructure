@@ -5,6 +5,7 @@ using ECommon.Scheduling;
 using ECommon.Serializing;
 using ECommon.Utilities;
 using ENode.Kafka.Netty;
+using ENode.Kafka.Netty.Codecs;
 using ENode.Kafka.Utils;
 using System;
 using System.Collections.Concurrent;

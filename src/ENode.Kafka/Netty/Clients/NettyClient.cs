@@ -28,7 +28,13 @@ namespace ENode.Kafka.Netty
         {
             _serverEndPoint = serverEndPoint;
 
-            _setting = setting ?? new NettyClientSetting();
+            _setting = setting ?? new NettyClientSetting(channel =>
+            {
+                var pipeline = channel.Pipeline;
+
+                pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
+                pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+            });
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().Name);
 
             InitializeNetty();
@@ -48,28 +54,14 @@ namespace ENode.Kafka.Netty
 
         private void InitializeNetty()
         {
-            var group = new MultithreadEventLoopGroup();
+            _group = new MultithreadEventLoopGroup();
 
             _bootstrap =
                     new Bootstrap()
-                   .Group(group)
+                   .Group(_group)
                    .Channel<TcpSocketChannel>()
                    .Option(ChannelOption.TcpNodelay, true)
-                   .Handler(new ActionChannelInitializer<ISocketChannel>(channel =>
-                   {
-                       var pipeline = channel.Pipeline;
-
-                       pipeline.AddLast("request-encoder", new RequestEncoder());
-                       pipeline.AddLast("request-decoder", new RequestDecoder());
-
-                       if (_setting.ChannelHandlerInstances != null && _setting.ChannelHandlerInstances.Count > 0)
-                       {
-                           foreach (var channelHandler in _setting.ChannelHandlerInstances)
-                           {
-                               pipeline.AddLast(channelHandler.Type.Name, Activator.CreateInstance(channelHandler.Type, channelHandler.Args.ToArray()) as IChannelHandler);
-                           }
-                       }
-                   }));
+                   .Handler(new ActionChannelInitializer<ISocketChannel>(_setting.ChannelAction));
         }
 
         private async Task ShutdownGroupAsync()

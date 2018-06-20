@@ -1,9 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using DotNetty.Transport.Channels;
+using System;
 
 namespace ENode.Kafka.Netty
 {
     public class NettyClientSetting
     {
-        public IList<ChannelHandlerInstance> ChannelHandlerInstances { get; set; }
+        public NettyClientSetting(Action<IChannel> channelAction)
+        {
+            ChannelAction = channelAction ?? throw new ArgumentNullException(nameof(channelAction));
+        }
+
+        public Action<IChannel> ChannelAction { get; set; }
     }
 }

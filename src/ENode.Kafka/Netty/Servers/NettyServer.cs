@@ -1,5 +1,4 @@
-﻿using DotNetty.Codecs;
-using DotNetty.Transport.Bootstrapping;
+﻿using DotNetty.Transport.Bootstrapping;
 using DotNetty.Transport.Channels;
 using DotNetty.Transport.Libuv;
 using ECommon.Components;
@@ -34,7 +33,13 @@ namespace ENode.Kafka.Netty
         {
             _listeningEndPoint = listeningEndPoint;
 
-            _setting = setting ?? new NettyServerSetting();
+            _setting = setting ?? new NettyServerSetting(channel =>
+            {
+                var pipeline = channel.Pipeline;
+
+                pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
+                pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+            });
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(name ?? GetType().Name);
 
             InitializeNetty();
@@ -62,21 +67,7 @@ namespace ENode.Kafka.Netty
                    .Group(_bossGroup, _workerGroup)
                    .Channel<TcpServerChannel>()
                    .Option(ChannelOption.SoBacklog, 100)
-                   .ChildHandler(new ActionChannelInitializer<IChannel>(channel =>
-                   {
-                       var pipeline = channel.Pipeline;
-
-                       pipeline.AddLast("request-encoder", new RequestEncoder());
-                       pipeline.AddLast("request-decoder", new RequestDecoder());
-
-                       if (_setting.ChannelHandlerInstances != null && _setting.ChannelHandlerInstances.Count > 0)
-                       {
-                           foreach (var channelHandler in _setting.ChannelHandlerInstances)
-                           {
-                               pipeline.AddLast(channelHandler.Type.Name, Activator.CreateInstance(channelHandler.Type, channelHandler.Args.ToArray()) as IChannelHandler);
-                           }
-                       }
-                   })); ;
+                   .ChildHandler(new ActionChannelInitializer<IChannel>(_setting.ChannelAction));
         }
 
         private async Task ShutdownGroupAsync()
