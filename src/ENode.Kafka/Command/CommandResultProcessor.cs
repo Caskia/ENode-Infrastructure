@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using DotNetty.Codecs;
-using DotNetty.Transport.Channels;
+﻿using DotNetty.Codecs;
 using ECommon.Components;
 using ECommon.Extensions;
 using ECommon.IO;
@@ -15,6 +8,11 @@ using ECommon.Serializing;
 using ENode.Commanding;
 using ENode.Kafka.Netty;
 using ENode.Kafka.Netty.Codecs;
+using System;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace ENode.Kafka
 {
