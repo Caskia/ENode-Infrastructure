@@ -6,6 +6,7 @@ $srcPath = Join-Path $slnPath "src"
 # List of projects
 $projects = (
     "Enode.EventStore.MongoDb",
+    "Enode.Kafka",
     "Enode.Lock.Redis"
 )
 
