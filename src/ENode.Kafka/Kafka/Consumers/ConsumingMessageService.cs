@@ -126,7 +126,7 @@ namespace ENode.Kafka.Consumers
                     {
                         continue;
                     }
-                    await _consumer.CommitConsumeOffsetAsync(consumerQueue.Value.Topic, consumerQueue.Value.Partition, consumedOffset);
+                    await _consumer.CommitConsumeOffsetAsync(consumerQueue.Value.Topic, consumerQueue.Value.Partition, consumedOffset + 1);
                 }
             }
         }
