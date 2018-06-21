@@ -1,4 +1,5 @@
-﻿using DotNetty.Transport.Bootstrapping;
+﻿using DotNetty.Codecs;
+using DotNetty.Transport.Bootstrapping;
 using DotNetty.Transport.Channels;
 using DotNetty.Transport.Channels.Sockets;
 using ECommon.Components;
@@ -32,6 +33,8 @@ namespace ENode.Kafka.Netty
             {
                 var pipeline = channel.Pipeline;
 
+                pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
+                pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                 pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
                 pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
             });

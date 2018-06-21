@@ -1,10 +1,9 @@
 ﻿using DotNetty.Buffers;
 using DotNetty.Codecs;
 using DotNetty.Transport.Channels;
-using ENode.Kafka.Utils;
+using ENode.Kafka.Extensions;
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace ENode.Kafka.Netty.Codecs
 {
@@ -18,24 +17,18 @@ namespace ENode.Kafka.Netty.Codecs
                 return;
             }
 
-            Stream inputStream = null;
             try
             {
-                inputStream = new ReadOnlyByteBufferStream(message, false);
-                var inputMemoryStream = new MemoryStream();
-                inputStream.CopyTo(inputMemoryStream);
+                var bytes = new byte[message.ReadableBytes];
+                message.ReadBytes(bytes);
 
-                var decoded = ObjectUtils.DeserializeFromStream(inputMemoryStream);
+                var decoded = bytes.ToObject();
 
                 output.Add(decoded);
             }
             catch (Exception exception)
             {
                 throw new CodecException(exception);
-            }
-            finally
-            {
-                inputStream?.Dispose();
             }
         }
     }

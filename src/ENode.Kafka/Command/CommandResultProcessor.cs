@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using DotNetty.Codecs;
 using DotNetty.Transport.Channels;
 using ECommon.Components;
 using ECommon.Extensions;
@@ -58,6 +59,8 @@ namespace ENode.Kafka
                 {
                     var pipeline = channel.Pipeline;
 
+                    pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
+                    pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                     pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
                     pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
                     pipeline.AddLast(typeof(CommandResultChannelHandler).Name, new CommandResultChannelHandler(this));

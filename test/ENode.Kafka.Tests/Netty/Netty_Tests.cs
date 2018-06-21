@@ -1,10 +1,8 @@
-﻿using DotNetty.Common.Internal.Logging;
-using DotNetty.Transport.Channels;
+﻿using DotNetty.Codecs;
 using ECommon.Components;
 using ENode.Kafka.Netty;
 using ENode.Kafka.Netty.Codecs;
 using Shouldly;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -27,6 +25,8 @@ namespace ENode.Kafka.Tests.Netty
                 {
                     var pipeline = channel.Pipeline;
 
+                    pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
+                    pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                     pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
                     pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
                     pipeline.AddLast(typeof(ServerHandler).Name, new ServerHandler(ObjectContainer.Resolve<ServerMessageBox>()));
@@ -42,6 +42,9 @@ namespace ENode.Kafka.Tests.Netty
                 channel =>
                 {
                     var pipeline = channel.Pipeline;
+
+                    pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
+                    pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                     pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
                     pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
                     pipeline.AddLast(typeof(ClientHandler).Name, new ClientHandler(ObjectContainer.Resolve<ClientMessageBox>()));

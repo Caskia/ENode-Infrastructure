@@ -10,10 +10,21 @@ namespace ENode.Kafka.Extensions
             if (obj == null)
                 return null;
             BinaryFormatter bf = new BinaryFormatter();
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 bf.Serialize(ms, obj);
                 return ms.ToArray();
+            }
+        }
+
+        public static object ToObject(this byte[] data)
+        {
+            if (data == null)
+                return null;
+            BinaryFormatter bf = new BinaryFormatter();
+            using (MemoryStream ms = new MemoryStream(data))
+            {
+                return bf.Deserialize(ms);
             }
         }
     }
