@@ -28,13 +28,16 @@ namespace ENode.Kafka
                 _ioHelper.TryIOAction(() =>
                 {
                     var content = _jsonSerializer.Serialize(message);
-                    var result = producer.ProduceAsync(message.Topic, routingKey, content).Result;
-                    if (result.Error.HasError)
+                    producer.ProduceAsync(message.Topic, routingKey, content).ContinueWith(task =>
                     {
-                        _logger.ErrorFormat("ENode message sync send failed, sendResult: {0}, routingKey: {1}, messageId: {2}, version: {3}", result, routingKey, messageId, version);
-                        throw new IOException(result.Error.Reason);
-                    }
-                    _logger.InfoFormat("ENode message sync send success, sendResult: {0}, routingKey: {1}, messageId: {2}, version: {3}", result, routingKey, messageId, version);
+                        var result = task.Result;
+                        if (result.Error.HasError)
+                        {
+                            _logger.ErrorFormat("ENode message sync send failed, sendResult: {0}, routingKey: {1}, messageId: {2}, version: {3}", result, routingKey, messageId, version);
+                            throw new IOException(result.Error.Reason);
+                        }
+                        _logger.InfoFormat("ENode message sync send success, sendResult: {0}, routingKey: {1}, messageId: {2}, version: {3}", result, routingKey, messageId, version);
+                    });
                 }, "SendENodeMessage");
             }
             catch (Exception ex)
