@@ -16,6 +16,6 @@
 
   <ItemGroup>
     <PackageReference Include="ENode" Version="2.8.8" />
-    <PackageReference Include="MongoDB.Driver" Version="2.6.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.7.0" />
   </ItemGroup>
 </Project>
