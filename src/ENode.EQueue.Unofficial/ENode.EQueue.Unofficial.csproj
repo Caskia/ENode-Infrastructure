@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>0.1.4</Version>
+    <Description>enode infrastructure</Description>
+    <Copyright>Copyright © Caskia 2018</Copyright>
+    <PackageLicenseUrl>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Caskia/ENode-Infrastructure</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Caskia/ENode-Infrastructure</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>enode infrastructure;mongodb event store;cqrs;</PackageTags>
+    <Authors>Caskia</Authors>
+    <Company>Caskia</Company>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\netstandard2.0\ENode.EQueue.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ENode" Version="2.8.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EQueue.Unofficial\EQueue.Unofficial.csproj" />
+  </ItemGroup>
+</Project>
