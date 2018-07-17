@@ -121,7 +121,6 @@ namespace EQueue.Clients
                 }
                 try
                 {
-                    _logger.Warn("GetTopicMessageQueues, try get route info list from nameserver");
                     var topicRouteInfoList = await GetTopicRouteInfoListAsync(topic);
                     messageQueueList = new List<MessageQueue>();
 
@@ -337,7 +336,6 @@ namespace EQueue.Clients
         {
             using (await _asyncLock.LockAsync())
             {
-                _logger.Warn("RefreshTopicRouteInfo, try get route info list from nameserver");
                 foreach (var entry in _topicMessageQueueDict)
                 {
                     var topic = entry.Key;
