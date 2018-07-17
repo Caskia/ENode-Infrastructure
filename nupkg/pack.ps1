@@ -5,9 +5,11 @@ $srcPath = Join-Path $slnPath "src"
 
 # List of projects
 $projects = (
-    "Enode.EventStore.MongoDb",
-    "Enode.Kafka",
-    "Enode.Lock.Redis"
+    "ENode.EQueue.Unofficial",
+    "ENode.EventStore.MongoDb",
+    "ENode.Kafka",
+    "ENode.Lock.Redis",
+    "EQueue.Unofficial"
 )
 
 # Rebuild solution
