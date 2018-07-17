@@ -73,7 +73,7 @@ namespace ENode.Kafka.Tests
             {
                 BrokerEndPoints = _brokerEndPoints
             };
-            _commandService.InitializeKafka(produceSetting, new CommandResultProcessor().Initialize(new IPEndPoint(SocketUtils.GetLocalIPV4(), 9001)));
+            _commandService.InitializeKafka(produceSetting, new CommandResultProcessor().Initialize(Dns.GetHostName(), 9001));
             _eventPublisher.InitializeKafka(produceSetting);
             _applicationMessagePublisher.InitializeKafka(produceSetting);
             _publishableExceptionPublisher.InitializeKafka(produceSetting);

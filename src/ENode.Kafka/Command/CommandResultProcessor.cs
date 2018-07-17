@@ -8,6 +8,7 @@ using ECommon.Serializing;
 using ENode.Commanding;
 using ENode.Kafka.Netty;
 using ENode.Kafka.Netty.Codecs;
+using ENode.Kafka.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
@@ -29,6 +30,19 @@ namespace ENode.Kafka
         private bool _started;
         private byte[] ByteArray = new byte[0];
         public IPEndPoint BindingAddress { get; private set; }
+        public string BindingHostname { get; private set; }
+
+        public string BindingServerAddress
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(BindingHostname))
+                {
+                    return BindingHostname;
+                }
+                return BindingAddress.ToString();
+            }
+        }
 
         public void HandleRequest(Request remotingRequest)
         {
@@ -48,6 +62,13 @@ namespace ENode.Kafka
             {
                 _logger.ErrorFormat("Invalid remoting request code: {0}", remotingRequest.Code);
             }
+        }
+
+        public CommandResultProcessor Initialize(string hostname, int port)
+        {
+            var bindingAddress = SocketUtils.GetIPEndPointFromHostName(hostname, port);
+            BindingHostname = $"{hostname}:{port}";
+            return Initialize(bindingAddress);
         }
 
         public CommandResultProcessor Initialize(IPEndPoint bindingAddress)

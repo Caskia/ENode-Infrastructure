@@ -142,7 +142,7 @@ namespace ENode.Kafka
             Ensure.NotNull(command.AggregateRootId, "aggregateRootId");
             var commandData = _jsonSerializer.Serialize(command);
             var topic = _commandTopicProvider.GetTopic(command);
-            var replyAddress = needReply && _commandResultProcessor != null ? _commandResultProcessor.BindingAddress.ToString() : null;
+            var replyAddress = needReply && _commandResultProcessor != null ? _commandResultProcessor.BindingServerAddress : null;
             var messageData = _jsonSerializer.Serialize(new CommandMessage
             {
                 CommandData = commandData,
