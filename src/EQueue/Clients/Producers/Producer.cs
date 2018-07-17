@@ -140,7 +140,7 @@ namespace EQueue.Clients.Producers
             while (retryCount <= Setting.SendMessageMaxRetryCount)
             {
                 var messageQueueInfo = await TryGetAvailableMessageQueueAsync(message, routingKey);
-                if (messageQueueInfo.result)
+                if (!messageQueueInfo.result)
                 {
                     throw new Exception(string.Format("No available message queue for topic [{0}]", message.Topic));
                 }
@@ -193,7 +193,7 @@ namespace EQueue.Clients.Producers
 
             var message = messages.First();
             var messageQueueInfo = TryGetAvailableMessageQueueAsync(message, routingKey).ConfigureAwait(false).GetAwaiter().GetResult();
-            if (messageQueueInfo.result)
+            if (!messageQueueInfo.result)
             {
                 throw new Exception(string.Format("No available message queue for topic [{0}]", message.Topic));
             }
@@ -219,7 +219,7 @@ namespace EQueue.Clients.Producers
 
             var message = messages.First();
             var messageQueueInfo = TryGetAvailableMessageQueueAsync(message, routingKey).ConfigureAwait(false).GetAwaiter().GetResult();
-            if (messageQueueInfo.result)
+            if (!messageQueueInfo.result)
             {
                 throw new Exception(string.Format("No available message queue for topic [{0}]", message.Topic));
             }
@@ -265,7 +265,7 @@ namespace EQueue.Clients.Producers
             while (retryCount <= Setting.SendMessageMaxRetryCount)
             {
                 var messageQueueInfo = await TryGetAvailableMessageQueueAsync(message, routingKey);
-                if (messageQueueInfo.result)
+                if (!messageQueueInfo.result)
                 {
                     throw new Exception(string.Format("No available message queue for topic [{0}]", message.Topic));
                 }
@@ -313,7 +313,7 @@ namespace EQueue.Clients.Producers
             }
 
             var messageQueueInfo = TryGetAvailableMessageQueueAsync(message, routingKey).ConfigureAwait(false).GetAwaiter().GetResult();
-            if (messageQueueInfo.result)
+            if (!messageQueueInfo.result)
             {
                 throw new Exception(string.Format("No available message queue for topic [{0}]", message.Topic));
             }
@@ -334,7 +334,7 @@ namespace EQueue.Clients.Producers
             }
 
             var messageQueueInfo = TryGetAvailableMessageQueueAsync(message, routingKey).ConfigureAwait(false).GetAwaiter().GetResult();
-            if (messageQueueInfo.result)
+            if (!messageQueueInfo.result)
             {
                 throw new Exception(string.Format("No available message queue for topic [{0}]", message.Topic));
             }
