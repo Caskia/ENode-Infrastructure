@@ -49,6 +49,19 @@ namespace ENode.Lock.Redis
             }
         }
 
+        public async Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
+        {
+            var redisLock = await RedisLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            try
+            {
+                action(state);
+            }
+            finally
+            {
+                await redisLock.DisposeAsync();
+            }
+        }
+
         public RedisLockService Initialize(
             RedisOptions redisOptions,
             string keyPrefix = "default",

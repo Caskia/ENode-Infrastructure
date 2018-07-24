@@ -42,30 +42,19 @@ namespace TestConsole
 
             _lockService = ObjectContainer.Resolve<ILockService>();
 
-            var redisProvider = new RedisProvider(_redisOptions);
-            var database = redisProvider.GetDatabase();
-            var tasks = new List<Task>();
             var dic = new Dictionary<int, int>();
+            var tasks = new List<Task>();
 
-            Parallel.For(0, 200000, async i =>
+            for (int i = 0; i < 300; i++)
             {
-                await database.StringSetAsync(i.ToString(), "test", TimeSpan.FromSeconds(30));
-            });
+                tasks.Add(
+                _lockService.ExecuteInLockAsync("test", t =>
+                {
+                    dic.Add((int)t, System.Threading.Thread.CurrentThread.GetHashCode());
+                }, i));
+            }
 
-            //var dic = new Dictionary<int, int>();
-            //var tasks = new List<Task>();
-
-            //for (int i = 0; i < 300; i++)
-            //{
-            //    tasks.Add(
-            //        _lockService.ExecuteInLockAsync("test", () =>
-            //        {
-            //            dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
-            //        })
-            //    );
-            //}
-
-            //Task.WaitAll(tasks.ToArray());
+            Task.WaitAll(tasks.ToArray());
 
             Console.ReadKey();
         }
