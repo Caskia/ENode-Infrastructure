@@ -17,7 +17,7 @@ namespace ENode.Lock.Redis.Tests
 
         private readonly RedisOptions _redisOptions = new RedisOptions()
         {
-            ConnectionString = "192.168.31.147:6379,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
+            ConnectionString = "192.168.31.125:20002,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
             DatabaseId = 3
         };
 

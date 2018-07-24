@@ -16,7 +16,7 @@ namespace TestConsole
 
         private static RedisOptions _redisOptions = new RedisOptions()
         {
-            ConnectionString = "192.168.31.147:6379,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
+            ConnectionString = "192.168.31.125:20002,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
             DatabaseId = 3
         };
 
@@ -42,20 +42,30 @@ namespace TestConsole
 
             _lockService = ObjectContainer.Resolve<ILockService>();
 
-            var dic = new Dictionary<int, int>();
+            var redisProvider = new RedisProvider(_redisOptions);
+            var database = redisProvider.GetDatabase();
             var tasks = new List<Task>();
+            var dic = new Dictionary<int, int>();
 
-            for (int i = 0; i < 300; i++)
+            Parallel.For(0, 200000, async i =>
             {
-                tasks.Add(
-                    _lockService.ExecuteInLockAsync("test", () =>
-                    {
-                        dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
-                    })
-                );
-            }
+                await database.StringSetAsync(i.ToString(), "test", TimeSpan.FromSeconds(30));
+            });
 
-            Task.WaitAll(tasks.ToArray());
+            //var dic = new Dictionary<int, int>();
+            //var tasks = new List<Task>();
+
+            //for (int i = 0; i < 300; i++)
+            //{
+            //    tasks.Add(
+            //        _lockService.ExecuteInLockAsync("test", () =>
+            //        {
+            //            dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
+            //        })
+            //    );
+            //}
+
+            //Task.WaitAll(tasks.ToArray());
 
             Console.ReadKey();
         }
