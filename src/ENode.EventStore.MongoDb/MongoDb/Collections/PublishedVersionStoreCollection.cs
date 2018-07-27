@@ -17,15 +17,12 @@ namespace ENode.EventStore.MongoDb.Collections
         public override void EnsureIndex(string collectionName)
         {
             Database.GetCollection<PublishedVersion>(collectionName).Indexes.CreateOne(
-                            Builders<PublishedVersion>
-                            .IndexKeys
-                            .Ascending(f => f.ProcessorName)
-                            .Ascending(f => f.AggregateRootId)
-                            .Ascending(f => f.Version),
-                            new CreateIndexOptions()
-                            {
-                                Unique = true
-                            });
+                new CreateIndexModel<PublishedVersion>(Builders<PublishedVersion>.IndexKeys.Ascending(f => f.ProcessorName).Ascending(f => f.AggregateRootId).Ascending(f => f.Version),
+                    new CreateIndexOptions()
+                    {
+                        Unique = true
+                    })
+            );
         }
 
         public IMongoCollection<PublishedVersion> GetCollection(string aggregateRootId)
