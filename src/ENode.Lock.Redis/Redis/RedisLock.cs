@@ -12,6 +12,7 @@ namespace ENode.Lock.Redis
 
         private static readonly TimeSpan DefaultHoldDuration = TimeSpan.FromMilliseconds(30);
         private static readonly string OwnerId = Guid.NewGuid().ToString();
+        private static AsyncLock Lock = new AsyncLock();
 
         private readonly RedisKey _key;
 
@@ -60,7 +61,7 @@ namespace ENode.Lock.Redis
                     return new RedisLock(redis, key, holdDuration);
                 }
 
-                SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
+                //SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }
             while (DateTime.UtcNow < lockExpirationTime);
 
@@ -78,17 +79,20 @@ namespace ENode.Lock.Redis
                 throw new ArgumentNullException(nameof(redis));
 
             // The comparison below uses timeOut as a max timeSpan in waiting Lock
-            var i = 0;
+            //var i = 0;
             var lockExpirationTime = DateTime.UtcNow + timeOut;
             do
             {
-                if (await redis.LockTakeAsync(key, OwnerId, holdDuration))
+                using (var l = await Lock.LockAsync())
                 {
-                    // we have successfully acquired the lock
-                    return new RedisLock(redis, key, holdDuration);
+                    if (await redis.LockTakeAsync(key, OwnerId, holdDuration))
+                    {
+                        // we have successfully acquired the lock
+                        return new RedisLock(redis, key, holdDuration);
+                    }
                 }
 
-                await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
+                //await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }
             while (DateTime.UtcNow < lockExpirationTime);
 

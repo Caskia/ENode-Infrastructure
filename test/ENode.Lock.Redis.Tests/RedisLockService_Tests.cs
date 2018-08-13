@@ -58,6 +58,16 @@ namespace ENode.Lock.Redis.Tests
             //Act
             for (int i = 0; i < 1000; i++)
             {
+                //_lockService.ExecuteInLock("test", () =>
+                //        {
+                //            dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
+                //        });
+
+                //await _lockService.ExecuteInLockAsync("test", () =>
+                //{
+                //    dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
+                //});
+
                 tasks.Add(_lockService.ExecuteInLockAsync("test", () =>
                 {
                     dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
