@@ -76,7 +76,7 @@ namespace ENode.Lock.Redis.Tests
             var tasks = new List<Task>();
             var dic = new Dictionary<int, int>();
 
-            for (int i = 0; i < 20000; i++)
+            for (int i = 0; i < 1000000; i++)
             {
                 tasks.Add(database.StringSetAsync(i.ToString(), "test", TimeSpan.FromSeconds(30)));
             }

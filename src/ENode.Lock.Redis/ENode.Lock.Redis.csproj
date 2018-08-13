@@ -14,6 +14,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ENode" Version="2.8.8" />
-    <PackageReference Include="StackExchange.Redis" Version="1.2.7-alpha-00002" />
+    <PackageReference Include="StackExchange.Redis" Version="2.0.0-alpha.281" />
   </ItemGroup>
 </Project>

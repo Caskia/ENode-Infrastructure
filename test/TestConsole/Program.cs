@@ -45,7 +45,7 @@ namespace TestConsole
             var dic = new Dictionary<int, int>();
             var tasks = new List<Task>();
 
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i < 400; i++)
             {
                 tasks.Add(
                 _lockService.ExecuteInLockAsync("test", t =>
