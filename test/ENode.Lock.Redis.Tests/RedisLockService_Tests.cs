@@ -2,6 +2,7 @@
 using ECommon.Configurations;
 using ENode.Configurations;
 using Shouldly;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -55,12 +56,20 @@ namespace ENode.Lock.Redis.Tests
             var dic = new Dictionary<int, int>();
 
             //Act
-            for (int i = 0; i < 400; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 tasks.Add(_lockService.ExecuteInLockAsync("test", () =>
                 {
                     dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
                 }));
+
+                //tasks.Add(Task.Factory.StartNew(() =>
+
+                //    _lockService.ExecuteInLock("test", () =>
+                //        {
+                //            dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
+                //        })
+                //));
             }
             await Task.WhenAll(tasks);
 
@@ -76,12 +85,34 @@ namespace ENode.Lock.Redis.Tests
             var tasks = new List<Task>();
             var dic = new Dictionary<int, int>();
 
-            for (int i = 0; i < 1000000; i++)
+            for (int i = 0; i < 1000; i++)
             {
-                tasks.Add(database.StringSetAsync(i.ToString(), "test", TimeSpan.FromSeconds(30)));
+                //tasks.Add(Task.Factory.StartNew(t => RunLock(database, (int)t), i));
+
+                tasks.Add(RunLockAsync(database, i));
+
+                //tasks.Add(Task.Factory.StartNew(t => database.StringSet(t.ToString(), "test", TimeSpan.FromSeconds(30)), i));
+
+                //tasks.Add(database.StringSetAsync(i.ToString(), "test", TimeSpan.FromSeconds(30)));
             }
 
             await Task.WhenAll(tasks);
+
+            await Task.Delay(5000);
+        }
+
+        private void RunLock(IDatabase database, int t)
+        {
+            var value = t.ToString();
+            database.LockTake(value, value, TimeSpan.FromSeconds(30));
+            database.LockRelease(value, value);
+        }
+
+        private async Task RunLockAsync(IDatabase database, int t)
+        {
+            var value = t.ToString();
+            await database.LockTakeAsync(value, value, TimeSpan.FromSeconds(30));
+            await database.LockReleaseAsync(value, value);
         }
     }
 }
