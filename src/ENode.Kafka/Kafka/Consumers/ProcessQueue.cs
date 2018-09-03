@@ -8,13 +8,13 @@ namespace ENode.Kafka.Consumers
     public class ProcessQueue<TKey, TValue>
     {
         private readonly object _lockObj = new object();
-        private readonly SortedDictionary<long, Message<TKey, TValue>> _messageDict = new SortedDictionary<long, Message<TKey, TValue>>();
+        private readonly SortedDictionary<long, ConsumeResult<TKey, TValue>> _messageDict = new SortedDictionary<long, ConsumeResult<TKey, TValue>>();
         private long _consumedQueueOffset = -1L;
         private long _maxQueueOffset = -1L;
         private int _messageCount = 0;
         private long _previousConsumedQueueOffset = -1L;
 
-        public void AddMessage(Message<TKey, TValue> consumingMessage)
+        public void AddMessage(ConsumeResult<TKey, TValue> consumingMessage)
         {
             lock (_lockObj)
             {
@@ -22,7 +22,7 @@ namespace ENode.Kafka.Consumers
             }
         }
 
-        public void AddMessages(IEnumerable<Message<TKey, TValue>> consumingMessages)
+        public void AddMessages(IEnumerable<ConsumeResult<TKey, TValue>> consumingMessages)
         {
             lock (_lockObj)
             {
@@ -43,7 +43,7 @@ namespace ENode.Kafka.Consumers
             return _messageCount;
         }
 
-        public void RemoveMessage(Message<TKey, TValue> consumingMessage)
+        public void RemoveMessage(ConsumeResult<TKey, TValue> consumingMessage)
         {
             lock (_lockObj)
             {
@@ -84,7 +84,7 @@ namespace ENode.Kafka.Consumers
             return false;
         }
 
-        private void AddMessageWithoutLock(Message<TKey, TValue> consumingMessage)
+        private void AddMessageWithoutLock(ConsumeResult<TKey, TValue> consumingMessage)
         {
             if (_messageDict.ContainsKey(consumingMessage.Offset.Value))
             {

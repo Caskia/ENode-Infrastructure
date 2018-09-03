@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Text;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
-using KafkaMessage = Confluent.Kafka.Message<Confluent.Kafka.Ignore, string>;
+using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
 
 namespace ENode.Kafka
 {
@@ -71,7 +71,6 @@ namespace ENode.Kafka
             _sendReplyService.Start();
 
             Consumer.OnError += (_, error) => _logger.Error($"ENode DomainEventConsumer has an error: {error}");
-            Consumer.OnConsumeError += (_, error) => _logger.Error($"ENode DomainEventConsumer consume message has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
 
             return this;

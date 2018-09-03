@@ -5,14 +5,14 @@ namespace ENode.Kafka.Consumers
 {
     public class MessageContext : IMessageContext<Ignore, string>
     {
-        public MessageContext(Action<Message<Ignore, string>> messageHandledAction)
+        public MessageContext(Action<ConsumeResult<Ignore, string>> messageHandledAction)
         {
             MessageHandledAction = messageHandledAction;
         }
 
-        public Action<Message<Ignore, string>> MessageHandledAction { get; private set; }
+        public Action<ConsumeResult<Ignore, string>> MessageHandledAction { get; private set; }
 
-        public void OnMessageHandled(Message<Ignore, string> queueMessage)
+        public void OnMessageHandled(ConsumeResult<Ignore, string> queueMessage)
         {
             MessageHandledAction(queueMessage);
         }

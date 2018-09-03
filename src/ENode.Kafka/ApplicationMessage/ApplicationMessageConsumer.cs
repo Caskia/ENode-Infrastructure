@@ -6,7 +6,7 @@ using ENode.Kafka.Consumers;
 using System.Text;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
-using KafkaMessage = Confluent.Kafka.Message<Confluent.Kafka.Ignore, string>;
+using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
 
 namespace ENode.Kafka
 {
@@ -58,7 +58,6 @@ namespace ENode.Kafka
         public ApplicationMessageConsumer Start()
         {
             Consumer.OnError = (_, error) => _logger.Error($"ENode ApplicationMessageConsumer has an error: {error}");
-            Consumer.OnConsumeError = (_, error) => _logger.Error($"ENode ApplicationMessageConsumer consume message has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
 
             return this;

@@ -1,12 +1,10 @@
 ﻿using Confluent.Kafka;
-using Confluent.Kafka.Serialization;
 using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Consumers
@@ -25,7 +23,6 @@ namespace ENode.Kafka.Consumers
 
         #region Public Variables
 
-        public Action<object, Message> OnConsumeError;
         public Action<object, Error> OnError;
         public Action<object, LogMessage> OnLog;
 
@@ -48,20 +45,20 @@ namespace ENode.Kafka.Consumers
 
             InitializeKafkaConsumer(setting);
 
-            _pollingMessageWorker = new Worker("PollingMessage", () => _kafkaConsumer.Poll(TimeSpan.FromMilliseconds(100)));
-
             _consumingMessageService = new ConsumingMessageService(this);
+
+            _pollingMessageWorker = new Worker("PollingMessage", () => ConsumeMessage());
         }
 
         #endregion Ctor
 
         #region Public Methods
 
-        public async Task CommitConsumeOffsetAsync(string topic, int partition, long offset)
+        public Task CommitConsumeOffsetAsync(string topic, int partition, long offset)
         {
             try
             {
-                await _kafkaConsumer.CommitAsync(new List<TopicPartitionOffset>()
+                _kafkaConsumer.Commit(new List<TopicPartitionOffset>()
                 {
                     new TopicPartitionOffset(topic,partition,offset)
                 });
@@ -74,13 +71,15 @@ namespace ENode.Kafka.Consumers
             {
                 _logger.Error($"CommitConsumeOffset has exception, consumerGroup:{Setting.GroupName}, topic:{topic}, partition:{partition}, offset:{offset}", ex);
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task CommitConsumeOffsetsAsync(List<(string, int, long)> topicPartitionOffset)
+        public Task CommitConsumeOffsetsAsync(List<(string, int, long)> topicPartitionOffset)
         {
             try
             {
-                await _kafkaConsumer.CommitAsync(topicPartitionOffset.Select(t => new TopicPartitionOffset(t.Item1, t.Item2, t.Item3)));
+                _kafkaConsumer.Commit(topicPartitionOffset.Select(t => new TopicPartitionOffset(t.Item1, t.Item2, t.Item3)));
                 if (_logger.IsDebugEnabled)
                 {
                     _logger.Debug($"CommitConsumeOffsets success, consumerGroup:{Setting.GroupName}, TopicPartitionOffset:{string.Join(",", topicPartitionOffset.Select(t => $"topic:{t.Item1}, partition:{t.Item2}, offset:{t.Item3}"))}");
@@ -90,6 +89,8 @@ namespace ENode.Kafka.Consumers
             {
                 _logger.Error($"CommitConsumeOffsets has exception, consumerGroup:{Setting.GroupName}, TopicPartitionOffset:{string.Join(",", topicPartitionOffset.Select(t => $"topic:{t.Item1}, partition:{t.Item2}, offset:{t.Item3}"))}", ex);
             }
+
+            return Task.CompletedTask;
         }
 
         public Consumer SetMessageHandler(IMessageHandler<Ignore, string> messageHandler)
@@ -136,24 +137,30 @@ namespace ENode.Kafka.Consumers
 
         #region Private Methods
 
+        private void ConsumeMessage()
+        {
+            var message = _kafkaConsumer.Consume();
+            _consumingMessageService.EnterConsumingQueue(message);
+        }
+
         private void InitializeKafkaConsumer(ConsumerSetting setting)
         {
             Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 
-            var kafkaConfig = new Dictionary<string, object>()
+            var kafkaConfig = new ConsumerConfig()
             {
-                { "bootstrap.servers",string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port))},
-                { "enable.auto.commit", false },
-                { "session.timeout.ms", 6000 },
-                { "auto.offset.reset", "smallest" }
+                BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port)),
+                EnableAutoCommit = false,
+                SessionTimeoutMs = 6000,
+                AutoOffsetReset = AutoOffsetResetType.Earliest
             };
 
             if (!string.IsNullOrEmpty(setting.GroupName))
             {
-                kafkaConfig.Add("group.id", setting.GroupName);
+                kafkaConfig.GroupId = setting.GroupName;
             }
 
-            _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig, null, new StringDeserializer(Encoding.UTF8));
+            _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig);
         }
 
         private void RegisterKafkaConsumerEvent()
@@ -163,17 +170,10 @@ namespace ENode.Kafka.Consumers
                 _kafkaConsumer.OnError += (sender, error) => { OnError(sender, error); };
             }
 
-            if (OnConsumeError != null)
-            {
-                _kafkaConsumer.OnConsumeError += (sender, message) => { OnConsumeError(sender, message); };
-            }
-
             if (OnLog != null)
             {
                 _kafkaConsumer.OnLog += (sender, message) => { OnLog(sender, message); };
             }
-
-            _kafkaConsumer.OnMessage += (sender, message) => { _consumingMessageService.EnterConsumingQueue(message); };
         }
 
         #endregion Private Methods

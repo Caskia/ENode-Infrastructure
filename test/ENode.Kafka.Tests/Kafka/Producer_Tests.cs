@@ -41,7 +41,7 @@ namespace ENode.Kafka.Tests.Kafka
             var result = await producer.ProduceAsync(message.topic, message.routingKey, message.content);
 
             //Assert
-            result.Error.HasError.ShouldBeFalse();
+            result.Key.ShouldBe(message.routingKey);
         }
 
         [Fact(DisplayName = "Should_Produce_Concurrent")]

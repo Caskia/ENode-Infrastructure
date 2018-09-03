@@ -14,10 +14,10 @@ namespace ENode.Kafka.Consumers
         #region Private Variables
 
         private readonly Worker _consumeMessageWorker;
-        private readonly BlockingCollection<Message<Ignore, string>> _consumeWaitingQueue;
+        private readonly BlockingCollection<ConsumeResult<Ignore, string>> _consumeWaitingQueue;
         private readonly ConcurrentDictionary<string, TopicPartitionProcessQueue<Ignore, string>> _consumingQueues;
         private readonly ILogger _logger;
-        private readonly BlockingCollection<Message<Ignore, string>> _retryQueue;
+        private readonly BlockingCollection<ConsumeResult<Ignore, string>> _retryQueue;
         private readonly IScheduleService _scheduleService;
         private Consumer _consumer;
         private IMessageHandler<Ignore, string> _messageHandler;
@@ -44,16 +44,16 @@ namespace ENode.Kafka.Consumers
 
             if (_isSequentialConsume)
             {
-                _consumeWaitingQueue = new BlockingCollection<Message<Ignore, string>>();
+                _consumeWaitingQueue = new BlockingCollection<ConsumeResult<Ignore, string>>();
                 _consumeMessageWorker = new Worker("ConsumeMessage", () => HandleMessage(_consumeWaitingQueue.Take()));
             }
             _consumingQueues = new ConcurrentDictionary<string, TopicPartitionProcessQueue<Ignore, string>>();
-            _retryQueue = new BlockingCollection<Message<Ignore, string>>();
+            _retryQueue = new BlockingCollection<ConsumeResult<Ignore, string>>();
         }
 
         #region Public Methods
 
-        public void EnterConsumingQueue(Message<Ignore, string> message)
+        public void EnterConsumingQueue(ConsumeResult<Ignore, string> message)
         {
             if (_consumingQueues.TryGetValue(message.ToKeyString(), out var processQueue))
             {
@@ -133,7 +133,7 @@ namespace ENode.Kafka.Consumers
 
         private void HandleMessage(object parameter)
         {
-            var message = parameter as Message<Ignore, string>;
+            var message = parameter as ConsumeResult<Ignore, string>;
             if (_consumer.Stopped) return;
             if (message == null) return;
 
@@ -148,14 +148,14 @@ namespace ENode.Kafka.Consumers
             }
         }
 
-        private void LogMessageHandlingException(Message<Ignore, string> message, Exception exception)
+        private void LogMessageHandlingException(ConsumeResult<Ignore, string> message, Exception exception)
         {
             _logger.Error(
                 $"Message handling has exception, message info:[topic:{message.Topic}, partition:{message.Partition}, partitionOffset:{message.Offset.Value}, createdTime:{message.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")}, consumerGroup:{_consumer.Setting.GroupName}]",
                 exception);
         }
 
-        private void RemoveHandledMessage(Message<Ignore, string> message)
+        private void RemoveHandledMessage(ConsumeResult<Ignore, string> message)
         {
             if (_consumingQueues.TryGetValue(message.ToKeyString(), out var processQueue))
             {

@@ -8,7 +8,7 @@ using System.Runtime.Serialization;
 using System.Text;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
-using KafkaMessage = Confluent.Kafka.Message<Confluent.Kafka.Ignore, string>;
+using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
 
 namespace ENode.Kafka
 {
@@ -69,7 +69,6 @@ namespace ENode.Kafka
         public PublishableExceptionConsumer Start()
         {
             Consumer.OnError += (_, error) => _logger.Error($"ENode PublishableExceptionConsumer has an error: {error}");
-            Consumer.OnConsumeError += (_, error) => _logger.Error($"ENode PublishableExceptionConsumer consume message has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
             return this;
         }

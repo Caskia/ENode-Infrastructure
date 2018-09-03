@@ -1,11 +1,8 @@
 ﻿using Confluent.Kafka;
-using Confluent.Kafka.Serialization;
 using ECommon.Components;
 using ECommon.Logging;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Producers
@@ -47,9 +44,9 @@ namespace ENode.Kafka.Producers
 
         #region Public Methods
 
-        public async Task<Message<string, string>> ProduceAsync(string topic, string routingKey, string content)
+        public Task<DeliveryReport<string, string>> ProduceAsync(string topic, string routingKey, string content)
         {
-            return await _kafkaProducer.ProduceAsync(topic, routingKey, content);
+            return _kafkaProducer.ProduceAsync(topic, new Message<string, string>() { Key = routingKey, Value = content });
         }
 
         public void Start()
@@ -75,12 +72,12 @@ namespace ENode.Kafka.Producers
         {
             Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 
-            var kafkaConfig = new Dictionary<string, object>()
+            var kafkaConfig = new ProducerConfig()
             {
-                { "bootstrap.servers",string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port))}
+                BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port))
             };
 
-            _kafkaProducer = new Producer<string, string>(kafkaConfig, new StringSerializer(Encoding.UTF8), new StringSerializer(Encoding.UTF8));
+            _kafkaProducer = new Producer<string, string>(kafkaConfig);
         }
 
         private void RegisterKafkaProducerEvent()
