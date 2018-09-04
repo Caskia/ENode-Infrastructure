@@ -28,7 +28,7 @@ namespace ENode.Kafka
         public void Handle(KafkaMessage message, IKafkaMessageContext context)
         {
             var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(message.Value);
-            var eventStreamMessage = _jsonSerializer.Deserialize<EventStreamMessage>(Encoding.UTF8.GetString(eNodeMessage.Body));
+            var eventStreamMessage = _jsonSerializer.Deserialize<EventStreamMessage>(eNodeMessage.Body);
             var domainEventStreamMessage = ConvertToDomainEventStream(eventStreamMessage);
             var processContext = new DomainEventStreamProcessContext(this, domainEventStreamMessage, message, context);
             var processingMessage = new ProcessingDomainEventStreamMessage(domainEventStreamMessage, processContext);

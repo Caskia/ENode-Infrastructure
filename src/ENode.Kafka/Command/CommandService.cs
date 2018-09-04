@@ -146,7 +146,7 @@ namespace ENode.Kafka
             return new ENodeMessage(
                 topic,
                 (int)ENodeMessageTypeCode.CommandMessage,
-                Encoding.UTF8.GetBytes(messageData),
+                messageData,
                 _typeNameProvider.GetTypeName(command.GetType()));
         }
     }

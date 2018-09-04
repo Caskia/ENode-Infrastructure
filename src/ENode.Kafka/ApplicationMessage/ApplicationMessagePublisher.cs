@@ -64,7 +64,7 @@ namespace ENode.Kafka
             return new ENodeMessage(
                 topic,
                 (int)ENodeMessageTypeCode.ApplicationMessage,
-                Encoding.UTF8.GetBytes(data),
+                data,
                 _typeNameProvider.GetTypeName(message.GetType()));
         }
     }

@@ -33,7 +33,7 @@ namespace ENode.Kafka
         {
             var commandItems = new Dictionary<string, string>();
             var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(message.Value);
-            var commandMessage = _jsonSerializer.Deserialize<CommandMessage>(Encoding.UTF8.GetString(eNodeMessage.Body));
+            var commandMessage = _jsonSerializer.Deserialize<CommandMessage>(eNodeMessage.Body);
             var commandType = _typeNameProvider.GetType(eNodeMessage.Tag);
             var command = _jsonSerializer.Deserialize(commandMessage.CommandData, commandType) as ICommand;
             var commandExecuteContext = new CommandExecuteContext(_repository, _aggregateStorage, message, context, commandMessage, _sendReplyService);

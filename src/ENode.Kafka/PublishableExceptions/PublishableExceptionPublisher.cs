@@ -73,7 +73,7 @@ namespace ENode.Kafka
             return new ENodeMessage(
                 topic,
                 (int)ENodeMessageTypeCode.ExceptionMessage,
-                Encoding.UTF8.GetBytes(data),
+                data,
                 _typeNameProvider.GetTypeName(exception.GetType()));
         }
     }

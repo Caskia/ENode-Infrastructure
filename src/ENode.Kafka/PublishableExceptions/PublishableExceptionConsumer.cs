@@ -24,7 +24,7 @@ namespace ENode.Kafka
         public void Handle(KafkaMessage message, IKafkaMessageContext context)
         {
             var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(message.Value);
-            var exceptionMessage = _jsonSerializer.Deserialize<PublishableExceptionMessage>(Encoding.UTF8.GetString(eNodeMessage.Body));
+            var exceptionMessage = _jsonSerializer.Deserialize<PublishableExceptionMessage>(eNodeMessage.Body);
             var exceptionType = _typeNameProvider.GetType(eNodeMessage.Tag);
             var exception = FormatterServices.GetUninitializedObject(exceptionType) as IPublishableException;
             exception.Id = exceptionMessage.UniqueId;

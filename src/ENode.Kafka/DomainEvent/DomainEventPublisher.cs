@@ -65,7 +65,7 @@ namespace ENode.Kafka
             var eventMessage = CreateEventMessage(eventStream);
             var topic = _eventTopicProvider.GetTopic(eventStream.Events.First());
             var data = _jsonSerializer.Serialize(eventMessage);
-            return new ENodeMessage(topic, (int)ENodeMessageTypeCode.DomainEventStreamMessage, Encoding.UTF8.GetBytes(data));
+            return new ENodeMessage(topic, (int)ENodeMessageTypeCode.DomainEventStreamMessage, data);
         }
 
         private EventStreamMessage CreateEventMessage(DomainEventStreamMessage eventStream)
