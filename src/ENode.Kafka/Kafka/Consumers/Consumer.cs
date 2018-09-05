@@ -47,7 +47,7 @@ namespace ENode.Kafka.Consumers
 
             _consumingMessageService = new ConsumingMessageService(this);
 
-            _pollingMessageWorker = new Worker("PollingMessage", () => ConsumeMessage());
+            _pollingMessageWorker = new Worker("PollingMessage", PullAndConsumeMessage);
         }
 
         #endregion Ctor
@@ -137,12 +137,6 @@ namespace ENode.Kafka.Consumers
 
         #region Private Methods
 
-        private void ConsumeMessage()
-        {
-            var message = _kafkaConsumer.Consume();
-            _consumingMessageService.EnterConsumingQueue(message);
-        }
-
         private void InitializeKafkaConsumer(ConsumerSetting setting)
         {
             Setting = setting ?? throw new ArgumentNullException(nameof(setting));
@@ -161,6 +155,12 @@ namespace ENode.Kafka.Consumers
             }
 
             _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig);
+        }
+
+        private void PullAndConsumeMessage()
+        {
+            var message = _kafkaConsumer.Consume();
+            _consumingMessageService.EnterConsumingQueue(message);
         }
 
         private void RegisterKafkaConsumerEvent()
