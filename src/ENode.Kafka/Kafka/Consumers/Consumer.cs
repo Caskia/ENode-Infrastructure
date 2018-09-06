@@ -5,6 +5,7 @@ using ECommon.Scheduling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Consumers
@@ -17,6 +18,8 @@ namespace ENode.Kafka.Consumers
         private readonly ILogger _logger;
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
+        private CancellationToken _cancellationToken;
+        private CancellationTokenSource _cancellationTokenSource;
         private Consumer<Ignore, string> _kafkaConsumer;
 
         #endregion Private Variables
@@ -42,12 +45,14 @@ namespace ENode.Kafka.Consumers
         {
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
+            _cancellationTokenSource = new CancellationTokenSource();
+            _cancellationToken = _cancellationTokenSource.Token;
 
             InitializeKafkaConsumer(setting);
 
             _consumingMessageService = new ConsumingMessageService(this);
 
-            _pollingMessageWorker = new Worker("PollingMessage", PullAndConsumeMessage);
+            _pollingMessageWorker = new Worker("PollingMessage", () => ConsumeMessage());
         }
 
         #endregion Ctor
@@ -112,10 +117,13 @@ namespace ENode.Kafka.Consumers
         public void Stop()
         {
             Stopped = true;
+            _cancellationTokenSource.Cancel();
+
             _pollingMessageWorker.Stop();
             _consumingMessageService.Stop();
 
-            System.Threading.Thread.Sleep(100);
+            Thread.Sleep(100);
+            _kafkaConsumer.Close();
             _kafkaConsumer.Dispose();
 
             _logger.InfoFormat("{0} stopped.", GetType().Name);
@@ -137,6 +145,15 @@ namespace ENode.Kafka.Consumers
 
         #region Private Methods
 
+        private void ConsumeMessage()
+        {
+            if (!Stopped && !_cancellationToken.IsCancellationRequested)
+            {
+                var message = _kafkaConsumer.Consume(_cancellationToken);
+                _consumingMessageService.EnterConsumingQueue(message);
+            }
+        }
+
         private void InitializeKafkaConsumer(ConsumerSetting setting)
         {
             Setting = setting ?? throw new ArgumentNullException(nameof(setting));
@@ -155,12 +172,6 @@ namespace ENode.Kafka.Consumers
             }
 
             _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig);
-        }
-
-        private void PullAndConsumeMessage()
-        {
-            var message = _kafkaConsumer.Consume();
-            _consumingMessageService.EnterConsumingQueue(message);
         }
 
         private void RegisterKafkaConsumerEvent()
