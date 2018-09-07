@@ -51,7 +51,6 @@ namespace ENode.Lock.Redis
                 throw new ArgumentNullException(nameof(redis));
 
             // The comparison below uses timeOut as a max timeSpan in waiting Lock
-            var i = 0;
             var lockExpirationTime = DateTime.UtcNow + timeOut;
             do
             {
