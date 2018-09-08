@@ -152,7 +152,7 @@ namespace ENode.Kafka
             var inactiveList = new List<KeyValuePair<string, NettyClient>>();
             foreach (var pair in _remotingClientDict)
             {
-                if (!pair.Value.Channel.Active)
+                if (pair.Value.Channel == null || !pair.Value.Channel.Active)
                 {
                     inactiveList.Add(pair);
                 }
