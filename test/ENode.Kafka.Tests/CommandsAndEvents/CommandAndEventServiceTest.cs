@@ -145,10 +145,10 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行创建聚合根的命令
-            var commandResult = _commandService.Execute(command, 5000);
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            Assert.Equal(CommandStatus.Success, commandResult.Data.Status);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Sample Note", note.Title);
             Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -159,37 +159,13 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 AggregateRootId = aggregateId,
                 Title = "Changed Note"
             };
-            commandResult = _commandService.Execute(command2, 5000);
+            commandResult = _commandService.ExecuteAsync(command2).Result;
             Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-            note = _memoryCache.Get<TestAggregate>(aggregateId);
+            Assert.Equal(CommandStatus.Success, commandResult.Data.Status);
+            note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Changed Note", note.Title);
             Assert.Equal(2, ((IAggregateRoot)note).Version);
-        }
-
-        [Fact]
-        public void command_sync_execute_timeout_test()
-        {
-            var aggregateId = ObjectId.GenerateNewStringId();
-            var command = new CreateTestAggregateCommand
-            {
-                AggregateRootId = aggregateId,
-                Title = "Sample Note",
-                SleepMilliseconds = 5000
-            };
-
-            //执行创建聚合根的命令
-            var isTimeout = false;
-            try
-            {
-                var commandResult = _commandService.Execute(command, 3000);
-            }
-            catch (CommandExecuteTimeoutException)
-            {
-                isTimeout = true;
-            }
-            Assert.True(isTimeout);
         }
 
         [Fact]
@@ -209,7 +185,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Sample Note", note.Title);
             Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -236,7 +212,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                     var current = Interlocked.Increment(ref finishedCount);
                     if (current == totalCount)
                     {
-                        note = _memoryCache.Get<TestAggregate>(aggregateId);
+                        note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
                         Assert.NotNull(note);
                         Assert.Equal("Changed Note", note.Title);
                         Assert.Equal(totalCount + 1, ((IAggregateRoot)note).Version);
@@ -264,7 +240,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Sample Note", note.Title);
             Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -281,7 +257,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            note = _memoryCache.Get<TestAggregate>(aggregateId);
+            note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Changed Note", note.Title);
             Assert.Equal(2, ((IAggregateRoot)note).Version);
@@ -304,7 +280,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Sample Note", note.Title);
             Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -362,7 +338,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Changed Note", note.Title);
             Assert.Equal(2, ((IAggregateRoot)note).Version);
@@ -374,7 +350,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            note = _memoryCache.Get<TestAggregate>(aggregateId);
+            note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Changed Note", note.Title);
             Assert.Equal(2, ((IAggregateRoot)note).Version);
@@ -702,7 +678,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 });
             }
             waitHandle.WaitOne();
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal(commandList.Count + 1, ((IAggregateRoot)note).Version);
         }
@@ -774,7 +750,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 });
             }
             waitHandle.WaitOne();
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal(true, createCommandSuccess);
             Assert.Equal(commandList.Count, ((IAggregateRoot)note).Version);
@@ -819,7 +795,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 var commandResult = asyncResult.Data;
                 Assert.NotNull(commandResult);
                 Assert.Equal(CommandStatus.Failed, commandResult.Status);
-                var note = _memoryCache.Get<TestAggregate>(aggregateId);
+                var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
                 Assert.NotNull(note);
                 Assert.Equal("Note Title", note.Title);
                 Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -837,7 +813,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 commandResult = asyncResult.Data;
                 Assert.NotNull(commandResult);
                 Assert.Equal(CommandStatus.Success, commandResult.Status);
-                note = _memoryCache.Get<TestAggregate>(aggregateId);
+                note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
                 Assert.NotNull(note);
                 Assert.Equal("Note Title", note.Title);
                 Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -880,7 +856,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
-            var note = _memoryCache.Get<TestAggregate>(aggregateId);
+            var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Sample Note", note.Title);
             Assert.Equal(1, ((IAggregateRoot)note).Version);
@@ -932,7 +908,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 });
             }
             waitHandle.WaitOne();
-            note = _memoryCache.Get<TestAggregate>(aggregateId);
+            note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal(2 + commandList.Count, ((IAggregateRoot)note).Version);
             Assert.Equal("Changed Note2", note.Title);

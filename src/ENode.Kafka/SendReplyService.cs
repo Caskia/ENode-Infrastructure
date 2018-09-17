@@ -5,7 +5,6 @@ using ECommon.Scheduling;
 using ECommon.Serializing;
 using ECommon.Utilities;
 using ENode.Kafka.Netty;
-using ENode.Kafka.Netty.Codecs;
 using ENode.Kafka.Utils;
 using System;
 using System.Collections.Concurrent;
@@ -22,13 +21,15 @@ namespace ENode.Kafka
         private readonly IOHelper _ioHelper;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly ILogger _logger;
+        private readonly string _name;
         private readonly ConcurrentDictionary<string, NettyClient> _remotingClientDict;
         private readonly string _scanInactiveCommandRemotingClientTaskName;
         private readonly IScheduleService _scheduleService;
         private readonly Object lockObject = new object();
 
-        public SendReplyService()
+        public SendReplyService(string name)
         {
+            _name = name;
             _remotingClientDict = new ConcurrentDictionary<string, NettyClient>();
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
@@ -68,6 +69,36 @@ namespace ENode.Kafka
                     _logger.Error("Send command reply has exeption, replyAddress: " + context.ReplyAddress, ex);
                 }
             }, new SendReplyContext(replyType, replyData, replyAddress));
+        }
+
+        public async Task SendReplyAsync(short replyType, object replyData, string replyAddress)
+        {
+            var context = new SendReplyContext(replyType, replyData, replyAddress);
+            try
+            {
+                var remotingClient = GetRemotingClient(context.ReplyAddress);
+                if (remotingClient == null) return;
+
+                if (!remotingClient.Channel.Active)
+                {
+                    _logger.Error("Send command reply failed as remotingClient is not connected, replyAddress: " + context.ReplyAddress);
+                    return;
+                }
+
+                var message = _jsonSerializer.Serialize(context.ReplyData);
+                var body = Encoding.UTF8.GetBytes(message);
+                var request = new Request()
+                {
+                    Code = context.ReplyType,
+                    Body = body
+                };
+
+                await remotingClient.Channel.WriteAndFlushAsync(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Send command reply has exeption, replyAddress: " + context.ReplyAddress, ex);
+            }
         }
 
         public void Start()

@@ -70,7 +70,7 @@ namespace EQueue.Clients
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
-            _nameServerRemotingClientList = _setting.NameServerList.ToRemotingClientList(_setting.SocketSetting).ToList();
+            _nameServerRemotingClientList = _setting.NameServerList.ToRemotingClientList(_setting.ClientName, _setting.SocketSetting).ToList();
         }
 
         #region Public Methods
@@ -78,6 +78,15 @@ namespace EQueue.Clients
         public List<BrokerConnection> GetAllBrokerConnections()
         {
             return _brokerConnectionDict.Values.ToList();
+        }
+
+        public IList<MessageQueue> GetAvailableMessageQueues(string topic)
+        {
+            if (_topicMessageQueueDict.TryGetValue(topic, out IList<MessageQueue> messageQueueList))
+            {
+                return messageQueueList;
+            }
+            return null;
         }
 
         public BrokerConnection GetBrokerConnection(string brokerName)
@@ -107,8 +116,7 @@ namespace EQueue.Clients
 
         public async Task<IList<MessageQueue>> GetTopicMessageQueuesAsync(string topic)
         {
-            IList<MessageQueue> messageQueueList;
-            if (_topicMessageQueueDict.TryGetValue(topic, out messageQueueList))
+            if (_topicMessageQueueDict.TryGetValue(topic, out IList<MessageQueue> messageQueueList))
             {
                 return messageQueueList;
             }
@@ -133,15 +141,15 @@ namespace EQueue.Clients
                         }
                     }
                     SortMessageQueues(messageQueueList);
-                    if (messageQueueList.Count == 0)
+                    if (messageQueueList.IsEmpty())
                     {
-                        _logger.Warn("GetTopicMessageQueues, get messageQueueList count zero!");
+                        _logger.WarnFormat("Topic route queue is empty, topic: {0}", topic);
                     }
                     _topicMessageQueueDict[topic] = messageQueueList;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(string.Format("GetTopicRouteInfoList has exception, topic: {0}", topic), ex);
+                    _logger.Error(string.Format("GetTopicRouteInfoListAsync has exception, topic: {0}", topic), ex);
                 }
                 return messageQueueList;
             }
@@ -153,21 +161,16 @@ namespace EQueue.Clients
             return this;
         }
 
-        //Todo: need to use async
         public virtual ClientService Start()
         {
             StartAllNameServerClients();
-            RefreshClusterBrokersAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            if (_brokerConnectionDict.Count == 0)
-            {
-                throw new Exception("No available brokers found.");
-            }
+            RefreshClusterBrokers().ConfigureAwait(false).GetAwaiter().GetResult();
             _scheduleService.StartTask("SendHeartbeatToAllBrokers", SendHeartbeatToAllBrokers, 1000, _setting.SendHeartbeatInterval);
             _scheduleService.StartTask("RefreshBrokerAndTopicRouteInfo", async () =>
-             {
-                 await RefreshClusterBrokersAsync();
-                 await RefreshTopicRouteInfoAsync();
-             }, 1000, _setting.RefreshBrokerAndTopicRouteInfoInterval);
+            {
+                await RefreshClusterBrokers();
+                await RefreshTopicRouteInfo();
+            }, 1000, _setting.RefreshBrokerAndTopicRouteInfoInterval);
             _logger.InfoFormat("{0} startted.", GetType().Name);
             return this;
         }
@@ -213,8 +216,8 @@ namespace EQueue.Clients
                 throw new Exception("ClientService must set producer or consumer.");
             }
             var brokerAdminEndpoint = brokerInfo.AdminAddress.ToEndPoint();
-            var remotingClient = new SocketRemotingClient(brokerEndpoint, _setting.SocketSetting);
-            var adminRemotingClient = new SocketRemotingClient(brokerAdminEndpoint, _setting.SocketSetting);
+            var remotingClient = new SocketRemotingClient(_setting.ClientName, brokerEndpoint, _setting.SocketSetting);
+            var adminRemotingClient = new SocketRemotingClient(_setting.ClientName, brokerAdminEndpoint, _setting.SocketSetting);
             var brokerConnection = new BrokerConnection(brokerInfo, remotingClient, adminRemotingClient);
 
             if (_producer != null && _producer.ResponseHandler != null)
@@ -256,26 +259,6 @@ namespace EQueue.Clients
             return _binarySerializer.Deserialize<IList<BrokerInfo>>(remotingResponse.ResponseBody);
         }
 
-        private IList<TopicRouteInfo> GetTopicRouteInfoList(string topic)
-        {
-            var nameServerRemotingClient = GetAvailableNameServerRemotingClient();
-            var request = new GetTopicRouteInfoRequest
-            {
-                ClientRole = _producer != null ? ClientRole.Producer : ClientRole.Consumer,
-                ClusterName = _setting.ClusterName,
-                OnlyFindMaster = _setting.OnlyFindMasterBroker,
-                Topic = topic
-            };
-            var data = _binarySerializer.Serialize(request);
-            var remotingRequest = new RemotingRequest((int)NameServerRequestCode.GetTopicRouteInfo, data);
-            var remotingResponse = nameServerRemotingClient.InvokeSync(remotingRequest, 5 * 1000);
-            if (remotingResponse.ResponseCode != ResponseCode.Success)
-            {
-                throw new Exception(string.Format("Get topic route info from name server failed, topic: {0}, nameServerAddress: {1}, remoting response code: {2}, errorMessage: {3}", topic, nameServerRemotingClient.ServerEndPoint.ToAddress(), remotingResponse.ResponseCode, Encoding.UTF8.GetString(remotingResponse.ResponseBody)));
-            }
-            return _binarySerializer.Deserialize<IList<TopicRouteInfo>>(remotingResponse.ResponseBody);
-        }
-
         private async Task<IList<TopicRouteInfo>> GetTopicRouteInfoListAsync(string topic)
         {
             var nameServerRemotingClient = GetAvailableNameServerRemotingClient();
@@ -296,7 +279,7 @@ namespace EQueue.Clients
             return _binarySerializer.Deserialize<IList<TopicRouteInfo>>(remotingResponse.ResponseBody);
         }
 
-        private async Task RefreshClusterBrokersAsync()
+        private async Task RefreshClusterBrokers()
         {
             using (await _asyncLock.LockAsync())
             {
@@ -321,8 +304,7 @@ namespace EQueue.Clients
                     }
                     foreach (var brokerConnection in removedBrokerServiceList)
                     {
-                        BrokerConnection removed;
-                        if (_brokerConnectionDict.TryRemove(brokerConnection.BrokerInfo.BrokerName, out removed))
+                        if (_brokerConnectionDict.TryRemove(brokerConnection.BrokerInfo.BrokerName, out BrokerConnection removed))
                         {
                             brokerConnection.Stop();
                             _logger.InfoFormat("Removed broker: " + brokerConnection.BrokerInfo);
@@ -332,7 +314,7 @@ namespace EQueue.Clients
             }
         }
 
-        private async Task RefreshTopicRouteInfoAsync()
+        private async Task RefreshTopicRouteInfo()
         {
             using (await _asyncLock.LockAsync())
             {

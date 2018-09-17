@@ -96,11 +96,6 @@ namespace ENode.Kafka
             return this;
         }
 
-        public void Send(ICommand command)
-        {
-            _sendMessageService.SendMessage(_producer, CreateENodeMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
-        }
-
         public Task<AsyncTaskResult> SendAsync(ICommand command)
         {
             try

@@ -95,11 +95,6 @@ namespace ENode.EQueue
             return this;
         }
 
-        public void Send(ICommand command)
-        {
-            _sendMessageService.SendMessage(_producer, BuildCommandMessage(command, false), _commandRouteKeyProvider.GetRoutingKey(command), command.Id, null);
-        }
-
         public Task<AsyncTaskResult> SendAsync(ICommand command)
         {
             try

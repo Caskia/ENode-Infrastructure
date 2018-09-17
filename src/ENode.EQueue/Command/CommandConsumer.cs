@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Serializing;
@@ -17,55 +18,15 @@ namespace ENode.EQueue
     public class CommandConsumer : IQueueMessageHandler
     {
         private const string DefaultCommandConsumerGroup = "CommandConsumerGroup";
-        private Consumer _consumer;
-        private SendReplyService _sendReplyService;
-        private IJsonSerializer _jsonSerializer;
-        private ITypeNameProvider _typeNameProvider;
-        private ICommandProcessor _commandProcessor;
-        private IRepository _repository;
         private IAggregateStorage _aggregateStorage;
+        private ICommandProcessor _commandProcessor;
+        private Consumer _consumer;
+        private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
-
+        private IRepository _repository;
+        private SendReplyService _sendReplyService;
+        private ITypeNameProvider _typeNameProvider;
         public Consumer Consumer { get { return _consumer; } }
-
-        public CommandConsumer InitializeENode()
-        {
-            _sendReplyService = new SendReplyService();
-            _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
-            _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
-            _commandProcessor = ObjectContainer.Resolve<ICommandProcessor>();
-            _repository = ObjectContainer.Resolve<IRepository>();
-            _aggregateStorage = ObjectContainer.Resolve<IAggregateStorage>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
-            return this;
-        }
-        public CommandConsumer InitializeEQueue(string groupName = null, ConsumerSetting setting = null)
-        {
-            InitializeENode();
-            _consumer = new Consumer(groupName ?? DefaultCommandConsumerGroup, setting ?? new ConsumerSetting
-            {
-                ConsumeFromWhere = ConsumeFromWhere.FirstOffset
-            });
-            return this;
-        }
-
-        public CommandConsumer Start()
-        {
-            _sendReplyService.Start();
-            _consumer.SetMessageHandler(this).Start();
-            return this;
-        }
-        public CommandConsumer Subscribe(string topic)
-        {
-            _consumer.Subscribe(topic);
-            return this;
-        }
-        public CommandConsumer Shutdown()
-        {
-            _consumer.Stop();
-            _sendReplyService.Stop();
-            return this;
-        }
 
         void IQueueMessageHandler.Handle(QueueMessage queueMessage, IMessageContext context)
         {
@@ -79,16 +40,58 @@ namespace ENode.EQueue
             _commandProcessor.Process(new ProcessingCommand(command, commandExecuteContext, commandItems));
         }
 
-        class CommandExecuteContext : ICommandExecuteContext
+        public CommandConsumer InitializeENode()
         {
-            private string _result;
-            private readonly ConcurrentDictionary<string, IAggregateRoot> _trackingAggregateRootDict;
-            private readonly IRepository _repository;
+            _sendReplyService = new SendReplyService("CommandConsumerSendReplyService");
+            _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
+            _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
+            _commandProcessor = ObjectContainer.Resolve<ICommandProcessor>();
+            _repository = ObjectContainer.Resolve<IRepository>();
+            _aggregateStorage = ObjectContainer.Resolve<IAggregateStorage>();
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            return this;
+        }
+
+        public CommandConsumer InitializeEQueue(string groupName = null, ConsumerSetting setting = null)
+        {
+            InitializeENode();
+            _consumer = new Consumer(groupName ?? DefaultCommandConsumerGroup, setting ?? new ConsumerSetting
+            {
+                ConsumeFromWhere = ConsumeFromWhere.FirstOffset
+            });
+            return this;
+        }
+
+        public CommandConsumer Shutdown()
+        {
+            _consumer.Stop();
+            _sendReplyService.Stop();
+            return this;
+        }
+
+        public CommandConsumer Start()
+        {
+            _sendReplyService.Start();
+            _consumer.SetMessageHandler(this).Start();
+            return this;
+        }
+
+        public CommandConsumer Subscribe(string topic)
+        {
+            _consumer.Subscribe(topic);
+            return this;
+        }
+
+        private class CommandExecuteContext : ICommandExecuteContext
+        {
             private readonly IAggregateStorage _aggregateRootStorage;
-            private readonly SendReplyService _sendReplyService;
-            private readonly QueueMessage _queueMessage;
-            private readonly IMessageContext _messageContext;
             private readonly CommandMessage _commandMessage;
+            private readonly IMessageContext _messageContext;
+            private readonly QueueMessage _queueMessage;
+            private readonly IRepository _repository;
+            private readonly SendReplyService _sendReplyService;
+            private readonly ConcurrentDictionary<string, IAggregateRoot> _trackingAggregateRootDict;
+            private string _result;
 
             public CommandExecuteContext(IRepository repository, IAggregateStorage aggregateRootStorage, QueueMessage queueMessage, IMessageContext messageContext, CommandMessage commandMessage, SendReplyService sendReplyService)
             {
@@ -101,17 +104,6 @@ namespace ENode.EQueue
                 _messageContext = messageContext;
             }
 
-            public void OnCommandExecuted(CommandResult commandResult)
-            {
-                _messageContext.OnMessageHandled(_queueMessage);
-
-                if (string.IsNullOrEmpty(_commandMessage.ReplyAddress))
-                {
-                    return;
-                }
-
-                _sendReplyService.SendReply((int)CommandReturnType.CommandExecuted, commandResult, _commandMessage.ReplyAddress);
-            }
             public void Add(IAggregateRoot aggregateRoot)
             {
                 if (aggregateRoot == null)
@@ -123,7 +115,14 @@ namespace ENode.EQueue
                     throw new AggregateRootAlreadyExistException(aggregateRoot.UniqueId, aggregateRoot.GetType());
                 }
             }
-            public T Get<T>(object id, bool firstFromCache = true) where T : class, IAggregateRoot
+
+            public void Clear()
+            {
+                _trackingAggregateRootDict.Clear();
+                _result = null;
+            }
+
+            public async Task<T> GetAsync<T>(object id, bool firstFromCache = true) where T : class, IAggregateRoot
             {
                 if (id == null)
                 {
@@ -138,11 +137,11 @@ namespace ENode.EQueue
 
                 if (firstFromCache)
                 {
-                    aggregateRoot = _repository.Get<T>(id);
+                    aggregateRoot = await _repository.GetAsync<T>(id);
                 }
                 else
                 {
-                    aggregateRoot = _aggregateRootStorage.Get(typeof(T), aggregateRootId);
+                    aggregateRoot = await _aggregateRootStorage.GetAsync(typeof(T), aggregateRootId);
                 }
 
                 if (aggregateRoot != null)
@@ -153,22 +152,32 @@ namespace ENode.EQueue
 
                 return null;
             }
+
+            public string GetResult()
+            {
+                return _result;
+            }
+
             public IEnumerable<IAggregateRoot> GetTrackedAggregateRoots()
             {
                 return _trackingAggregateRootDict.Values;
             }
-            public void Clear()
+
+            public Task OnCommandExecutedAsync(CommandResult commandResult)
             {
-                _trackingAggregateRootDict.Clear();
-                _result = null;
+                _messageContext.OnMessageHandled(_queueMessage);
+
+                if (string.IsNullOrEmpty(_commandMessage.ReplyAddress))
+                {
+                    return Task.CompletedTask;
+                }
+
+                return _sendReplyService.SendReply((int)CommandReturnType.CommandExecuted, commandResult, _commandMessage.ReplyAddress);
             }
+
             public void SetResult(string result)
             {
                 _result = result;
-            }
-            public string GetResult()
-            {
-                return _result;
             }
         }
     }

@@ -21,32 +21,6 @@ namespace ENode.Kafka
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
         }
 
-        public void SendMessage(Producer producer, ENodeMessage message, string routingKey, string messageId, string version)
-        {
-            try
-            {
-                _ioHelper.TryIOAction(() =>
-                {
-                    var content = _jsonSerializer.Serialize(message);
-                    producer.ProduceAsync(message.Topic, routingKey, content).ContinueWith(task =>
-                    {
-                        var result = task.Result;
-                        if (result.Error.HasError)
-                        {
-                            _logger.ErrorFormat("ENode message sync send failed, sendResult: {0}, routingKey: {1}, messageId: {2}, version: {3}", result, routingKey, messageId, version);
-                            throw new IOException(result.Error.Reason);
-                        }
-                        _logger.InfoFormat("ENode message sync send success, sendResult: {0}, routingKey: {1}, messageId: {2}, version: {3}", result, routingKey, messageId, version);
-                    });
-                }, "SendENodeMessage");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(string.Format("ENode message synch send has exception, message: {0}, routingKey: {1}, messageId: {2}, version: {3}", message, routingKey, messageId, version), ex);
-                throw;
-            }
-        }
-
         public async Task<AsyncTaskResult> SendMessageAsync(Producer producer, ENodeMessage message, string routingKey, string messageId, string version)
         {
             try

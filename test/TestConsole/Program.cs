@@ -16,7 +16,7 @@ namespace TestConsole
 
         private static RedisOptions _redisOptions = new RedisOptions()
         {
-            ConnectionString = "192.168.31.125:20002,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
+            ConnectionString = "127.0.0.1:20002,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
             DatabaseId = 3
         };
 

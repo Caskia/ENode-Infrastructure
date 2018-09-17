@@ -38,7 +38,7 @@ namespace ENode.Kafka
 
         public DomainEventConsumer InitializeENode(bool sendEventHandledMessage = true)
         {
-            _sendReplyService = new SendReplyService();
+            _sendReplyService = new SendReplyService("EventConsumerSendReplyService");
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _eventSerializer = ObjectContainer.Resolve<IEventSerializer>();
             _messageProcessor = ObjectContainer.Resolve<IMessageProcessor<ProcessingDomainEventStreamMessage, DomainEventStreamMessage>>();

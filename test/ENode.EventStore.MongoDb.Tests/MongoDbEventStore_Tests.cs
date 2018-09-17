@@ -19,7 +19,7 @@ namespace ENode.EventStore.MongoDb.Tests
     {
         private readonly MongoDbConfiguration _mongoDbConfiguration = new MongoDbConfiguration()
         {
-            ConnectionString = "mongodb://192.168.31.147:27017/eventsotre_test",
+            ConnectionString = "mongodb://127.0.0.1:20000/eventsotre_test",
             DatabaseName = "eventsotre_test",
         };
 
@@ -164,7 +164,8 @@ namespace ENode.EventStore.MongoDb.Tests
             await _store.AppendAsync(eventStream3);
 
             //Act
-            var events = _store.QueryAggregateEvents(eventStream1.AggregateRootId, eventStream1.AggregateRootTypeName, 1, 3);
+            var result = await _store.QueryAggregateEventsAsync(eventStream1.AggregateRootId, eventStream1.AggregateRootTypeName, 1, 3);
+            var events = result.Data;
             events.Count().ShouldBe(3);
         }
 

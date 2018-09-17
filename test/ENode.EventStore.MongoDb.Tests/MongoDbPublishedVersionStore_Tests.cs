@@ -18,7 +18,7 @@ namespace ENode.EventStore.MongoDb.Tests
     {
         private readonly MongoDbConfiguration _mongoDbConfiguration = new MongoDbConfiguration()
         {
-            ConnectionString = "mongodb://192.168.31.125:20000/eventsotre_test?maxPoolSize=500",
+            ConnectionString = "mongodb://127.0.0.1:20000/eventsotre_test?maxPoolSize=500",
             DatabaseName = "eventsotre_test",
         };
 

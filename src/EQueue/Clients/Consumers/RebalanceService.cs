@@ -60,7 +60,7 @@ namespace EQueue.Clients.Consumers
 
         public void Start()
         {
-            _scheduleService.StartTask("Rebalance", async () => { await RebalanceAsync(); }, 1000, _consumer.Setting.RebalanceInterval);
+            _scheduleService.StartTask("Rebalance", async () => { await Rebalance(); }, 1000, _consumer.Setting.RebalanceInterval);
             if (_consumer.Setting.AutoPull)
             {
                 _scheduleService.StartTask("CommitOffsets", CommitOffsets, 1000, _consumer.Setting.CommitConsumerOffsetInterval);
@@ -91,7 +91,7 @@ namespace EQueue.Clients.Consumers
             }
         }
 
-        private async Task<IList<string>> GetConsumerIdsForTopicAsync(string topic)
+        private async Task<IList<string>> GetConsumerIdsForTopic(string topic)
         {
             var brokerConnection = _clientService.GetFirstBrokerConnection();
             var request = _binarySerializer.Serialize(new GetConsumerIdsForTopicRequest(_consumer.GroupName, topic));
@@ -113,14 +113,14 @@ namespace EQueue.Clients.Consumers
             return consumerIdList;
         }
 
-        private async Task RebalanceAsync()
+        private async Task Rebalance()
         {
             foreach (var pair in _consumer.SubscriptionTopics)
             {
                 var topic = pair.Key;
                 try
                 {
-                    await RebalanceClusteringAsync(pair);
+                    await RebalanceClustering(pair);
                 }
                 catch (Exception ex)
                 {
@@ -129,12 +129,12 @@ namespace EQueue.Clients.Consumers
             }
         }
 
-        private async Task RebalanceClusteringAsync(KeyValuePair<string, HashSet<string>> pair)
+        private async Task RebalanceClustering(KeyValuePair<string, HashSet<string>> pair)
         {
             var topic = pair.Key;
             try
             {
-                var consumerIdList = await GetConsumerIdsForTopicAsync(topic);
+                var consumerIdList = await GetConsumerIdsForTopic(topic);
                 if (consumerIdList == null || consumerIdList.Count == 0)
                 {
                     _logger.WarnFormat("No available consumers found.");
@@ -144,7 +144,7 @@ namespace EQueue.Clients.Consumers
                 var messageQueueList = await _clientService.GetTopicMessageQueuesAsync(topic);
                 if (messageQueueList == null || messageQueueList.Count == 0)
                 {
-                    _logger.WarnFormat("No available message queues found.");
+                    _logger.WarnFormat("No available message queues found, topic: {0}", topic);
                     UpdatePullRequestDict(pair, new List<MessageQueue>());
                     return;
                 }
@@ -153,8 +153,6 @@ namespace EQueue.Clients.Consumers
             }
             catch (Exception ex)
             {
-                var brokerAdminClient = _clientService.GetFirstBrokerConnection().AdminRemotingClient;
-
                 _logger.Error(string.Format("RebalanceClustering has exception, consumerGroup: {0}, consumerId: {1}, topic: {2}", _consumer.GroupName, _clientId, topic), ex);
                 UpdatePullRequestDict(pair, new List<MessageQueue>());
             }

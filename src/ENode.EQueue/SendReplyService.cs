@@ -21,12 +21,14 @@ namespace ENode.EQueue
         private readonly IOHelper _ioHelper;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly ILogger _logger;
+        private readonly string _name;
         private readonly ConcurrentDictionary<string, SocketRemotingClient> _remotingClientDict;
         private readonly string _scanInactiveCommandRemotingClientTaskName;
         private readonly IScheduleService _scheduleService;
 
-        public SendReplyService()
+        public SendReplyService(string name)
         {
+            _name = name;
             _remotingClientDict = new ConcurrentDictionary<string, SocketRemotingClient>();
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
@@ -35,7 +37,7 @@ namespace ENode.EQueue
             _scanInactiveCommandRemotingClientTaskName = "ScanInactiveCommandRemotingClient_" + DateTime.Now.Ticks + new Random().Next(10000);
         }
 
-        public void SendReply(short replyType, object replyData, string replyAddress)
+        public Task SendReply(short replyType, object replyData, string replyAddress)
         {
             Task.Factory.StartNew(obj =>
             {
@@ -62,6 +64,7 @@ namespace ENode.EQueue
                     _logger.Error("Send command reply has exeption, replyAddress: " + context.ReplyAddress, ex);
                 }
             }, new SendReplyContext(replyType, replyData, replyAddress));
+            return Task.CompletedTask;
         }
 
         public void Start()
@@ -82,7 +85,7 @@ namespace ENode.EQueue
         {
             return _remotingClientDict.GetOrAdd(replyAddress, key =>
             {
-                return new SocketRemotingClient(replyEndpoint).Start();
+                return new SocketRemotingClient(_name, replyEndpoint).Start();
             });
         }
 

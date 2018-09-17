@@ -9,6 +9,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
 using KafkaMessage = Confluent.Kafka.Message<Confluent.Kafka.Ignore, string>;
@@ -43,7 +44,7 @@ namespace ENode.Kafka
 
         public CommandConsumer InitializeENode()
         {
-            _sendReplyService = new SendReplyService();
+            _sendReplyService = new SendReplyService("CommandConsumerSendReplyService");
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
             _commandProcessor = ObjectContainer.Resolve<ICommandProcessor>();
@@ -132,7 +133,7 @@ namespace ENode.Kafka
                 _result = null;
             }
 
-            public T Get<T>(object id, bool firstFromCache = true) where T : class, IAggregateRoot
+            public async Task<T> GetAsync<T>(object id, bool firstFromCache = true) where T : class, IAggregateRoot
             {
                 if (id == null)
                 {
@@ -147,11 +148,11 @@ namespace ENode.Kafka
 
                 if (firstFromCache)
                 {
-                    aggregateRoot = _repository.Get<T>(id);
+                    aggregateRoot = await _repository.GetAsync<T>(id);
                 }
                 else
                 {
-                    aggregateRoot = _aggregateRootStorage.Get(typeof(T), aggregateRootId);
+                    aggregateRoot = await _aggregateRootStorage.GetAsync(typeof(T), aggregateRootId);
                 }
 
                 if (aggregateRoot != null)
@@ -183,6 +184,18 @@ namespace ENode.Kafka
                 }
 
                 _sendReplyService.SendReply((int)CommandReturnType.CommandExecuted, commandResult, _commandMessage.ReplyAddress);
+            }
+
+            public Task OnCommandExecutedAsync(CommandResult commandResult)
+            {
+                _messageContext.OnMessageHandled(_message);
+
+                if (string.IsNullOrEmpty(_commandMessage.ReplyAddress))
+                {
+                    return Task.CompletedTask;
+                }
+
+                return _sendReplyService.SendReplyAsync((int)CommandReturnType.CommandExecuted, commandResult, _commandMessage.ReplyAddress);
             }
 
             public void SetResult(string result)
