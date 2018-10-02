@@ -47,6 +47,16 @@ namespace ENode.Lock.Redis.Tests
             _lockService = ObjectContainer.Resolve<ILockService>();
         }
 
+        [Fact(DisplayName = "Should_Execute_Async")]
+        public async Task Should_Execute_Async()
+        {
+            //Act
+            await _lockService.ExecuteInLockAsync("test", async () =>
+            {
+                await Task.Delay(3000);
+            });
+        }
+
         [Fact(DisplayName = "Should_Execute_In_Lock_By_Multiple_Threads")]
         public async Task Should_Execute_In_Lock_By_Multiple_Threads()
         {
