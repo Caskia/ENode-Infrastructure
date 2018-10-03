@@ -127,6 +127,12 @@ namespace ENode.Kafka
                 }
             }
 
+            public Task AddAsync(IAggregateRoot aggregateRoot)
+            {
+                Add(aggregateRoot);
+                return Task.CompletedTask;
+            }
+
             public void Clear()
             {
                 _trackingAggregateRootDict.Clear();
