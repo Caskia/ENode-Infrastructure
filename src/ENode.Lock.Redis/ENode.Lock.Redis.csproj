@@ -13,7 +13,7 @@
     <Company>Caskia</Company>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ENode" Version="2.9.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.0.505" />
+    <PackageReference Include="ENode" Version="2.9.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.0.513" />
   </ItemGroup>
 </Project>
