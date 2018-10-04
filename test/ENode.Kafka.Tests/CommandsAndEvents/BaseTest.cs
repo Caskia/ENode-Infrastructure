@@ -74,7 +74,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         {
             BuildConfiguration();
 
-            InitializeENode(useMockEventStore,
+            InitializeKafka(useMockEventStore,
                 useMockPublishedVersionStore,
                 useMockDomainEventPublisher,
                 useMockApplicationMessagePublisher,
@@ -152,8 +152,8 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             return ipEndPoints;
         }
 
-        private void InitializeENode(
-                            bool useMockEventStore = false,
+        private void InitializeKafka(
+            bool useMockEventStore = false,
             bool useMockPublishedVersionStore = false,
             bool useMockDomainEventPublisher = false,
             bool useMockApplicationMessagePublisher = false,
