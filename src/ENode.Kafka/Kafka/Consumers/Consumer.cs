@@ -111,10 +111,10 @@ namespace ENode.Kafka.Consumers
         public void Stop()
         {
             Stopped = true;
-            _kafkaConsumer.Dispose();
-
             _pollingMessageWorker.Stop();
             _consumingMessageService.Stop();
+
+            _kafkaConsumer.Dispose();
 
             _logger.InfoFormat("{0} stopped.", GetType().Name);
         }
