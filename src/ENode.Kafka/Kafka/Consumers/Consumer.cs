@@ -114,6 +114,7 @@ namespace ENode.Kafka.Consumers
             _pollingMessageWorker.Stop();
             _consumingMessageService.Stop();
 
+            System.Threading.Thread.Sleep(100);
             _kafkaConsumer.Dispose();
 
             _logger.InfoFormat("{0} stopped.", GetType().Name);
