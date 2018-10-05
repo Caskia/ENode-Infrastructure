@@ -5,9 +5,9 @@ using ECommonConfiguration = ECommon.Configurations.Configuration;
 
 namespace ENode.Kafka.Tests.Netty
 {
-    public class TestBase
+    public class NettyTestBase
     {
-        public TestBase()
+        public NettyTestBase()
         {
             var assemblies = new[] { Assembly.GetExecutingAssembly() };
 
