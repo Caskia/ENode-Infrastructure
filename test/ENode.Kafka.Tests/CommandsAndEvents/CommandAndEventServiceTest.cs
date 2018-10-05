@@ -5,13 +5,18 @@ using ENode.Commanding;
 using ENode.Domain;
 using ENode.Eventing;
 using ENode.Infrastructure;
+using ENode.Kafka.Producers;
 using ENode.Kafka.Tests.CommandsAndEvents.Commands;
 using ENode.Kafka.Tests.CommandsAndEvents.Domain;
 using ENode.Kafka.Tests.CommandsAndEvents.Tests;
+using ENode.Kafka.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents
@@ -503,6 +508,29 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = asyncResult.Data;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
+        }
+
+        [Fact]
+        public async Task async_send_command_concurrent_test()
+        {
+            var commands = new List<AsyncHandlerCommand>();
+
+            for (int i = 0; i < 100000; i++)
+            {
+                commands.Add(new AsyncHandlerCommand()
+                {
+                    AggregateRootId = ObjectId.GenerateNewStringId()
+                });
+            }
+
+            var tasks = new List<Task>();
+            foreach (var command in commands)
+            {
+                var task = _commandService.SendAsync(command);
+                tasks.Add(task);
+            }
+
+            await Task.WhenAll(tasks);
         }
 
         [Fact]

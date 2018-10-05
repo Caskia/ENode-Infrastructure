@@ -49,7 +49,7 @@ namespace ENode.Kafka.Tests.Kafka
         {
             //Arrange
             var producer = new Producer(GetProducerSetting());
-            (string topic, string routingKey, string content) message = ("test", "1234", "testtesttesttest");
+            (string topic, string routingKey, string content) message = ("test", "1234", Encoding.UTF8.GetString(new byte[2048]));
 
             //Act
             var tasks = new List<Task>();
