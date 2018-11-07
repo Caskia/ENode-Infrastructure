@@ -3,6 +3,7 @@ using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Infrastructure;
 using ENode.Kafka.Consumers;
+using System.Collections.Generic;
 using System.Text;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
@@ -66,6 +67,12 @@ namespace ENode.Kafka
         public ApplicationMessageConsumer Subscribe(string topic)
         {
             Consumer.Subscribe(topic);
+            return this;
+        }
+
+        public ApplicationMessageConsumer Subscribe(IList<string> topics)
+        {
+            Consumer.Subscribe(topics);
             return this;
         }
     }
