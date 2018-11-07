@@ -11,13 +11,13 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
+        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(300);
         private string _keyPrefix;
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
-        private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(30);
+        private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(300);
 
         #endregion Private Variables
 
