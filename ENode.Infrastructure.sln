@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.EQueue", "src\ENode.E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EQueue", "src\EQueue\EQueue.csproj", "{63728817-5D2D-4C01-9DBB-A35225F0D393}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot", "src\ENode.AggregateSnapshot\ENode.AggregateSnapshot.csproj", "{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +69,10 @@ Global
 		{63728817-5D2D-4C01-9DBB-A35225F0D393}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{63728817-5D2D-4C01-9DBB-A35225F0D393}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{63728817-5D2D-4C01-9DBB-A35225F0D393}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -81,6 +87,7 @@ Global
 		{FAC37B31-26FB-4C6B-AFC5-DF77F62BCDB0} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 		{F2D3FEA0-7E6B-49DD-9B37-5DA641BABD08} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 		{63728817-5D2D-4C01-9DBB-A35225F0D393} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
+		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5674F7FB-D3F7-43F3-B00F-B514DBF892D5}
