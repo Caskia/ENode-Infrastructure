@@ -27,6 +27,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EQueue", "src\EQueue\EQueue
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot", "src\ENode.AggregateSnapshot\ENode.AggregateSnapshot.csproj", "{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot.Tests", "test\ENode.AggregateSnapshot.Tests\ENode.AggregateSnapshot.Tests.csproj", "{FAC2154C-1693-4D3C-9F0F-4F80FBCFA0A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +75,10 @@ Global
 		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAC2154C-1693-4D3C-9F0F-4F80FBCFA0A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAC2154C-1693-4D3C-9F0F-4F80FBCFA0A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAC2154C-1693-4D3C-9F0F-4F80FBCFA0A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAC2154C-1693-4D3C-9F0F-4F80FBCFA0A6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -88,6 +94,7 @@ Global
 		{F2D3FEA0-7E6B-49DD-9B37-5DA641BABD08} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 		{63728817-5D2D-4C01-9DBB-A35225F0D393} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 		{A7CB0A33-8FDF-4EE8-8172-7555D8A9F433} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
+		{FAC2154C-1693-4D3C-9F0F-4F80FBCFA0A6} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5674F7FB-D3F7-43F3-B00F-B514DBF892D5}

@@ -58,24 +58,38 @@ namespace ENode.AggregateSnapshot.Serializers
                 "_uncommittedEvents"
             };
 
-            //protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
-            //{
-            //    var jsonProperty = base.CreateProperty(member, memberSerialization);
-            //    if (!jsonProperty.Writable)
-            //    {
-            //        var property = member as PropertyInfo;
-            //        if (property != null)
-            //        {
-            //            var hasPrivateSetter = property.GetSetMethod(true) != null;
-            //            jsonProperty.Writable = hasPrivateSetter;
-            //        }
-            //    }
+            protected override IList<JsonProperty> CreateProperties(Type type, MemberSerialization memberSerialization)
+            {
+                var props = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                       .Select(p => base.CreateProperty(p, memberSerialization))
+                   .Union(type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                              .Select(f => base.CreateProperty(f, memberSerialization)))
+                   .ToList();
+                props.ForEach(p => { p.Writable = true; p.Readable = true; });
 
-            //    return jsonProperty;
-            //}
+                return base.CreateProperties(type, memberSerialization);
+            }
+
+            protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+            {
+                var jsonProperty = base.CreateProperty(member, memberSerialization);
+                if (!jsonProperty.Writable)
+                {
+                    var property = member as PropertyInfo;
+                    if (property != null)
+                    {
+                        var hasPrivateSetter = property.GetSetMethod(true) != null;
+                        jsonProperty.Writable = hasPrivateSetter;
+                    }
+                }
+
+                return jsonProperty;
+            }
 
             protected override List<MemberInfo> GetSerializableMembers(Type objectType)
             {
+                var privateMembers = objectType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
                 var members = base.GetSerializableMembers(objectType);
 
                 return members
