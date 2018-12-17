@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="enode" Version="2.9.1" />
+    <PackageReference Include="enode" Version="2.9.2" />
   </ItemGroup>
 
   <ItemGroup>
