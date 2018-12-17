@@ -7,14 +7,44 @@ namespace ENode.AggregateSnapshot.Tests.Domain
 {
     public class Product : AggregateRoot<long>
     {
+        #region Fields
+
         private bool _isPublished;
 
+        private string _name;
         private IDictionary<long, ProductRecord> _records;
         private ISet<long> _userIds;
 
-        public Product(long id, bool isPublished, List<long> userIds, List<ProductRecord> records) : base(id)
+        #endregion Fields
+
+        #region Properties
+
+        public bool IsPublished
+        {
+            get
+            {
+                return _isPublished;
+            }
+        }
+
+        public string Name
+        {
+            get
+            {
+                return _name;
+            }
+        }
+
+        #endregion Properties
+
+        public Product()
+        {
+        }
+
+        public Product(long id, string name, bool isPublished, List<long> userIds, List<ProductRecord> records) : base(id)
         {
             _id = id;
+            _name = name;
             _isPublished = isPublished;
             _userIds = new HashSet<long>(userIds);
             _records = records.ToDictionary(r => r.Id, r => r);

@@ -1,6 +1,8 @@
 ﻿using ECommon.Components;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.AggregateSnapshot.Tests.Domain;
+using ENode.Domain;
+using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -20,9 +22,11 @@ namespace ENode.AggregateSnapshot.Tests.Serializers
         [Fact]
         public void JsonSerializer_Test()
         {
+            //Arrange
             var product = new Product
                 (
                     1L,
+                    "banana",
                     true,
                     new List<long>()
                     {
@@ -32,14 +36,22 @@ namespace ENode.AggregateSnapshot.Tests.Serializers
                     },
                     new List<ProductRecord>()
                     {
-                        new ProductRecord(1L,"a",DateTime.Now),
-                        new ProductRecord(2L,"b",DateTime.Now),
-                        new ProductRecord(3L,"c",DateTime.Now),
-                        new ProductRecord(4L,"d",DateTime.Now),
+                        new ProductRecord(1L,"a",DateTime.UtcNow),
+                        new ProductRecord(2L,"b",DateTime.UtcNow),
+                        new ProductRecord(3L,"c",DateTime.UtcNow),
+                        new ProductRecord(4L,"d",DateTime.UtcNow),
                     }
                 );
 
+            //Act
             var json = _serializer.Serialize(product);
+
+            var deserializedProduct = _serializer.Deserialize(json, typeof(Product)) as Product;
+
+            //Assert
+            deserializedProduct.Id.ShouldBe(product.Id);
+            deserializedProduct.Name.ShouldBe(product.Name);
+            deserializedProduct.IsPublished.ShouldBe(product.IsPublished);
         }
     }
 }
