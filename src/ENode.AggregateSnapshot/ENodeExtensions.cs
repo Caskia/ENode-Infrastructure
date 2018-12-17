@@ -1,4 +1,5 @@
 ﻿using ECommon.Components;
+using ENode.AggregateSnapshot.Serializers;
 using ENode.Configurations;
 using ENode.Domain;
 
@@ -32,6 +33,7 @@ namespace ENode.AggregateSnapshot
         /// <returns></returns>
         public static ENodeConfiguration UseMongoDbAggregateSnapshotter(this ENodeConfiguration eNodeConfiguration)
         {
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotSerializer, JsonAggregateSnapshotSerializer>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotter, MongoDbAggregateSnapshotter>();
             return eNodeConfiguration;
         }
