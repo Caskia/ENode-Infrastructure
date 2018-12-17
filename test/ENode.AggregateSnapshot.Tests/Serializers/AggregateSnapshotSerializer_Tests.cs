@@ -20,7 +20,7 @@ namespace ENode.AggregateSnapshot.Tests.Serializers
         }
 
         [Fact]
-        public void JsonSerializer_Test()
+        public void JsonSerializerAndDeserializer_Test()
         {
             //Arrange
             var product = new Product

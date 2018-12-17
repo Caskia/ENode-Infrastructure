@@ -11,5 +11,7 @@ namespace ENode.AggregateSnapshot.Models
         public ObjectId Id { get; set; }
 
         public string Payload { get; set; }
+
+        public int Version { get; set; }
     }
 }

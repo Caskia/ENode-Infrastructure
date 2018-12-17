@@ -6,12 +6,14 @@ using ENode.AggregateSnapshot.Models;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.Domain;
 using ENode.Infrastructure;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using System;
 using System.Threading.Tasks;
 
 namespace ENode.AggregateSnapshot
 {
-    public class MongoDbAggregateSnapshotter : IAggregateSnapshotter
+    public class MongoDbAggregateSnapshotter : ISavableAggregateSnapshotter
     {
         #region Private Variables
 
@@ -39,19 +41,56 @@ namespace ENode.AggregateSnapshot
             return this;
         }
 
-        public Task<IAggregateRoot> RestoreFromSnapshotAsync(Type aggregateRootType, string aggregateRootId)
+        public async Task<IAggregateRoot> RestoreFromSnapshotAsync(Type aggregateRootType, string aggregateRootId)
         {
-            throw new NotImplementedException();
+            var snapshot = await _snapshotCollection
+                 .GetCollection(aggregateRootId)
+                 .Find(s => s.AggregateRootId == aggregateRootId)
+                 .FirstOrDefaultAsync();
+
+            if (snapshot == null)
+            {
+                return null;
+            }
+
+            return _aggregateSnapshotSerializer.Deserialize(snapshot.Payload, aggregateRootType) as IAggregateRoot;
         }
 
-        public Task<Snapshot> SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType)
+        public async Task SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType)
         {
             if (aggregateRoot == null)
             {
                 throw new ArgumentNullException(nameof(aggregateRoot));
             }
 
-            throw new NotImplementedException();
+            var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(aggregateRoot);
+            var aggregateRootTypeName = _typeNameProvider.GetTypeName(aggregateRootType);
+            var snapshot = new Snapshot()
+            {
+                Id = ObjectId.GenerateNewId(),
+                AggregateRootId = aggregateRoot.UniqueId,
+                AggregateRootTypeName = aggregateRootTypeName,
+                Version = aggregateRoot.Version,
+                Payload = aggregateRootJson
+            };
+
+            var filter = Builders<Snapshot>
+               .Filter
+               .Eq(s => s.AggregateRootId, snapshot.AggregateRootId);
+
+            var update = Builders<Snapshot>
+               .Update
+               .Set(s => s.Payload, snapshot.Payload)
+               .SetOnInsert(s => s.Id, snapshot.Id)
+               .SetOnInsert(s => s.AggregateRootId, snapshot.AggregateRootId)
+               .SetOnInsert(s => s.AggregateRootTypeName, snapshot.AggregateRootTypeName);
+
+            await _snapshotCollection
+                .GetCollection(aggregateRoot.UniqueId)
+                .UpdateOneAsync(filter, update, new UpdateOptions()
+                {
+                    IsUpsert = true
+                });
         }
 
         #endregion Public Methods

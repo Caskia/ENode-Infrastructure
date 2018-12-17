@@ -24,6 +24,10 @@ namespace ENode.AggregateSnapshot
                 mongoDbConfiguration,
                 storeEntityName,
                 collectionCount);
+            ((MongoDbAggregateSnapshotter)ObjectContainer.Resolve<ISavableAggregateSnapshotter>()).Initialize(
+                mongoDbConfiguration,
+                storeEntityName,
+                collectionCount);
             return eNodeConfiguration;
         }
 
@@ -35,6 +39,7 @@ namespace ENode.AggregateSnapshot
         {
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotSerializer, JsonAggregateSnapshotSerializer>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotter, MongoDbAggregateSnapshotter>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<ISavableAggregateSnapshotter, MongoDbAggregateSnapshotter>();
             return eNodeConfiguration;
         }
     }
