@@ -1,5 +1,4 @@
-﻿using ENode.AggregateSnapshot.Models;
-using ENode.Domain;
+﻿using ENode.Domain;
 using System;
 using System.Threading.Tasks;
 
