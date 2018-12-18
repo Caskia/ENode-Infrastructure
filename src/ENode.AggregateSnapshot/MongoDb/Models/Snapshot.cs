@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using System;
 
 namespace ENode.AggregateSnapshot.Models
 {
@@ -8,7 +9,11 @@ namespace ENode.AggregateSnapshot.Models
 
         public string AggregateRootTypeName { get; set; }
 
+        public DateTime CreationTime { get; set; }
+
         public ObjectId Id { get; set; }
+
+        public DateTime ModificationTime { get; set; }
 
         public string Payload { get; set; }
 

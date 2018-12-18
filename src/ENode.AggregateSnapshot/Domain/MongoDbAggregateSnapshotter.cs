@@ -1,5 +1,6 @@
 ﻿using ECommon.Logging;
 using ENode.AggregateSnapshot.Collections;
+using ENode.AggregateSnapshot.Configuration;
 using ENode.AggregateSnapshot.Models;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.Domain;
@@ -15,6 +16,7 @@ namespace ENode.AggregateSnapshot
     {
         #region Private Variables
 
+        private IAggregateSnapshotConfiguration _aggregateSnapshotConfiguration;
         private IAggregateSnapshotSerializer _aggregateSnapshotSerializer;
         private ILogger _logger;
         private ISnapshotCollection _snapshotCollection;
@@ -25,12 +27,14 @@ namespace ENode.AggregateSnapshot
         #region Ctor
 
         public MongoDbAggregateSnapshotter(
+            IAggregateSnapshotConfiguration aggregateSnapshotConfiguration,
             ISnapshotCollection snapshotCollection,
             IAggregateSnapshotSerializer aggregateSnapshotSerializer,
             ILoggerFactory loggerFactory,
             ITypeNameProvider typeNameProvider
             )
         {
+            _aggregateSnapshotConfiguration = aggregateSnapshotConfiguration;
             _snapshotCollection = snapshotCollection;
             _aggregateSnapshotSerializer = aggregateSnapshotSerializer;
             _logger = loggerFactory.Create(GetType().FullName);
@@ -68,20 +72,25 @@ namespace ENode.AggregateSnapshot
             var snapshot = new Snapshot()
             {
                 Id = ObjectId.GenerateNewId(),
+                CreationTime = DateTime.UtcNow,
+                ModificationTime = DateTime.UtcNow,
                 AggregateRootId = aggregateRoot.UniqueId,
                 AggregateRootTypeName = aggregateRootTypeName,
                 Version = aggregateRoot.Version,
-                Payload = aggregateRootJson
+                Payload = aggregateRootJson,
             };
 
             var filter = Builders<Snapshot>
-               .Filter
-               .Eq(s => s.AggregateRootId, snapshot.AggregateRootId);
+                .Filter
+                .Eq(s => s.AggregateRootId, snapshot.AggregateRootId);
 
             var update = Builders<Snapshot>
                .Update
+               .Set(s => s.ModificationTime, snapshot.ModificationTime)
+               .Set(s => s.Version, snapshot.Version)
                .Set(s => s.Payload, snapshot.Payload)
                .SetOnInsert(s => s.Id, snapshot.Id)
+               .SetOnInsert(s => s.CreationTime, snapshot.CreationTime)
                .SetOnInsert(s => s.AggregateRootId, snapshot.AggregateRootId)
                .SetOnInsert(s => s.AggregateRootTypeName, snapshot.AggregateRootTypeName);
 

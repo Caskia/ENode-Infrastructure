@@ -19,9 +19,14 @@ namespace ENode.AggregateSnapshot
         /// <returns></returns>
         public static ENodeConfiguration InitializeMongoDbAggregateSnapshotter(this ENodeConfiguration eNodeConfiguration,
             MongoDbConfiguration dbConfiguration,
+            int versionInterval = 50,
             string storeEntityName = "AggregateSnapshot",
-            int collectionCount = 1)
+            int collectionCount = 1
+            )
         {
+            var aggregateSnapshotConfiguration = ObjectContainer.Resolve<IAggregateSnapshotConfiguration>();
+            aggregateSnapshotConfiguration.VersionInterval = versionInterval;
+
             var mongoDbConfiguration = ObjectContainer.Resolve<IMongoDbConfiguration>();
             mongoDbConfiguration.ConnectionString = dbConfiguration.ConnectionString;
             mongoDbConfiguration.DatabaseName = dbConfiguration.DatabaseName;
@@ -43,6 +48,7 @@ namespace ENode.AggregateSnapshot
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IMongoDbProvider, MongoDbProvider>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotCollectionConfiguration, SnapshotCollectionConfiguration>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotCollection, SnapshotCollection>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotConfiguration, AggregateSnapshotConfiguration>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotSerializer, JsonAggregateSnapshotSerializer>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotter, MongoDbAggregateSnapshotter>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISavableAggregateSnapshotter, MongoDbAggregateSnapshotter>();

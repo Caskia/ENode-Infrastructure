@@ -37,10 +37,6 @@ namespace ENode.AggregateSnapshot.Tests.Domain
 
         #endregion Properties
 
-        public Product()
-        {
-        }
-
         public Product(long id, string name, bool isPublished, List<long> userIds, List<ProductRecord> records) : base(id)
         {
             _id = id;
@@ -48,6 +44,10 @@ namespace ENode.AggregateSnapshot.Tests.Domain
             _isPublished = isPublished;
             _userIds = new HashSet<long>(userIds);
             _records = records.ToDictionary(r => r.Id, r => r);
+        }
+
+        protected Product()
+        {
         }
     }
 
