@@ -1,9 +1,9 @@
 ﻿using ECommon.Utilities;
-using ENode.AggregateSnapshot.Configuration;
+using ENode.Store.MongoDb.Configuration;
 using MongoDB.Driver;
 using System;
 
-namespace ENode.AggregateSnapshot
+namespace ENode.Store.MongoDb
 {
     public abstract class MongoDbBase<TEntity>
     {

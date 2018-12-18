@@ -1,9 +1,8 @@
-﻿namespace ENode.AggregateSnapshot.Configuration
-{
-    public class SnapshotCollectionConfiguration : ISnapshotCollectionConfiguration
-    {
-        public string EntityName { get; set; }
+﻿using ENode.Store.MongoDb.Configuration;
 
-        public int ShardCount { get; set; }
+namespace ENode.AggregateSnapshot.Configuration
+{
+    public class SnapshotCollectionConfiguration : ShardableCollectionConfiguration, ISnapshotCollectionConfiguration
+    {
     }
 }

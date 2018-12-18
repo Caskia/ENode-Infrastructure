@@ -1,7 +1,7 @@
-﻿using ENode.AggregateSnapshot.Configuration;
+﻿using ENode.Store.MongoDb.Configuration;
 using MongoDB.Driver;
 
-namespace ENode.AggregateSnapshot
+namespace ENode.Store.MongoDb
 {
     public class MongoDbProvider : IMongoDbProvider
     {

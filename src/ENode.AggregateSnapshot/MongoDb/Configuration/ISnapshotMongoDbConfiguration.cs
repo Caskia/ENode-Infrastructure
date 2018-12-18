@@ -2,7 +2,7 @@
 
 namespace ENode.AggregateSnapshot.Configuration
 {
-    public interface ISnapshotCollectionConfiguration : IShardableCollectionConfiguration
+    public interface ISnapshotMongoDbConfiguration : IMongoDbConfiguration
     {
     }
 }

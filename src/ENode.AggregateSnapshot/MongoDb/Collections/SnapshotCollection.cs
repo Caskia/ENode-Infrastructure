@@ -1,5 +1,6 @@
 ﻿using ENode.AggregateSnapshot.Configuration;
 using ENode.AggregateSnapshot.Models;
+using ENode.Store.MongoDb;
 using MongoDB.Driver;
 using System.Collections.Generic;
 
@@ -9,7 +10,7 @@ namespace ENode.AggregateSnapshot.Collections
     {
         public SnapshotCollection(
             ISnapshotCollectionConfiguration collectionConfiguration,
-            IMongoDbProvider databaseProvider
+            ISnapshotMongoDbProvider databaseProvider
             ) : base(collectionConfiguration, databaseProvider)
         {
         }

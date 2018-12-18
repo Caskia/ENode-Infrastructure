@@ -1,6 +1,6 @@
 ﻿using MongoDB.Driver;
 
-namespace ENode.AggregateSnapshot
+namespace ENode.Store.MongoDb
 {
     public interface IMongoDbProvider
     {

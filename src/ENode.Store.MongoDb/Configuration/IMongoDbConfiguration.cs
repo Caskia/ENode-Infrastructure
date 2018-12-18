@@ -1,4 +1,4 @@
-﻿namespace ENode.AggregateSnapshot.Configuration
+﻿namespace ENode.Store.MongoDb.Configuration
 {
     public interface IMongoDbConfiguration
     {

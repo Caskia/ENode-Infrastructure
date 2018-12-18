@@ -15,7 +15,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ENode" Version="2.9.2" />
-    <PackageReference Include="MongoDB.Driver" Version="2.7.2" />
+    <ProjectReference Include="..\ENode.Store.MongoDb\ENode.Store.MongoDb.csproj" />
   </ItemGroup>
 </Project>
