@@ -1,10 +1,9 @@
 ﻿using ENode.AggregateSnapshot.Models;
-using MongoDB.Driver;
+using ENode.Store.MongoDb.Collections;
 
 namespace ENode.AggregateSnapshot.Collections
 {
-    public interface ISnapshotCollection
+    public interface ISnapshotCollection : IShardableCollection<Snapshot>
     {
-        IMongoCollection<Snapshot> GetCollection(string aggregateRootId);
     }
 }
