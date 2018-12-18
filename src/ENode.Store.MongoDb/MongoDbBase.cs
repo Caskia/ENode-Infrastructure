@@ -1,5 +1,5 @@
 ﻿using ECommon.Utilities;
-using ENode.Store.MongoDb.Configuration;
+using ENode.Configurations;
 using MongoDB.Driver;
 using System;
 

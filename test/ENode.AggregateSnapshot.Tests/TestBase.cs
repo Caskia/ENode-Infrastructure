@@ -1,6 +1,5 @@
 ﻿using ECommon.Configurations;
 using ENode.Configurations;
-using ENode.Store.MongoDb.Configuration;
 using System;
 using System.Reflection;
 using ECommonConfiguration = ECommon.Configurations.Configuration;

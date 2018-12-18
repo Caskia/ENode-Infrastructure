@@ -1,4 +1,4 @@
-﻿using ENode.AggregateSnapshot.Configuration;
+﻿using ENode.AggregateSnapshot.Configurations;
 using ENode.Store.MongoDb;
 
 namespace ENode.AggregateSnapshot

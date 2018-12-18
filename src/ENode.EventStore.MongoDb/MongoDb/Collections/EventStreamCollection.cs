@@ -1,17 +1,17 @@
-﻿using ENode.EventStore.MongoDb.Models;
+﻿using ENode.EventStore.MongoDb.Configurations;
+using ENode.EventStore.MongoDb.Models;
+using ENode.Store.MongoDb;
 using MongoDB.Driver;
 using System.Collections.Generic;
 
 namespace ENode.EventStore.MongoDb.Collections
 {
-    public class EventStreamCollection : MongoDbConnection
+    public class EventStreamCollection : MongoDbBase<EventStream>, IEventStreamCollection
     {
         public EventStreamCollection(
-            MongoDbConfiguration configuration,
-            string storeEntityName = "EventStream",
-            int collectionCount = 1
-            )
-            : base(configuration, storeEntityName, collectionCount)
+            IEventStreamCollectionConfiguration collectionConfiguration,
+            IEventStreamMongoDbProvider databaseProvider
+            ) : base(collectionConfiguration, databaseProvider)
         {
         }
 
@@ -31,11 +31,6 @@ namespace ENode.EventStore.MongoDb.Collections
                             Unique = true
                         })
                 });
-        }
-
-        public IMongoCollection<EventStream> GetCollection(string aggregateRootId)
-        {
-            return GetCollection<EventStream>(aggregateRootId);
         }
     }
 }

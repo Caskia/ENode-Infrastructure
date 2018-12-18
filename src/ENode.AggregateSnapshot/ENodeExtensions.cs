@@ -1,10 +1,9 @@
 ﻿using ECommon.Components;
 using ENode.AggregateSnapshot.Collections;
-using ENode.AggregateSnapshot.Configuration;
+using ENode.AggregateSnapshot.Configurations;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.Configurations;
 using ENode.Domain;
-using ENode.Store.MongoDb.Configuration;
 
 namespace ENode.AggregateSnapshot
 {

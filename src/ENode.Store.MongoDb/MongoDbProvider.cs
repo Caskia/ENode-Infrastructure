@@ -1,4 +1,4 @@
-﻿using ENode.Store.MongoDb.Configuration;
+﻿using ENode.Configurations;
 using MongoDB.Driver;
 
 namespace ENode.Store.MongoDb

@@ -1,6 +1,6 @@
 ﻿using ECommon.Logging;
 using ENode.AggregateSnapshot.Collections;
-using ENode.AggregateSnapshot.Configuration;
+using ENode.AggregateSnapshot.Configurations;
 using ENode.AggregateSnapshot.Models;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.Domain;

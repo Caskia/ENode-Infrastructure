@@ -1,6 +1,6 @@
-﻿using ENode.Store.MongoDb.Configuration;
+﻿using ENode.Configurations;
 
-namespace ENode.AggregateSnapshot.Configuration
+namespace ENode.AggregateSnapshot.Configurations
 {
     public class SnapshotCollectionConfiguration : ShardableCollectionConfiguration, ISnapshotCollectionConfiguration
     {

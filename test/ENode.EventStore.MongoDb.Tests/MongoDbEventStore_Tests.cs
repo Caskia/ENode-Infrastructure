@@ -1,17 +1,17 @@
-﻿using ECommon.Configurations;
+﻿using ECommon.Components;
+using ECommon.Configurations;
+using ECommon.IO;
+using ECommon.Utilities;
+using ENode.Configurations;
 using ENode.Eventing;
 using Shouldly;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
-using ENode.Configurations;
-using System.Reflection;
-using ECommon.IO;
-using System.Linq;
-using ECommon.Utilities;
-using ECommon.Components;
 
 namespace ENode.EventStore.MongoDb.Tests
 {

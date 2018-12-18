@@ -1,4 +1,4 @@
-﻿namespace ENode.AggregateSnapshot.Configuration
+﻿namespace ENode.AggregateSnapshot.Configurations
 {
     public class AggregateSnapshotConfiguration : IAggregateSnapshotConfiguration
     {

@@ -1,16 +1,16 @@
-﻿using ENode.EventStore.MongoDb.Models;
+﻿using ENode.EventStore.MongoDb.Configurations;
+using ENode.EventStore.MongoDb.Models;
+using ENode.Store.MongoDb;
 using MongoDB.Driver;
 
 namespace ENode.EventStore.MongoDb.Collections
 {
-    public class PublishedVersionStoreCollection : MongoDbConnection
+    public class PublishedVersionCollection : MongoDbBase<PublishedVersion>, IPublishedVersionCollection
     {
-        public PublishedVersionStoreCollection(
-            MongoDbConfiguration configuration,
-            string storeEntityName = "PublishedVersion",
-            int collectionCount = 1
-            )
-            : base(configuration, storeEntityName, collectionCount)
+        public PublishedVersionCollection(
+            IPublishedVersionCollectionConfiguration collectionConfiguration,
+            IPublishedVersionMongoDbProvider databaseProvider
+            ) : base(collectionConfiguration, databaseProvider)
         {
         }
 
@@ -23,11 +23,6 @@ namespace ENode.EventStore.MongoDb.Collections
                         Unique = true
                     })
             );
-        }
-
-        public IMongoCollection<PublishedVersion> GetCollection(string aggregateRootId)
-        {
-            return GetCollection<PublishedVersion>(aggregateRootId);
         }
     }
 }

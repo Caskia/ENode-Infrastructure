@@ -1,5 +1,4 @@
-﻿using ECommon.Components;
-using ECommon.IO;
+﻿using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Eventing;
@@ -17,11 +16,11 @@ namespace ENode.EventStore.MongoDb
     {
         #region Private Variables
 
-        private IEventSerializer _eventSerializer;
-        private EventStreamCollection _eventStreamCollection;
-        private IOHelper _ioHelper;
-        private IJsonSerializer _jsonSerializer;
-        private ILogger _logger;
+        private readonly IEventSerializer _eventSerializer;
+        private readonly IEventStreamCollection _eventStreamCollection;
+        private readonly IOHelper _ioHelper;
+        private readonly IJsonSerializer _jsonSerializer;
+        private readonly ILogger _logger;
 
         #endregion Private Variables
 
@@ -30,6 +29,27 @@ namespace ENode.EventStore.MongoDb
         public bool SupportBatchAppendEvent { get; set; }
 
         #endregion Public Variables
+
+        #region Ctor
+
+        public MongoDbEventStore(
+            IEventSerializer eventSerializer,
+            IEventStreamCollection eventStreamCollection,
+            IOHelper ioHelper,
+            IJsonSerializer jsonSerializer,
+            ILoggerFactory loggerFactory
+            )
+        {
+            SupportBatchAppendEvent = false;
+
+            _eventSerializer = eventSerializer;
+            _eventStreamCollection = eventStreamCollection;
+            _ioHelper = ioHelper;
+            _jsonSerializer = jsonSerializer;
+            _logger = loggerFactory.Create(GetType().FullName);
+        }
+
+        #endregion Ctor
 
         #region Public Methods
 
@@ -127,24 +147,6 @@ namespace ENode.EventStore.MongoDb
                     return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.Failed, ex.Message);
                 }
             }, "FindEventByCommandIdAsync");
-        }
-
-        public MongoDbEventStore Initialize(
-            MongoDbConfiguration configuration,
-            string storeEntityName = "EventStream",
-            int collectionCount = 1
-            )
-        {
-            SupportBatchAppendEvent = false;
-
-            _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
-            _eventSerializer = ObjectContainer.Resolve<IEventSerializer>();
-            _ioHelper = ObjectContainer.Resolve<IOHelper>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
-
-            _eventStreamCollection = new EventStreamCollection(configuration, storeEntityName, collectionCount);
-
-            return this;
         }
 
         public IEnumerable<DomainEventStream> QueryAggregateEvents(string aggregateRootId, string aggregateRootTypeName, int minVersion, int maxVersion)

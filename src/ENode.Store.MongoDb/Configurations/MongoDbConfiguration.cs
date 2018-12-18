@@ -1,6 +1,6 @@
-﻿namespace ENode.EventStore.MongoDb
+﻿namespace ENode.Configurations
 {
-    public class MongoDbConfiguration
+    public class MongoDbConfiguration : IMongoDbConfiguration
     {
         public string ConnectionString { get; set; }
 

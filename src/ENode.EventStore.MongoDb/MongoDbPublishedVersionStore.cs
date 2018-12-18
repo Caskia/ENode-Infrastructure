@@ -1,13 +1,12 @@
-﻿using ECommon.Components;
-using ECommon.IO;
+﻿using ECommon.IO;
 using ECommon.Logging;
 using ENode.EventStore.MongoDb.Collections;
 using ENode.EventStore.MongoDb.Models;
 using ENode.Infrastructure;
 using MongoDB.Driver;
 using System;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ENode.EventStore.MongoDb
 {
@@ -15,11 +14,26 @@ namespace ENode.EventStore.MongoDb
     {
         #region Private Variables
 
-        private IOHelper _ioHelper;
-        private ILogger _logger;
-        private PublishedVersionStoreCollection _publishedVersionStoreCollection;
+        private readonly IOHelper _ioHelper;
+        private readonly ILogger _logger;
+        private readonly IPublishedVersionCollection _publishedVersionCollection;
 
         #endregion Private Variables
+
+        #region Ctor
+
+        public MongoDbPublishedVersionStore(
+            IOHelper ioHelper,
+            ILoggerFactory loggerFactory,
+            IPublishedVersionCollection publishedVersionCollection
+            )
+        {
+            _ioHelper = ioHelper;
+            _logger = loggerFactory.Create(GetType().FullName);
+            _publishedVersionCollection = publishedVersionCollection;
+        }
+
+        #endregion Ctor
 
         #region Public Methods
 
@@ -29,7 +43,7 @@ namespace ENode.EventStore.MongoDb
             {
                 var builder = Builders<PublishedVersion>.Filter;
                 var filter = builder.Eq(e => e.ProcessorName, processorName) & builder.Eq(e => e.AggregateRootId, aggregateRootId);
-                var result = await _publishedVersionStoreCollection.GetCollection(aggregateRootId).Find(filter).ToListAsync();
+                var result = await _publishedVersionCollection.GetCollection(aggregateRootId).Find(filter).ToListAsync();
                 var version = result.Select(r => r.Version).SingleOrDefault();
 
                 return new AsyncTaskResult<int>(AsyncTaskStatus.Success, version);
@@ -46,20 +60,6 @@ namespace ENode.EventStore.MongoDb
             }
         }
 
-        public MongoDbPublishedVersionStore Initialize(
-            MongoDbConfiguration configuration,
-            string storeEntityName = "PublishedVersion",
-            int collectionCount = 1
-            )
-        {
-            _ioHelper = ObjectContainer.Resolve<IOHelper>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
-
-            _publishedVersionStoreCollection = new PublishedVersionStoreCollection(configuration, storeEntityName, collectionCount);
-
-            return this;
-        }
-
         public async Task<AsyncTaskResult> UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
         {
             if (publishedVersion == 1)
@@ -74,7 +74,7 @@ namespace ENode.EventStore.MongoDb
                 };
                 try
                 {
-                    await _publishedVersionStoreCollection.GetCollection(aggregateRootId).InsertOneAsync(record);
+                    await _publishedVersionCollection.GetCollection(aggregateRootId).InsertOneAsync(record);
 
                     return AsyncTaskResult.Success;
                 }
@@ -105,7 +105,7 @@ namespace ENode.EventStore.MongoDb
                         .Set(e => e.Version, publishedVersion)
                         .Set(e => e.CreatedOn, DateTime.UtcNow);
 
-                    await _publishedVersionStoreCollection.GetCollection(aggregateRootId)
+                    await _publishedVersionCollection.GetCollection(aggregateRootId)
                         .UpdateOneAsync(filter, update);
 
                     return AsyncTaskResult.Success;
