@@ -8,8 +8,10 @@ using Shouldly;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
+using ENode.AggregateSnapshot;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
+using ENode.EventStore.MongoDb.Tests.Domain;
 
 namespace ENode.EventStore.MongoDb.Tests
 {
@@ -22,6 +24,7 @@ namespace ENode.EventStore.MongoDb.Tests
         };
 
         private readonly IPublishedVersionStore _store;
+        private readonly ITypeNameProvider _typeNameProvider;
 
         public MongoDbPublishedVersionStore_Tests()
         {
@@ -35,15 +38,18 @@ namespace ENode.EventStore.MongoDb.Tests
                 .CreateENode(new ConfigurationSetting())
                 .RegisterBusinessComponents(assemblies)
                 .RegisterENodeComponents()
-                .UseMongoDbPublishedVersionStore();
+                .UseMongoDbPublishedVersionStore()
+                .UseMongoDbAggregateSnapshotter();
 
             enode.GetCommonConfiguration()
               .BuildContainer();
 
             enode.InitializeBusinessAssemblies(assemblies)
-                .InitializeMongoDbPublishedVersionStore(_mongoDbConfiguration);
+                .InitializeMongoDbPublishedVersionStore(_mongoDbConfiguration)
+                .InitializeMongoDbAggregateSnapshotter(_mongoDbConfiguration);
 
             _store = ObjectContainer.Resolve<IPublishedVersionStore>();
+            _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
         }
 
         [Fact(DisplayName = "Should_Insert_Published_Version")]
@@ -52,7 +58,7 @@ namespace ENode.EventStore.MongoDb.Tests
             //Arrange
             var processName = "test1";
             var aggregateId = ObjectId.GenerateNewStringId();
-            var aggregateTypeName = ObjectId.GenerateNewStringId();
+            var aggregateTypeName = _typeNameProvider.GetTypeName(typeof(Product));
             var version = 1;
 
             //Act
@@ -73,7 +79,7 @@ namespace ENode.EventStore.MongoDb.Tests
             {
                 var processName = "test" + i;
                 var aggregateId = ObjectId.GenerateNewStringId();
-                var aggregateTypeName = ObjectId.GenerateNewStringId();
+                var aggregateTypeName = _typeNameProvider.GetTypeName(typeof(Product));
                 var version = 1;
 
                 await _store.UpdatePublishedVersionAsync(processName, aggregateTypeName, aggregateId, version);
@@ -99,7 +105,7 @@ namespace ENode.EventStore.MongoDb.Tests
             //Arrange
             var processName = "test1";
             var aggregateId = ObjectId.GenerateNewStringId();
-            var aggregateTypeName = ObjectId.GenerateNewStringId();
+            var aggregateTypeName = _typeNameProvider.GetTypeName(typeof(Product));
             var version = 1;
 
             //Act

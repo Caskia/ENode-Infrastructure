@@ -1,5 +1,6 @@
 ﻿using ECommon.IO;
 using ECommon.Logging;
+using ENode.AggregateSnapshot;
 using ENode.EventStore.MongoDb.Collections;
 using ENode.EventStore.MongoDb.Models;
 using ENode.Infrastructure;
@@ -17,6 +18,8 @@ namespace ENode.EventStore.MongoDb
         private readonly IOHelper _ioHelper;
         private readonly ILogger _logger;
         private readonly IPublishedVersionCollection _publishedVersionCollection;
+        private readonly ISavableAggregateSnapshotter _savableAggregateSnapshotter;
+        private readonly ITypeNameProvider _typeNameProvider;
 
         #endregion Private Variables
 
@@ -25,12 +28,16 @@ namespace ENode.EventStore.MongoDb
         public MongoDbPublishedVersionStore(
             IOHelper ioHelper,
             ILoggerFactory loggerFactory,
-            IPublishedVersionCollection publishedVersionCollection
+            IPublishedVersionCollection publishedVersionCollection,
+            ISavableAggregateSnapshotter savableAggregateSnapshotter,
+            ITypeNameProvider typeNameProvider
             )
         {
             _ioHelper = ioHelper;
             _logger = loggerFactory.Create(GetType().FullName);
             _publishedVersionCollection = publishedVersionCollection;
+            _savableAggregateSnapshotter = savableAggregateSnapshotter;
+            _typeNameProvider = typeNameProvider;
         }
 
         #endregion Ctor
@@ -107,6 +114,8 @@ namespace ENode.EventStore.MongoDb
 
                     await _publishedVersionCollection.GetCollection(aggregateRootId)
                         .UpdateOneAsync(filter, update);
+
+                    await _savableAggregateSnapshotter.SaveSnapshotAsync(aggregateRootId, _typeNameProvider.GetType(aggregateRootTypeName));
 
                     return AsyncTaskResult.Success;
                 }

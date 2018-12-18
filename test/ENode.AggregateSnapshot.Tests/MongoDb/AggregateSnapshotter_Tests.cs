@@ -1,6 +1,7 @@
 ﻿using ECommon.Components;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.AggregateSnapshot.Tests.Domain;
+using ENode.Domain;
 using Shouldly;
 using System;
 using System.Collections.Generic;
@@ -12,10 +13,12 @@ namespace ENode.AggregateSnapshot.Tests.MongoDb
 {
     public class AggregateSnapshotter_Tests : TestBase
     {
+        private readonly IAggregateSnapshotter _aggregateSnapshotter;
         private readonly ISavableAggregateSnapshotter _savableAggregateSnapshotter;
 
         public AggregateSnapshotter_Tests()
         {
+            _aggregateSnapshotter = ObjectContainer.Resolve<IAggregateSnapshotter>();
             _savableAggregateSnapshotter = ObjectContainer.Resolve<ISavableAggregateSnapshotter>();
         }
 
@@ -73,7 +76,7 @@ namespace ENode.AggregateSnapshot.Tests.MongoDb
 
             //Act
             await _savableAggregateSnapshotter.SaveSnapshotAsync(product, typeof(Product));
-            var restoredProduct = (await _savableAggregateSnapshotter.RestoreFromSnapshotAsync(typeof(Product), product.Id.ToString())) as Product;
+            var restoredProduct = (await _aggregateSnapshotter.RestoreFromSnapshotAsync(typeof(Product), product.Id.ToString())) as Product;
 
             //Assert
             restoredProduct.Id.ShouldBe(product.Id);

@@ -51,7 +51,7 @@ namespace ENode.AggregateSnapshot
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotConfiguration, AggregateSnapshotConfiguration>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotSerializer, JsonAggregateSnapshotSerializer>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotter, MongoDbAggregateSnapshotter>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<ISavableAggregateSnapshotter, MongoDbAggregateSnapshotter>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<ISavableAggregateSnapshotter, SavableMongoDbAggregateSnapshotter>();
             return eNodeConfiguration;
         }
     }
