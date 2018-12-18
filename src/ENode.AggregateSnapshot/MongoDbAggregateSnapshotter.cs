@@ -1,6 +1,4 @@
-﻿using ECommon.Components;
-using ECommon.Logging;
-using ECommon.Serializing;
+﻿using ECommon.Logging;
 using ENode.AggregateSnapshot.Collections;
 using ENode.AggregateSnapshot.Models;
 using ENode.AggregateSnapshot.Serializers;
@@ -19,27 +17,29 @@ namespace ENode.AggregateSnapshot
 
         private IAggregateSnapshotSerializer _aggregateSnapshotSerializer;
         private ILogger _logger;
-        private SnapshotCollection _snapshotCollection;
+        private ISnapshotCollection _snapshotCollection;
         private ITypeNameProvider _typeNameProvider;
 
         #endregion Private Variables
 
-        #region Public Methods
+        #region Ctor
 
-        public MongoDbAggregateSnapshotter Initialize(
-           MongoDbConfiguration configuration,
-           string storeEntityName = "AggregateSnapshot",
-           int collectionCount = 1
-           )
+        public MongoDbAggregateSnapshotter(
+            ISnapshotCollection snapshotCollection,
+            IAggregateSnapshotSerializer aggregateSnapshotSerializer,
+            ILoggerFactory loggerFactory,
+            ITypeNameProvider typeNameProvider
+            )
         {
-            _aggregateSnapshotSerializer = ObjectContainer.Resolve<IAggregateSnapshotSerializer>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
-            _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
-
-            _snapshotCollection = new SnapshotCollection(configuration, storeEntityName, collectionCount);
-
-            return this;
+            _snapshotCollection = snapshotCollection;
+            _aggregateSnapshotSerializer = aggregateSnapshotSerializer;
+            _logger = loggerFactory.Create(GetType().FullName);
+            _typeNameProvider = typeNameProvider;
         }
+
+        #endregion Ctor
+
+        #region Public Methods
 
         public async Task<IAggregateRoot> RestoreFromSnapshotAsync(Type aggregateRootType, string aggregateRootId)
         {

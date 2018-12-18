@@ -1,13 +1,14 @@
-﻿using MongoDB.Driver;
+﻿using ENode.AggregateSnapshot.Configuration;
+using MongoDB.Driver;
 
 namespace ENode.AggregateSnapshot
 {
-    public class MongoDbProvider
+    public class MongoDbProvider : IMongoDbProvider
     {
-        private readonly MongoDbConfiguration _configuration;
+        private readonly IMongoDbConfiguration _configuration;
         private MongoClient _mongoClient;
 
-        public MongoDbProvider(MongoDbConfiguration configuration)
+        public MongoDbProvider(IMongoDbConfiguration configuration)
         {
             _configuration = configuration;
         }

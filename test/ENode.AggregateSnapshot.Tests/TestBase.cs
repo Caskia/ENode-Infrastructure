@@ -1,4 +1,5 @@
 ﻿using ECommon.Configurations;
+using ENode.AggregateSnapshot.Configuration;
 using ENode.Configurations;
 using System;
 using System.Reflection;

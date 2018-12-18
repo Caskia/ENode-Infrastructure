@@ -1,17 +1,16 @@
-﻿using ENode.AggregateSnapshot.Models;
+﻿using ENode.AggregateSnapshot.Configuration;
+using ENode.AggregateSnapshot.Models;
 using MongoDB.Driver;
 using System.Collections.Generic;
 
 namespace ENode.AggregateSnapshot.Collections
 {
-    public class SnapshotCollection : MongoDbConnection
+    public class SnapshotCollection : MongoDbBase<Snapshot>, ISnapshotCollection
     {
         public SnapshotCollection(
-            MongoDbConfiguration configuration,
-            string storeEntityName = "AggregateSnapshot",
-            int collectionCount = 1
-            )
-            : base(configuration, storeEntityName, collectionCount)
+            ISnapshotCollectionConfiguration collectionConfiguration,
+            IMongoDbProvider databaseProvider
+            ) : base(collectionConfiguration, databaseProvider)
         {
         }
 
@@ -26,11 +25,6 @@ namespace ENode.AggregateSnapshot.Collections
                         Unique = true
                     })
                 });
-        }
-
-        public IMongoCollection<Snapshot> GetCollection(string aggregateRootId)
-        {
-            return GetCollection<Snapshot>(aggregateRootId);
         }
     }
 }

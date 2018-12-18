@@ -1,6 +1,6 @@
-﻿namespace ENode.AggregateSnapshot
+﻿namespace ENode.AggregateSnapshot.Configuration
 {
-    public class MongoDbConfiguration
+    public class MongoDbConfiguration : IMongoDbConfiguration
     {
         public string ConnectionString { get; set; }
 
