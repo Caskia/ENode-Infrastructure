@@ -115,7 +115,7 @@ namespace ENode.EventStore.MongoDb
                     await _publishedVersionCollection.GetCollection(aggregateRootId)
                         .UpdateOneAsync(filter, update);
 
-                    await _savableAggregateSnapshotter.SaveSnapshotAsync(aggregateRootId, _typeNameProvider.GetType(aggregateRootTypeName));
+                    await _savableAggregateSnapshotter.SaveSnapshotAsync(aggregateRootId, _typeNameProvider.GetType(aggregateRootTypeName), publishedVersion);
 
                     return AsyncTaskResult.Success;
                 }

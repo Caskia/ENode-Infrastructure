@@ -6,8 +6,8 @@ namespace ENode.AggregateSnapshot
 {
     public interface ISavableAggregateSnapshotter
     {
-        Task SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType);
+        Task SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType, int publishedVersion);
 
-        Task SaveSnapshotAsync(object aggregateRootId, Type aggregateRootType);
+        Task SaveSnapshotAsync(object aggregateRootId, Type aggregateRootType, int publishedVersion);
     }
 }

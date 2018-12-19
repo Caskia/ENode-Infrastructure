@@ -47,7 +47,7 @@ namespace ENode.AggregateSnapshot.Tests.MongoDb
                 );
 
             //Act
-            await _savableAggregateSnapshotter.SaveSnapshotAsync(product, typeof(Product));
+            await _savableAggregateSnapshotter.SaveSnapshotAsync(product, typeof(Product), (product as IAggregateRoot).Version);
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace ENode.AggregateSnapshot.Tests.MongoDb
                 );
 
             //Act
-            await _savableAggregateSnapshotter.SaveSnapshotAsync(product, typeof(Product));
+            await _savableAggregateSnapshotter.SaveSnapshotAsync(product, typeof(Product), (product as IAggregateRoot).Version);
             var restoredProduct = (await _aggregateSnapshotter.RestoreFromSnapshotAsync(typeof(Product), product.Id.ToString())) as Product;
 
             //Assert

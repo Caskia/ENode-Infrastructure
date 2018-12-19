@@ -48,14 +48,14 @@ namespace ENode.AggregateSnapshot
 
         #region Public Methods
 
-        public async Task SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType)
+        public async Task SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType, int publishedVersion)
         {
             if (aggregateRoot == null)
             {
                 throw new ArgumentNullException(nameof(aggregateRoot));
             }
 
-            if (aggregateRoot.Version % _aggregateSnapshotConfiguration.VersionInterval != 0)
+            if (publishedVersion % _aggregateSnapshotConfiguration.VersionInterval != 0)
             {
                 return;
             }
@@ -95,7 +95,7 @@ namespace ENode.AggregateSnapshot
                 });
         }
 
-        public async Task SaveSnapshotAsync(object aggregateRootId, Type aggregateRootType)
+        public async Task SaveSnapshotAsync(object aggregateRootId, Type aggregateRootType, int publishedVersion)
         {
             if (aggregateRootId == null)
             {
@@ -105,7 +105,7 @@ namespace ENode.AggregateSnapshot
             var aggregateRoot = await _repository.GetAsync(aggregateRootType, aggregateRootId);
             if (aggregateRoot != null)
             {
-                await SaveSnapshotAsync(aggregateRoot, aggregateRootType);
+                await SaveSnapshotAsync(aggregateRoot, aggregateRootType, publishedVersion);
             }
         }
 
