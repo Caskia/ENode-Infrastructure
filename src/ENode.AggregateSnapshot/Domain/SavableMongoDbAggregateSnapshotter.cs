@@ -102,6 +102,11 @@ namespace ENode.AggregateSnapshot
                 throw new ArgumentNullException("aggregateRootId");
             }
 
+            if (publishedVersion % _aggregateSnapshotConfiguration.VersionInterval != 0)
+            {
+                return;
+            }
+
             var aggregateRoot = await _repository.GetAsync(aggregateRootType, aggregateRootId);
             if (aggregateRoot != null)
             {
