@@ -65,7 +65,7 @@ namespace ENode.AggregateSnapshot.Tests.Domain
             Time = time;
         }
 
-        public long Id { get; set; }
+        public long Id { get; private set; }
 
         public string Name { get; private set; }
 
