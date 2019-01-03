@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.1.8</Version>
+    <Version>0.1.9</Version>
     <Description>enode infrastructure</Description>
     <Copyright>Copyright © Caskia 2018</Copyright>
-    <PackageLicenseUrl>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicense>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicense>
     <PackageProjectUrl>https://github.com/Caskia/ENode-Infrastructure</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Caskia/ENode-Infrastructure</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
