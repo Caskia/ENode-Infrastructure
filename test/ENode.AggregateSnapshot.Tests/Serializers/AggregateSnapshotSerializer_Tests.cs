@@ -1,11 +1,9 @@
 ﻿using ECommon.Components;
 using ENode.AggregateSnapshot.Serializers;
 using ENode.AggregateSnapshot.Tests.Domain;
-using ENode.Domain;
 using Shouldly;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace ENode.AggregateSnapshot.Tests.Serializers

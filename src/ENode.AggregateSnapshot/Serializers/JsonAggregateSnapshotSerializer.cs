@@ -70,6 +70,23 @@ namespace ENode.AggregateSnapshot.Serializers
                     return base.CreateProperties(type, memberSerialization);
                 }
             }
+
+            protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+            {
+                var jsonProperty = base.CreateProperty(member, memberSerialization);
+
+                if (!jsonProperty.Writable)
+                {
+                    var property = member as PropertyInfo;
+                    if (property != null)
+                    {
+                        var hasPrivateSetter = property.GetSetMethod(true) != null;
+                        jsonProperty.Writable = hasPrivateSetter;
+                    }
+                }
+
+                return jsonProperty;
+            }
         }
     }
 }
