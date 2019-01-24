@@ -1,4 +1,5 @@
-﻿using ECommon.Logging;
+﻿using DeepCopy;
+using ECommon.Logging;
 using ENode.AggregateSnapshot.Collections;
 using ENode.AggregateSnapshot.Configurations;
 using ENode.AggregateSnapshot.Models;
@@ -60,16 +61,17 @@ namespace ENode.AggregateSnapshot
                 return;
             }
 
-            var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(aggregateRoot);
+            var copiedAggregateRoot = DeepCopier.Copy(aggregateRoot);
+            var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(copiedAggregateRoot);
             var aggregateRootTypeName = _typeNameProvider.GetTypeName(aggregateRootType);
             var snapshot = new Snapshot()
             {
                 Id = ObjectId.GenerateNewId(),
                 CreationTime = DateTime.UtcNow,
                 ModificationTime = DateTime.UtcNow,
-                AggregateRootId = aggregateRoot.UniqueId,
+                AggregateRootId = copiedAggregateRoot.UniqueId,
                 AggregateRootTypeName = aggregateRootTypeName,
-                Version = aggregateRoot.Version,
+                Version = copiedAggregateRoot.Version,
                 Payload = aggregateRootJson,
             };
 
@@ -88,7 +90,7 @@ namespace ENode.AggregateSnapshot
                .SetOnInsert(s => s.AggregateRootTypeName, snapshot.AggregateRootTypeName);
 
             await _snapshotCollection
-                .GetCollection(aggregateRoot.UniqueId)
+                .GetCollection(copiedAggregateRoot.UniqueId)
                 .UpdateOneAsync(filter, update, new UpdateOptions()
                 {
                     IsUpsert = true
