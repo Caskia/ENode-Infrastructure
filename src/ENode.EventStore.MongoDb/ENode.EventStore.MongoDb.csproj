@@ -16,5 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ENode.AggregateSnapshot.MongoDb\ENode.AggregateSnapshot.MongoDb.csproj" />
+    <ProjectReference Include="..\ENode.AggregateSnapshot.MySql\ENode.AggregateSnapshot.MySql.csproj" />
   </ItemGroup>
 </Project>
