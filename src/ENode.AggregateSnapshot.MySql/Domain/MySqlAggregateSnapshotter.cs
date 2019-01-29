@@ -56,7 +56,7 @@ namespace ENode.AggregateSnapshot
                 return null;
             }
 
-            return _aggregateSnapshotSerializer.Deserialize(snapshot.Payload, aggregateRootType) as IAggregateRoot;
+            return _aggregateSnapshotSerializer.Deserialize(snapshot.SerializedPayload, aggregateRootType) as IAggregateRoot;
         }
 
         #endregion Public Methods

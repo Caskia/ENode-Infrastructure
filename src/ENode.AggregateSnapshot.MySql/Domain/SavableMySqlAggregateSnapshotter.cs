@@ -71,7 +71,7 @@ namespace ENode.AggregateSnapshot
                 AggregateRootId = copiedAggregateRoot.UniqueId,
                 AggregateRootTypeName = aggregateRootTypeName,
                 Version = copiedAggregateRoot.Version,
-                Payload = aggregateRootJson,
+                SerializedPayload = aggregateRootJson,
             };
             var sql = string.Format(InsertOrUpdateSnapshotSql, _snapshotRepository.GetTableName(snapshot.AggregateRootId));
 

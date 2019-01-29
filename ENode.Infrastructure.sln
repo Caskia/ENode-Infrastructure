@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.AggregateSnapshot.MyS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.AggregateSnapshot", "src\ENode.AggregateSnapshot\ENode.AggregateSnapshot.csproj", "{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.AggregateSnapshot.MySql.Tests", "test\ENode.AggregateSnapshot.MySql.Tests\ENode.AggregateSnapshot.MySql.Tests.csproj", "{90743633-80DC-4F32-BC86-09090374325A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,10 @@ Global
 		{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90743633-80DC-4F32-BC86-09090374325A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90743633-80DC-4F32-BC86-09090374325A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90743633-80DC-4F32-BC86-09090374325A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90743633-80DC-4F32-BC86-09090374325A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -102,6 +108,7 @@ Global
 		{2B7CA2DE-E70B-484A-A58C-4175167C8E3D} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 		{52F471EA-D3BE-47B3-9FBE-E2E06D7522FE} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 		{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
+		{90743633-80DC-4F32-BC86-09090374325A} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5674F7FB-D3F7-43F3-B00F-B514DBF892D5}
