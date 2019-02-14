@@ -1,23 +1,24 @@
 ﻿using ECommon.Components;
 using ECommon.Configurations;
 using ECommon.Logging;
+using ENode.AggregateSnapshot;
 using ENode.Commanding;
 using ENode.Configurations;
 using ENode.Domain;
 using ENode.Eventing;
-using ENode.Infrastructure;
-using System;
-using System.Diagnostics;
-using System.Reflection;
 using ENode.EventStore.MongoDb;
-using ECommonConfiguration = ECommon.Configurations.Configuration;
-using System.IO;
+using ENode.Infrastructure;
+using ENode.Kafka.Utils;
 using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
-using System.Collections.Generic;
-using ENode.Kafka.Utils;
 using System.Net.Sockets;
+using System.Reflection;
+using ECommonConfiguration = ECommon.Configurations.Configuration;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents
 {
@@ -177,6 +178,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 .RegisterENodeComponents()
                 .UseEventStore(useMockEventStore)
                 .UsePublishedVersionStore(useMockPublishedVersionStore)
+                .UseAggregateSnapshot(useMockPublishedVersionStore)
                 .RegisterBusinessComponents(assemblies)
                 .InitializeKafka(GetIPEndPointFromAddresses(brokerAddresses))
                 .UseKafka(useMockDomainEventPublisher, useMockApplicationMessagePublisher, useMockPublishableExceptionPublisher)
@@ -195,6 +197,12 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             if (!useMockPublishedVersionStore)
             {
                 _enodeConfiguration.InitializeMongoDbPublishedVersionStore(new MongoDbConfiguration()
+                {
+                    ConnectionString = eventStoreConnectionString,
+                    DatabaseName = eventStoreDatabase
+                });
+
+                _enodeConfiguration.InitializeMongoDbAggregateSnapshotter(new MongoDbConfiguration()
                 {
                     ConnectionString = eventStoreConnectionString,
                     DatabaseName = eventStoreDatabase

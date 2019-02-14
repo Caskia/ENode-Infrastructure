@@ -1,4 +1,5 @@
-﻿using ENode.Commanding;
+﻿using ENode.AggregateSnapshot;
+using ENode.Commanding;
 using ENode.Configurations;
 using ENode.Eventing;
 using ENode.EventStore.MongoDb;
@@ -99,6 +100,16 @@ namespace ENode.Kafka.Tests
 
             _isKafkaStarted = true;
 
+            return enodeConfiguration;
+        }
+
+        public static ENodeConfiguration UseAggregateSnapshot(this ENodeConfiguration enodeConfiguration, bool useMockPublishedVersionStore = false)
+        {
+            var configuration = enodeConfiguration.GetCommonConfiguration();
+            if (!useMockPublishedVersionStore)
+            {
+                enodeConfiguration.UseMongoDbAggregateSnapshotter();
+            }
             return enodeConfiguration;
         }
 

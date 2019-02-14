@@ -106,8 +106,6 @@ namespace ENode.Kafka.Consumers
 
         public void Start()
         {
-            RegisterKafkaConsumerEvent();
-
             _pollingMessageWorker.Start();
             _consumingMessageService.Start();
 
@@ -163,7 +161,7 @@ namespace ENode.Kafka.Consumers
                 BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port)),
                 EnableAutoCommit = false,
                 SessionTimeoutMs = 6000,
-                AutoOffsetReset = AutoOffsetResetType.Earliest
+                AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
             if (!string.IsNullOrEmpty(setting.GroupName))
@@ -171,20 +169,10 @@ namespace ENode.Kafka.Consumers
                 kafkaConfig.GroupId = setting.GroupName;
             }
 
-            _kafkaConsumer = new Consumer<Ignore, string>(kafkaConfig);
-        }
-
-        private void RegisterKafkaConsumerEvent()
-        {
-            if (OnError != null)
-            {
-                _kafkaConsumer.OnError += (sender, error) => { OnError(sender, error); };
-            }
-
-            if (OnLog != null)
-            {
-                _kafkaConsumer.OnLog += (sender, message) => { OnLog(sender, message); };
-            }
+            _kafkaConsumer = new ConsumerBuilder<Ignore, string>(kafkaConfig)
+                .SetLogHandler((sender, message) => OnLog?.Invoke(sender, message))
+                .SetErrorHandler((sender, error) => OnError?.Invoke(sender, error))
+                .Build();
         }
 
         #endregion Private Methods

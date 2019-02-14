@@ -44,15 +44,13 @@ namespace ENode.Kafka.Producers
 
         #region Public Methods
 
-        public Task<DeliveryReport<string, string>> ProduceAsync(string topic, string routingKey, string content)
+        public Task<DeliveryResult<string, string>> ProduceAsync(string topic, string routingKey, string content)
         {
             return _kafkaProducer.ProduceAsync(topic, new Message<string, string>() { Key = routingKey, Value = content });
         }
 
         public void Start()
         {
-            RegisterKafkaProducerEvent();
-
             _logger.InfoFormat("{0} startted.", GetType().Name);
         }
 
@@ -77,20 +75,10 @@ namespace ENode.Kafka.Producers
                 BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port))
             };
 
-            _kafkaProducer = new Producer<string, string>(kafkaConfig);
-        }
-
-        private void RegisterKafkaProducerEvent()
-        {
-            if (OnError != null)
-            {
-                _kafkaProducer.OnError += (sender, error) => { OnError(sender, error); };
-            }
-
-            if (OnLog != null)
-            {
-                _kafkaProducer.OnLog += (sender, message) => { OnLog(sender, message); };
-            }
+            _kafkaProducer = new ProducerBuilder<string, string>(kafkaConfig)
+                .SetLogHandler((sender, message) => OnLog?.Invoke(sender, message))
+                .SetErrorHandler((sender, error) => OnError?.Invoke(sender, error))
+                .Build();
         }
 
         #endregion Private Methods

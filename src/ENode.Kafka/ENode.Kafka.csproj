@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.1.9</Version>
+    <Version>0.2.0</Version>
     <Description>enode infrastructure</Description>
-    <Copyright>Copyright © Caskia 2018</Copyright>
+    <Copyright>Copyright © Caskia 2019</Copyright>
     <PackageLicense>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicense>
     <PackageProjectUrl>https://github.com/Caskia/ENode-Infrastructure</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Caskia/ENode-Infrastructure</RepositoryUrl>
@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="1.0.0-beta" />
+    <PackageReference Include="Confluent.Kafka" Version="1.0.0-beta3" />
     <PackageReference Include="DotNetty.Buffers" Version="0.6.0" />
     <PackageReference Include="DotNetty.Codecs" Version="0.6.0" />
     <PackageReference Include="DotNetty.Common" Version="0.6.0" />
