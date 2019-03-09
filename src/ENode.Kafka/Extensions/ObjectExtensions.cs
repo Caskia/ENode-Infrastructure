@@ -9,7 +9,7 @@ namespace ENode.Kafka.Extensions
         {
             if (obj == null)
                 return null;
-            BinaryFormatter bf = new BinaryFormatter();
+            var bf = new BinaryFormatter();
             using (var ms = new MemoryStream())
             {
                 bf.Serialize(ms, obj);
@@ -21,7 +21,7 @@ namespace ENode.Kafka.Extensions
         {
             if (data == null)
                 return null;
-            BinaryFormatter bf = new BinaryFormatter();
+            var bf = new BinaryFormatter();
             using (MemoryStream ms = new MemoryStream(data))
             {
                 return bf.Deserialize(ms);
