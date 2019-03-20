@@ -51,7 +51,7 @@ namespace ENode.Kafka.Tests.Netty
                 }
             );
             var client = new NettyClient(serverEndPoint, clientSetting);
-            client.Start();
+            await client.StartAsync();
 
             var request = new Request()
             {

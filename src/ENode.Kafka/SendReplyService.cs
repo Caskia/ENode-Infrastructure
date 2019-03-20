@@ -111,7 +111,7 @@ namespace ENode.Kafka
             _scheduleService.StopTask(_scanInactiveCommandRemotingClientTaskName);
             foreach (var remotingClient in _remotingClientDict.Values)
             {
-                remotingClient.Shutdown();
+                remotingClient.ShutdownAsync().Wait();
             }
         }
 
@@ -121,7 +121,7 @@ namespace ENode.Kafka
             {
                 return _remotingClientDict.GetOrAdd(replyAddress, key =>
                 {
-                    return new NettyClient(replyEndpoint, null).Start();
+                    return new NettyClient(replyEndpoint, null).StartAsync().Result;
                 });
             }
         }
@@ -162,6 +162,7 @@ namespace ENode.Kafka
                 NettyClient removed;
                 if (_remotingClientDict.TryRemove(pair.Key, out removed))
                 {
+                    removed.ShutdownAsync().Wait();
                     _logger.InfoFormat("Removed disconnected command remoting client, remotingAddress: {0}", pair.Key);
                 }
             }

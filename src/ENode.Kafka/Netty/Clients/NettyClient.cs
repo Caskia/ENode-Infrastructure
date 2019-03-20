@@ -43,15 +43,15 @@ namespace ENode.Kafka.Netty
             InitializeNetty();
         }
 
-        public NettyClient Shutdown()
+        public async Task<NettyClient> ShutdownAsync()
         {
-            ShutdownNettyClientAsync().Wait();
+            await ShutdownNettyClientAsync();
             return this;
         }
 
-        public NettyClient Start()
+        public async Task<NettyClient> StartAsync()
         {
-            StartNettyClientAsync().Wait();
+            await StartNettyClientAsync();
             return this;
         }
 

@@ -12,7 +12,7 @@ namespace ENode.Kafka.Producers
         #region Private Variables
 
         private readonly ILogger _logger;
-        private Producer<string, string> _kafkaProducer;
+        private IProducer<string, string> _kafkaProducer;
 
         #endregion Private Variables
 

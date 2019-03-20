@@ -20,7 +20,7 @@ namespace ENode.Kafka.Consumers
         private readonly IScheduleService _scheduleService;
         private CancellationToken _cancellationToken;
         private CancellationTokenSource _cancellationTokenSource;
-        private Consumer<Ignore, string> _kafkaConsumer;
+        private IConsumer<Ignore, string> _kafkaConsumer;
 
         #endregion Private Variables
 
