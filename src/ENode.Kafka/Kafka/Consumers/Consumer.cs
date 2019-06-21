@@ -160,7 +160,7 @@ namespace ENode.Kafka.Consumers
             {
                 BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port)),
                 EnableAutoCommit = false,
-                SessionTimeoutMs = 6000,
+                SessionTimeoutMs = 20000,
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 

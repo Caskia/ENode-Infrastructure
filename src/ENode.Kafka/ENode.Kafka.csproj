@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="1.0.0-beta3-ci-880" />
+    <PackageReference Include="Confluent.Kafka" Version="1.0.1.1" />
     <PackageReference Include="DotNetty.Buffers" Version="0.6.0" />
     <PackageReference Include="DotNetty.Codecs" Version="0.6.0" />
     <PackageReference Include="DotNetty.Common" Version="0.6.0" />

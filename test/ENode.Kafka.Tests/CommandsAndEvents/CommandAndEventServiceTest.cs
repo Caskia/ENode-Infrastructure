@@ -780,7 +780,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             waitHandle.WaitOne();
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
-            Assert.Equal(true, createCommandSuccess);
+            Assert.True(createCommandSuccess);
             Assert.Equal(commandList.Count, ((IAggregateRoot)note).Version);
         }
 
