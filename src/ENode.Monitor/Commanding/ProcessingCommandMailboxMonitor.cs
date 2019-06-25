@@ -1,12 +1,9 @@
-﻿using ECommon.Logging;
-using ECommon.Scheduling;
-using ENode.Commanding;
+﻿using ENode.Commanding;
 using ENode.Commanding.Impl;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace ENode.Monitor.Commanding
 {
@@ -27,6 +24,11 @@ namespace ENode.Monitor.Commanding
                      .GetField("_mailboxDict", BindingFlags.NonPublic | BindingFlags.Instance)
                      .GetValue(_commandProcessor) as ConcurrentDictionary<string, ProcessingCommandMailbox>;
             }
+        }
+
+        public List<ProcessingCommandMailbox> GetAllMailboxes()
+        {
+            return ProcessingCommandMailboxes.Select(m => m.Value).ToList();
         }
     }
 }
