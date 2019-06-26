@@ -26,9 +26,18 @@ namespace ENode.Monitor.Commanding
             }
         }
 
-        public List<ProcessingCommandMailbox> GetAllMailboxes()
+        public List<ProcessingCommandMailbox> GetProcessingMailboxes(int limit = 10)
         {
-            return ProcessingCommandMailboxes.Select(m => m.Value).ToList();
+            if (limit > 50)
+            {
+                throw new System.ArgumentException("can not greater than 50.", nameof(limit));
+            }
+
+            return ProcessingCommandMailboxes
+                .Select(m => m.Value)
+                .OrderByDescending(m => m.TotalUnConsumedMessageCount)
+                .Take(limit)
+                .ToList();
         }
     }
 }

@@ -47,7 +47,7 @@ namespace ENode.Monitor.Tests.Monitor
             });
 
             //Act
-            var mailboxes = _processingCommandMailboxMonitor.GetAllMailboxes();
+            var mailboxes = _processingCommandMailboxMonitor.GetProcessingMailboxes();
 
             //Assert
             mailboxes.Any(m => m.TotalUnConsumedMessageCount > 0).ShouldBeTrue();

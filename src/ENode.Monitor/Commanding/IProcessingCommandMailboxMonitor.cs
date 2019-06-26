@@ -5,6 +5,6 @@ namespace ENode.Monitor.Commanding
 {
     public interface IProcessingCommandMailboxMonitor
     {
-        List<ProcessingCommandMailbox> GetAllMailboxes();
+        List<ProcessingCommandMailbox> GetProcessingMailboxes(int limit = 10);
     }
 }
