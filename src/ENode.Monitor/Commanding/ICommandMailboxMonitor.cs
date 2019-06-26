@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ENode.Monitor.Commanding
 {
-    public interface IProcessingCommandMailboxMonitor
+    public interface ICommandMailboxMonitor
     {
         List<ProcessingCommandMailbox> GetProcessingMailboxes(int limit = 10);
     }

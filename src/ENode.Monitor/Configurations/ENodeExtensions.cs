@@ -14,7 +14,7 @@ namespace ENode.Monitor
         /// <returns></returns>
         public static ENodeConfiguration UseENodeMonitorService(this ENodeConfiguration eNodeConfiguration)
         {
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IProcessingCommandMailboxMonitor, ProcessingCommandMailboxMonitor>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<ICommandMailboxMonitor, CommandMailboxMonitor>();
             return eNodeConfiguration;
         }
     }

@@ -12,11 +12,11 @@ namespace ENode.Monitor.Tests.Monitor
 {
     public class Monitor_Tests : MonitorTestBase
     {
-        private readonly IProcessingCommandMailboxMonitor _processingCommandMailboxMonitor;
+        private readonly ICommandMailboxMonitor _processingCommandMailboxMonitor;
 
         public Monitor_Tests()
         {
-            _processingCommandMailboxMonitor = ObjectContainer.Resolve<IProcessingCommandMailboxMonitor>();
+            _processingCommandMailboxMonitor = ObjectContainer.Resolve<ICommandMailboxMonitor>();
         }
 
         [Fact]

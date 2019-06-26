@@ -7,11 +7,11 @@ using System.Reflection;
 
 namespace ENode.Monitor.Commanding
 {
-    public class ProcessingCommandMailboxMonitor : IProcessingCommandMailboxMonitor
+    public class CommandMailboxMonitor : ICommandMailboxMonitor
     {
         private readonly ICommandProcessor _commandProcessor;
 
-        public ProcessingCommandMailboxMonitor(ICommandProcessor commandProcessor)
+        public CommandMailboxMonitor(ICommandProcessor commandProcessor)
         {
             _commandProcessor = commandProcessor;
         }
