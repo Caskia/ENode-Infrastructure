@@ -3,8 +3,11 @@ using ECommon.Configurations;
 using ECommon.Logging;
 using ENode.Commanding;
 using ENode.Configurations;
+using ENode.Eventing;
+using ENode.Infrastructure;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 
 namespace ENode.Monitor.Tests
