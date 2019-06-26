@@ -1,10 +1,9 @@
-﻿using ENode.Eventing.Impl;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ENode.Monitor.Eventing
 {
     public interface IEventMailboxMonitor
     {
-        List<EventMailBox> GetProcessingMailboxes(int limit = 10);
+        List<(string aggregateId, long unConsumedMessageCount)> GetProcessingMailboxesInfo(int limit = 10);
     }
 }

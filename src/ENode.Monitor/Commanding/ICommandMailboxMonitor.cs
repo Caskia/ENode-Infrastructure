@@ -1,10 +1,9 @@
-﻿using ENode.Commanding;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ENode.Monitor.Commanding
 {
     public interface ICommandMailboxMonitor
     {
-        List<ProcessingCommandMailbox> GetProcessingMailboxes(int limit = 10);
+        List<(string aggregateId, long unConsumedMessageCount)> GetProcessingMailboxesInfo(int limit = 10);
     }
 }

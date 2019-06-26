@@ -23,7 +23,14 @@ namespace ENode.Monitor.Commanding
             }
         }
 
-        public List<ProcessingCommandMailbox> GetProcessingMailboxes(int limit = 10)
+        public List<(string aggregateId, long unConsumedMessageCount)> GetProcessingMailboxesInfo(int limit = 10)
+        {
+            return GetProcessingMailboxes(limit)
+                .Select(m => (m.AggregateRootId, m.TotalUnConsumedMessageCount))
+                .ToList();
+        }
+
+        private List<ProcessingCommandMailbox> GetProcessingMailboxes(int limit)
         {
             if (limit > 50)
             {

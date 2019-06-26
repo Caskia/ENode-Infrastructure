@@ -51,10 +51,10 @@ namespace ENode.Monitor.Tests.Monitor
             });
 
             //Act
-            var mailboxes = _commandMailboxMonitor.GetProcessingMailboxes();
+            var mailboxes = _commandMailboxMonitor.GetProcessingMailboxesInfo();
 
             //Assert
-            mailboxes.Any(m => m.TotalUnConsumedMessageCount > 0).ShouldBeTrue();
+            mailboxes.Any().ShouldBeTrue();
         }
 
         [Fact]
@@ -87,10 +87,10 @@ namespace ENode.Monitor.Tests.Monitor
             Thread.Sleep(2000);
 
             //Act
-            var mailboxes = _eventMailboxMonitor.GetProcessingMailboxes();
+            var mailboxes = _eventMailboxMonitor.GetProcessingMailboxesInfo();
 
             //Assert
-            (mailboxes.Count() > 0).ShouldBeTrue();
+            mailboxes.Any().ShouldBeTrue();
         }
     }
 }
