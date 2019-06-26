@@ -1,9 +1,8 @@
 ﻿using ENode.Commanding;
-using ENode.Commanding.Impl;
+using ENode.Monitor.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace ENode.Monitor.Commanding
 {
@@ -20,9 +19,7 @@ namespace ENode.Monitor.Commanding
         {
             get
             {
-                return typeof(DefaultCommandProcessor)
-                     .GetField("_mailboxDict", BindingFlags.NonPublic | BindingFlags.Instance)
-                     .GetValue(_commandProcessor) as ConcurrentDictionary<string, ProcessingCommandMailbox>;
+                return _commandProcessor.GetFieldValue<ConcurrentDictionary<string, ProcessingCommandMailbox>>("_mailboxDict");
             }
         }
 

@@ -1,8 +1,6 @@
 ﻿using ENode.Configurations;
 using ENode.Monitor.Commanding;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using ENode.Monitor.Eventing;
 
 namespace ENode.Monitor
 {
@@ -15,6 +13,8 @@ namespace ENode.Monitor
         public static ENodeConfiguration UseENodeMonitorService(this ENodeConfiguration eNodeConfiguration)
         {
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ICommandMailboxMonitor, CommandMailboxMonitor>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IEventMailboxMonitor, EventMailboxMonitor>();
+
             return eNodeConfiguration;
         }
     }
