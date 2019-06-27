@@ -1,5 +1,6 @@
 ﻿using ENode.Commanding;
 using ENode.Diagnostics.Reflection;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace ENode.Diagnostics.Commanding
         {
             if (limit > 50)
             {
-                throw new System.ArgumentException("can not greater than 50.", nameof(limit));
+                throw new ArgumentException("can not greater than 50.", nameof(limit));
             }
 
             return ProcessingCommandMailboxes

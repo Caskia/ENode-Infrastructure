@@ -1,6 +1,6 @@
-﻿using ENode.Eventing;
+﻿using ENode.Diagnostics.Reflection;
+using ENode.Eventing;
 using ENode.Eventing.Impl;
-using ENode.Diagnostics.Reflection;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -36,7 +36,7 @@ namespace ENode.Diagnostics.Eventing
         {
             if (limit > 50)
             {
-                throw new System.ArgumentException("can not greater than 50.", nameof(limit));
+                throw new ArgumentException("can not greater than 50.", nameof(limit));
             }
 
             return ProcessingEventMailboxes
