@@ -17,4 +17,8 @@
   <ItemGroup>
     <PackageReference Include="ENode" Version="2.9.3" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Protocols\Counters\" />
+  </ItemGroup>
 </Project>
