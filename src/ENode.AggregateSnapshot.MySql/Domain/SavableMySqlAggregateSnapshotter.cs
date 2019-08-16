@@ -77,6 +77,7 @@ namespace ENode.AggregateSnapshot
 
             using (var connection = _snapshotRepository.GetConnection())
             {
+                await connection.OpenAsync();
                 await connection.ExecuteAsync(sql, snapshot);
             }
         }
