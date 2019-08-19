@@ -5,8 +5,11 @@ using Shouldly;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 
@@ -60,41 +63,37 @@ namespace ENode.Lock.Redis.Tests
         [Fact(DisplayName = "Should_Execute_In_Lock_By_Multiple_Threads")]
         public async Task Should_Execute_In_Lock_By_Multiple_Threads()
         {
+            //ThreadPool.SetMinThreads(8, 8);
+            //ThreadPool.SetMaxThreads(16, 16);
+
             //Arrange
             var redisProvider = new RedisProvider(_redisOptions);
-            var tasks = new List<Task>();
+            var tasks = new List<Task<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>>();
+            var results = new List<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>();
             var dic = new Dictionary<int, int>();
+            var stopWatch = new Stopwatch();
 
             //Act
+            stopWatch.Start();
             for (int i = 0; i < 1000; i++)
             {
-                //_lockService.ExecuteInLock("test", () =>
-                //        {
-                //            dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
-                //        });
-
-                //await _lockService.ExecuteInLockAsync("test", () =>
+                //tasks.Add(_lockService.ExecuteInLockAsync("test", async () =>
                 //{
-                //    dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
-                //});
+                //    dic.Add(dic.Count + 1, Thread.CurrentThread.GetHashCode());
+                //    await Task.Delay(1000);
+                //}));
 
-                tasks.Add(_lockService.ExecuteInLockAsync("test", () =>
-                {
-                    dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
-                }));
-
-                //tasks.Add(Task.Factory.StartNew(() =>
-
-                //    _lockService.ExecuteInLock("test", () =>
-                //        {
-                //            dic.Add(dic.Count + 1, System.Threading.Thread.CurrentThread.GetHashCode());
-                //        })
-                //));
+                //results.Add(await WaitAndRetryAsync());
+                tasks.Add(WaitAndRetryAsync());
             }
             await Task.WhenAll(tasks);
+            stopWatch.Stop();
 
             //Assert
-            dic.Count.ShouldBe(400);
+            results = tasks.Select(t => t.Result).ToList();
+            var retryMostTasks = results.Where(t => t.RetryCount == results.Max(l => l.RetryCount)).ToList();
+            var waitLongestTaks = results.Where(t => t.WaitTimeSpan == results.Max(l => l.WaitTimeSpan)).ToList();
+            dic.Count.ShouldBe(1000);
         }
 
         [Fact(DisplayName = "Should_Redis_Set_By_Multiple_Threads")]
@@ -133,6 +132,31 @@ namespace ENode.Lock.Redis.Tests
             var value = t.ToString();
             await database.LockTakeAsync(value, value, TimeSpan.FromSeconds(30));
             await database.LockReleaseAsync(value, value);
+        }
+
+        private async Task<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)> WaitAndRetryAsync(int retryCount = 0, DateTime? beginTime = null)
+        {
+            if (!beginTime.HasValue)
+            {
+                beginTime = DateTime.Now;
+            }
+
+            try
+            {
+                await _lockService.ExecuteInLockAsync("test", async () =>
+                {
+                    await Task.Delay(10);
+                });
+
+                var now = DateTime.Now;
+                var waitTimeSpan = now - beginTime.Value;
+                return (retryCount, beginTime.Value, DateTime.Now, waitTimeSpan);
+            }
+            catch (DistributedLockTimeoutException)
+            {
+                retryCount++;
+                return await WaitAndRetryAsync(retryCount, beginTime);
+            }
         }
     }
 }
