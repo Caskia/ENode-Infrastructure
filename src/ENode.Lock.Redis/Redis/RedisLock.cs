@@ -51,6 +51,7 @@ namespace ENode.Lock.Redis
                 throw new ArgumentNullException(nameof(redis));
 
             // The comparison below uses timeOut as a max timeSpan in waiting Lock
+            var i = 0;
             var lockExpirationTime = DateTime.UtcNow + timeOut;
             do
             {
@@ -60,7 +61,7 @@ namespace ENode.Lock.Redis
                     return new RedisLock(redis, key, holdDuration);
                 }
 
-                //SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
+                SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }
             while (DateTime.UtcNow < lockExpirationTime);
 
@@ -78,20 +79,20 @@ namespace ENode.Lock.Redis
                 throw new ArgumentNullException(nameof(redis));
 
             // The comparison below uses timeOut as a max timeSpan in waiting Lock
-            //var i = 0;
+            var i = 0;
             var lockExpirationTime = DateTime.UtcNow + timeOut;
             do
             {
-                using (var l = await Lock.LockAsync())
+                //using (var l = await Lock.LockAsync())
+                //{
+                if (await redis.LockTakeAsync(key, OwnerId, holdDuration))
                 {
-                    if (await redis.LockTakeAsync(key, OwnerId, holdDuration))
-                    {
-                        // we have successfully acquired the lock
-                        return new RedisLock(redis, key, holdDuration);
-                    }
+                    //we have successfully acquired the lock
+                    return new RedisLock(redis, key, holdDuration);
                 }
+                //}
 
-                //await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
+                await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }
             while (DateTime.UtcNow < lockExpirationTime);
 
@@ -105,7 +106,7 @@ namespace ENode.Lock.Redis
 
             if (!_redis.LockRelease(_key, OwnerId))
             {
-                Debug.WriteLine("Lock {0} already timed out", _key);
+                Debug.WriteLine($"Lock {_key} already timed out");
             }
         }
 
@@ -116,7 +117,7 @@ namespace ENode.Lock.Redis
 
             if (!await _redis.LockReleaseAsync(_key, OwnerId))
             {
-                Debug.WriteLine("Lock {0} already timed out", _key);
+                Debug.WriteLine($"Lock {_key} already timed out");
             }
         }
 
@@ -157,6 +158,8 @@ namespace ENode.Lock.Redis
             if (!_isDisposed)
             {
                 _redis.LockExtendAsync(_key, OwnerId, (TimeSpan)state);
+
+                Debug.WriteLine($"Lock {_key} extend lock time");
             }
         }
 

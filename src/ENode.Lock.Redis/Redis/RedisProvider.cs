@@ -18,11 +18,14 @@ namespace ENode.Lock.Redis
         }
 
         /// <summary>
-        /// Create connection
+        /// Get connection
         /// </summary>
-        public ConnectionMultiplexer CreateConnectionMultiplexer()
+        public ConnectionMultiplexer ConnectionMultiplexer
         {
-            return ConnectionMultiplexer.Connect(_options.ConnectionString);
+            get
+            {
+                return _connectionMultiplexer.Value;
+            }
         }
 
         /// <summary>
@@ -31,6 +34,14 @@ namespace ENode.Lock.Redis
         public IDatabase GetDatabase()
         {
             return _connectionMultiplexer.Value.GetDatabase(_options.DatabaseId);
+        }
+
+        /// <summary>
+        /// Create connection
+        /// </summary>
+        private ConnectionMultiplexer CreateConnectionMultiplexer()
+        {
+            return ConnectionMultiplexer.Connect(_options.ConnectionString);
         }
     }
 }

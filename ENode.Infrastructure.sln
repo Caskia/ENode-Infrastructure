@@ -33,7 +33,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot.MySql.Tests", "test\ENode.AggregateSnapshot.MySql.Tests\ENode.AggregateSnapshot.MySql.Tests.csproj", "{90743633-80DC-4F32-BC86-09090374325A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.EventStore.MongoDb.Performance.Tests", "test\ENode.EventStore.MongoDb.Performance.Tests\ENode.EventStore.MongoDb.Performance.Tests.csproj", "{562F5C0D-4409-4623-9F98-5C3DBC10B290}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.EventStore.MongoDb.Performance.Tests", "test\ENode.EventStore.MongoDb.Performance.Tests\ENode.EventStore.MongoDb.Performance.Tests.csproj", "{562F5C0D-4409-4623-9F98-5C3DBC10B290}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

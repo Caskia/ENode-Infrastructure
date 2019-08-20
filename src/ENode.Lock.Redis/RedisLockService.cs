@@ -11,7 +11,7 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(300);
+        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
         private ILogger _logger;
         private IDatabase _redisDatabase;
