@@ -69,7 +69,7 @@ namespace ENode.Lock.Redis.Tests
 
             //Arrange
             var redisProvider = new RedisProvider(_redisOptions);
-            var tasks = new List<Task>();
+            var tasks = new List<Task<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>>();
             var results = new List<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>();
             var dic = new Dictionary<int, int>();
             var stopWatch = new Stopwatch();
@@ -124,24 +124,16 @@ namespace ENode.Lock.Redis.Tests
             stopWatch.Start();
             for (int i = 0; i < 1000; i++)
             {
-                tasks.Add(_lockService.ExecuteInLockAsync("test", () =>
-                {
-                    //await Task.Yield();
-                    //await Task.Delay(10);
-                    dic.Add(dic.Count + 1, Thread.CurrentThread.GetHashCode());
-                    return Task.CompletedTask;
-                }));
-
                 //results.Add(await WaitAndRetryFunc(0, null));
-                //tasks.Add(WaitAndRetryFunc(0, null));
+                tasks.Add(WaitAndRetryFunc(0, null));
             }
             await Task.WhenAll(tasks);
             stopWatch.Stop();
 
             //Assert
-            //results = tasks.Select(t => t.Result).ToList();
-            //var retryMostTasks = results.Where(t => t.RetryCount == results.Max(l => l.RetryCount)).ToList();
-            //var waitLongestTaks = results.Where(t => t.WaitTimeSpan == results.Max(l => l.WaitTimeSpan)).ToList();
+            results = tasks.Select(t => t.Result).ToList();
+            var retryMostTasks = results.Where(t => t.RetryCount == results.Max(l => l.RetryCount)).ToList();
+            var waitLongestTaks = results.Where(t => t.WaitTimeSpan == results.Max(l => l.WaitTimeSpan)).ToList();
             dic.Count.ShouldBe(1000);
         }
 
