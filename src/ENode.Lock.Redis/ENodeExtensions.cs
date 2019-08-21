@@ -19,7 +19,7 @@ namespace ENode.Lock.Redis
             TimeSpan? timeout = null,
             TimeSpan? holdDuration = null)
         {
-            ((RedLockService)ObjectContainer.Resolve<ILockService>()).Initialize(redisOptions, keyPrefix, timeout, holdDuration);
+            ((RedLockQueueService)ObjectContainer.Resolve<ILockService>()).Initialize(redisOptions, keyPrefix, timeout, holdDuration);
             return eNodeConfiguration;
         }
 
@@ -29,7 +29,7 @@ namespace ENode.Lock.Redis
         /// <returns></returns>
         public static ENodeConfiguration UseRedisLockService(this ENodeConfiguration eNodeConfiguration)
         {
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<ILockService, RedLockService>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<ILockService, RedLockQueueService>();
             return eNodeConfiguration;
         }
     }

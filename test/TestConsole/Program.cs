@@ -5,6 +5,7 @@ using ENode.Lock.Redis;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 
@@ -45,16 +46,17 @@ namespace TestConsole
             var dic = new Dictionary<int, int>();
             var tasks = new List<Task>();
 
-            for (int i = 0; i < 400; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 tasks.Add(
-                _lockService.ExecuteInLockAsync("test", t =>
-                {
-                    dic.Add((int)t, System.Threading.Thread.CurrentThread.GetHashCode());
-                }, i));
+                _lockService.ExecuteInLockAsync("test", async () =>
+                 {
+                     dic.Add(dic.Count, Thread.CurrentThread.GetHashCode());
+                     await Task.Delay(10);
+                 }));
             }
 
-            Task.WaitAll(tasks.ToArray());
+            Task.WhenAll(tasks);
 
             Console.ReadKey();
         }

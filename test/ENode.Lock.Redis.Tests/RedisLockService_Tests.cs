@@ -84,20 +84,12 @@ namespace ENode.Lock.Redis.Tests
 
                 try
                 {
-                    //using (await _asyncLock.LockAsync())
-                    //{
-                    //    //await Task.Yield();
-                    //    await Task.Delay(10);
-                    //    dic.Add(dic.Count + 1, Thread.CurrentThread.GetHashCode());
-                    //    Debug.WriteLine($"{Thread.CurrentThread.GetHashCode()}-{dic.Count}-{retryCount}-{beginTime.Value}-{DateTime.Now}-complete");
-                    //}
-
                     await _lockService.ExecuteInLockAsync("test", async () =>
                     {
                         //await Task.Yield();
-                        await Task.Delay(10);
                         dic.Add(dic.Count + 1, Thread.CurrentThread.GetHashCode());
                         Debug.WriteLine($"{Thread.CurrentThread.GetHashCode()}-{dic.Count}-{retryCount}-{beginTime.Value}-{DateTime.Now}-complete");
+                        await Task.Delay(10);
                     });
 
                     var now = DateTime.Now;
@@ -108,21 +100,13 @@ namespace ENode.Lock.Redis.Tests
                 {
                     retryCount++;
 
-                    //var rand = new Random(Guid.NewGuid().GetHashCode());
-                    //var nextTry = rand.Next(
-                    //    (int)Math.Pow(retryCount, 2), (int)Math.Pow(retryCount + 1, 2) + 1);
-
-                    //nextTry = Math.Min(nextTry, 128);
-
-                    //await Task.Delay(nextTry * 10);
-
                     return await WaitAndRetryFunc(retryCount, beginTime);
                 }
             };
 
             //Act
             stopWatch.Start();
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 //results.Add(await WaitAndRetryFunc(0, null));
                 tasks.Add(WaitAndRetryFunc(0, null));
