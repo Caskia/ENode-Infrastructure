@@ -87,9 +87,9 @@ namespace ENode.Lock.Redis.Tests
                     await _lockService.ExecuteInLockAsync("test", async () =>
                     {
                         //await Task.Yield();
+                        await Task.Delay(10);
                         dic.Add(dic.Count + 1, Thread.CurrentThread.GetHashCode());
                         Debug.WriteLine($"{Thread.CurrentThread.GetHashCode()}-{dic.Count}-{retryCount}-{beginTime.Value}-{DateTime.Now}-complete");
-                        await Task.Delay(10);
                     });
 
                     var now = DateTime.Now;

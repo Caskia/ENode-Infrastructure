@@ -12,7 +12,7 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private ConcurrentQueue<(string lockKey, TaskCompletionSource<bool>, Action action)> _executeQueue = new ConcurrentQueue<(string lockKey, TaskCompletionSource<bool>, Action action)>();
+        private ConcurrentQueue<(string lockKey, TaskCompletionSource<bool>, Func<Task> action)> _executeQueue = new ConcurrentQueue<(string lockKey, TaskCompletionSource<bool>, Func<Task> action)>();
         private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
         private ILogger _logger;
@@ -49,6 +49,7 @@ namespace ENode.Lock.Redis
                 () =>
                 {
                     action();
+                    return Task.CompletedTask;
                 }
             ));
 
@@ -65,6 +66,7 @@ namespace ENode.Lock.Redis
                 () =>
                 {
                     action();
+                    return Task.CompletedTask;
                 }
             ));
 
@@ -101,6 +103,7 @@ namespace ENode.Lock.Redis
                 () =>
                 {
                     action(state);
+                    return Task.CompletedTask;
                 }
             ));
 
@@ -109,17 +112,22 @@ namespace ENode.Lock.Redis
             return Task.CompletedTask;
         }
 
-        public async Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
+        public Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
         {
-            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
-            try
-            {
-                await action(state);
-            }
-            finally
-            {
-                await redisLock.DisposeAsync();
-            }
+            var tcs = new TaskCompletionSource<bool>();
+
+            _executeQueue.Enqueue((
+                lockKey,
+                tcs,
+                async () =>
+                {
+                    await action(state);
+                }
+            ));
+
+            tcs.Task.Wait();
+
+            return Task.CompletedTask;
         }
 
         public RedLockQueueService Initialize(
@@ -169,12 +177,12 @@ namespace ENode.Lock.Redis
         {
             while (true)
             {
-                if (_executeQueue.TryDequeue(out (string lockKey, TaskCompletionSource<bool> tcs, Action action) item))
+                if (_executeQueue.TryDequeue(out (string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action) item))
                 {
                     var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
                     try
                     {
-                        item.action();
+                        await item.action();
                     }
                     finally
                     {
@@ -182,7 +190,11 @@ namespace ENode.Lock.Redis
                     }
                     item.tcs.SetResult(true);
                 }
-                await Task.Delay(0);
+
+                if (_executeQueue.Count == 0)
+                {
+                    await Task.Yield();
+                }
             }
         }
 

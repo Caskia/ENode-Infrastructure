@@ -46,13 +46,14 @@ namespace TestConsole
             var dic = new Dictionary<int, int>();
             var tasks = new List<Task>();
 
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 tasks.Add(
                 _lockService.ExecuteInLockAsync("test", async () =>
                  {
-                     dic.Add(dic.Count, Thread.CurrentThread.GetHashCode());
                      await Task.Delay(10);
+                     dic.Add(dic.Count, Thread.CurrentThread.GetHashCode());
+                     Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} {Thread.CurrentThread.GetHashCode()} {dic.Count} complete");
                  }));
             }
 
