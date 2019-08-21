@@ -4,6 +4,7 @@ using ENode.Configurations;
 using ENode.Lock.Redis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ namespace TestConsole
             DatabaseId = 3
         };
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             var assemblies = new[] { Assembly.GetExecutingAssembly() };
 
@@ -45,20 +46,22 @@ namespace TestConsole
 
             var dic = new Dictionary<int, int>();
             var tasks = new List<Task>();
+            var stopWatch = new Stopwatch();
 
+            stopWatch.Start();
             for (int i = 0; i < 1000; i++)
             {
-                tasks.Add(
-                _lockService.ExecuteInLockAsync("test", async () =>
-                 {
-                     await Task.Delay(10);
-                     dic.Add(dic.Count, Thread.CurrentThread.GetHashCode());
-                     Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} {Thread.CurrentThread.GetHashCode()} {dic.Count} complete");
-                 }));
+                tasks.Add(_lockService.ExecuteInLockAsync("test", async () =>
+                {
+                    await Task.Delay(10);
+                    dic.Add(dic.Count, Thread.CurrentThread.GetHashCode());
+                    Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} {Thread.CurrentThread.GetHashCode()} {dic.Count} complete");
+                }));
             }
+            await Task.WhenAll(tasks);
+            stopWatch.Stop();
 
-            Task.WhenAll(tasks);
-
+            Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} all complete use time[{stopWatch.ElapsedMilliseconds}]");
             Console.ReadKey();
         }
     }

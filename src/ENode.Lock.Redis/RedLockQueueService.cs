@@ -56,7 +56,7 @@ namespace ENode.Lock.Redis
             tcs.Task.Wait();
         }
 
-        public Task ExecuteInLockAsync(string lockKey, Action action)
+        public async Task ExecuteInLockAsync(string lockKey, Action action)
         {
             var tcs = new TaskCompletionSource<bool>();
 
@@ -70,12 +70,10 @@ namespace ENode.Lock.Redis
                 }
             ));
 
-            tcs.Task.Wait();
-
-            return Task.CompletedTask;
+            await tcs.Task;
         }
 
-        public Task ExecuteInLockAsync(string lockKey, Func<Task> action)
+        public async Task ExecuteInLockAsync(string lockKey, Func<Task> action)
         {
             var tcs = new TaskCompletionSource<bool>();
 
@@ -88,12 +86,10 @@ namespace ENode.Lock.Redis
                 }
             ));
 
-            tcs.Task.Wait();
-
-            return Task.CompletedTask;
+            await tcs.Task;
         }
 
-        public Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
+        public async Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
         {
             var tcs = new TaskCompletionSource<bool>();
 
@@ -107,12 +103,10 @@ namespace ENode.Lock.Redis
                 }
             ));
 
-            tcs.Task.Wait();
-
-            return Task.CompletedTask;
+            await tcs.Task;
         }
 
-        public Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
+        public async Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
         {
             var tcs = new TaskCompletionSource<bool>();
 
@@ -125,9 +119,7 @@ namespace ENode.Lock.Redis
                 }
             ));
 
-            tcs.Task.Wait();
-
-            return Task.CompletedTask;
+            await tcs.Task;
         }
 
         public RedLockQueueService Initialize(
@@ -190,10 +182,9 @@ namespace ENode.Lock.Redis
                     }
                     item.tcs.SetResult(true);
                 }
-
-                if (_executeQueue.Count == 0)
+                else
                 {
-                    await Task.Yield();
+                    await Task.Delay(1);
                 }
             }
         }
