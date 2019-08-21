@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 
 namespace ENode.Lock.Redis
 {
-    public class RedisLock : IDisposable
+    public class RedLock : IDisposable
     {
         #region Private Variables
 
         private static readonly TimeSpan DefaultHoldDuration = TimeSpan.FromMilliseconds(30);
         private static readonly string OwnerId = Guid.NewGuid().ToString();
-        private static AsyncLock Lock = new AsyncLock();
 
         private readonly RedisKey _key;
 
@@ -26,7 +25,7 @@ namespace ENode.Lock.Redis
 
         #region Ctor
 
-        private RedisLock(IDatabase redis, RedisKey key, TimeSpan holdDuration)
+        private RedLock(IDatabase redis, RedisKey key, TimeSpan holdDuration)
         {
             _redis = redis;
             _key = key;
@@ -58,7 +57,7 @@ namespace ENode.Lock.Redis
                 if (redis.LockTake(key, OwnerId, holdDuration))
                 {
                     // we have successfully acquired the lock
-                    return new RedisLock(redis, key, holdDuration);
+                    return new RedLock(redis, key, holdDuration);
                 }
 
                 SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
@@ -68,12 +67,12 @@ namespace ENode.Lock.Redis
             throw new DistributedLockTimeoutException($"Failed to acquire lock on {key} within given timeout ({timeOut})");
         }
 
-        public static Task<RedisLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeOut)
+        public static Task<RedLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeOut)
         {
             return AcquireAsync(redis, key, timeOut, DefaultHoldDuration);
         }
 
-        public static async Task<RedisLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeOut, TimeSpan holdDuration)
+        public static async Task<RedLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeOut, TimeSpan holdDuration)
         {
             if (redis == null)
                 throw new ArgumentNullException(nameof(redis));
@@ -83,14 +82,11 @@ namespace ENode.Lock.Redis
             var lockExpirationTime = DateTime.UtcNow + timeOut;
             do
             {
-                //using (var l = await Lock.LockAsync())
-                //{
                 if (await redis.LockTakeAsync(key, OwnerId, holdDuration))
                 {
                     //we have successfully acquired the lock
-                    return new RedisLock(redis, key, holdDuration);
+                    return new RedLock(redis, key, holdDuration);
                 }
-                //}
 
                 await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }

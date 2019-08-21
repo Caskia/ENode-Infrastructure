@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ENode.Lock.Redis
 {
-    public class RedisLockService : ILockService
+    public class RedLockService : ILockService
     {
         #region Private Variables
 
@@ -30,7 +30,7 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            using (var redisLock = RedisLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
+            using (var redisLock = RedLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
             {
                 action();
             }
@@ -38,7 +38,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Action action)
         {
-            var redisLock = await RedisLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
             try
             {
                 action();
@@ -51,7 +51,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
         {
-            var redisLock = await RedisLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
             try
             {
                 action(state);
@@ -64,7 +64,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Func<Task> action)
         {
-            var redisLock = await RedisLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
             try
             {
                 await action();
@@ -77,7 +77,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
         {
-            var redisLock = await RedisLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
             try
             {
                 await action(state);
@@ -88,7 +88,7 @@ namespace ENode.Lock.Redis
             }
         }
 
-        public RedisLockService Initialize(
+        public RedLockService Initialize(
             RedisOptions redisOptions,
             string keyPrefix = "default",
             TimeSpan? timeOut = null,
