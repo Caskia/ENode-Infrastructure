@@ -62,6 +62,7 @@ namespace TestConsole
             stopWatch.Stop();
 
             Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} all complete use time[{stopWatch.ElapsedMilliseconds}]");
+            await Task.Delay(60000);
             Console.ReadKey();
         }
     }
