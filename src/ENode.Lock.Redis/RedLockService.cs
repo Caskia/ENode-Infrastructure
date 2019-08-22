@@ -90,7 +90,7 @@ namespace ENode.Lock.Redis
 
         public RedLockService Initialize(
             RedisOptions redisOptions,
-            string keyPrefix = "default",
+            string keyPrefix = "enode",
             TimeSpan? timeout = null,
             TimeSpan? expiries = null
             )
@@ -128,7 +128,7 @@ namespace ENode.Lock.Redis
 
         private RedisKey GetRedisKey(string key)
         {
-            return $"enode:lock:{_keyPrefix}:{key}";
+            return $"{_keyPrefix}:lock:{key}";
         }
 
         #endregion Private Methods

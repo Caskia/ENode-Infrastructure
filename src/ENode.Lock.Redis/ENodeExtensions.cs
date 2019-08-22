@@ -15,7 +15,7 @@ namespace ENode.Lock.Redis
         /// <returns></returns>
         public static ENodeConfiguration InitializeRedisLockService(this ENodeConfiguration eNodeConfiguration,
             RedisOptions redisOptions,
-            string keyPrefix = "default",
+            string keyPrefix = "enode",
             TimeSpan? timeout = null,
             TimeSpan? expiries = null)
         {
