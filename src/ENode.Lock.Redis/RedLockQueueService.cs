@@ -12,14 +12,14 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
+        private TimeSpan _expiries = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
         private ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>>();
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
-        private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(300);
+        private TimeSpan _timeout = TimeSpan.FromSeconds(300);
 
         #endregion Private Variables
 
@@ -124,8 +124,8 @@ namespace ENode.Lock.Redis
         public RedLockQueueService Initialize(
             RedisOptions redisOptions,
             string keyPrefix = "default",
-            TimeSpan? timeOut = null,
-            TimeSpan? holdDuration = null
+            TimeSpan? timeout = null,
+            TimeSpan? expiries = null
             )
         {
             _redisOptions = redisOptions;
@@ -136,14 +136,14 @@ namespace ENode.Lock.Redis
             Ensure.Positive(_redisOptions.DatabaseId, "redisOptions.DatabaseId");
             Ensure.NotNull(_keyPrefix, "keyPrefix");
 
-            if (timeOut.HasValue)
+            if (timeout.HasValue)
             {
-                _timeOutTimeSpan = timeOut.Value;
+                _timeout = timeout.Value;
             }
 
-            if (holdDuration.HasValue)
+            if (expiries.HasValue)
             {
-                _holdDurationTimeSpan = holdDuration.Value;
+                _expiries = expiries.Value;
             }
 
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
@@ -193,16 +193,24 @@ namespace ENode.Lock.Redis
         {
             foreach (var item in queue.GetConsumingEnumerable())
             {
-                var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+                var redisLock = default(RedLock);
                 try
                 {
+                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), _timeout, _expiries);
                     await item.action();
+                }
+                catch (Exception ex)
+                {
+                    item.tcs.TrySetException(ex);
                 }
                 finally
                 {
-                    await redisLock.DisposeAsync();
+                    if (redisLock != null)
+                    {
+                        await redisLock.DisposeAsync();
+                    }
+                    item.tcs.TrySetResult(true);
                 }
-                item.tcs.SetResult(true);
             }
         }
 

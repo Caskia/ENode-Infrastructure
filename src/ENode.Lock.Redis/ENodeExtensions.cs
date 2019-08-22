@@ -17,9 +17,9 @@ namespace ENode.Lock.Redis
             RedisOptions redisOptions,
             string keyPrefix = "default",
             TimeSpan? timeout = null,
-            TimeSpan? holdDuration = null)
+            TimeSpan? expiries = null)
         {
-            ((RedLockQueueService)ObjectContainer.Resolve<ILockService>()).Initialize(redisOptions, keyPrefix, timeout, holdDuration);
+            ((RedLockQueueService)ObjectContainer.Resolve<ILockService>()).Initialize(redisOptions, keyPrefix, timeout, expiries);
             return eNodeConfiguration;
         }
 

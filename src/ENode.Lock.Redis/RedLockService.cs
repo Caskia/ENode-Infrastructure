@@ -11,13 +11,13 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
+        private TimeSpan _expiries = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
         private RedisProvider _redisProvider;
-        private TimeSpan _timeOutTimeSpan = TimeSpan.FromSeconds(300);
+        private TimeSpan _timeout = TimeSpan.FromSeconds(300);
 
         #endregion Private Variables
 
@@ -30,7 +30,7 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            using (var redisLock = RedLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan))
+            using (var redisLock = RedLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeout, _expiries))
             {
                 action();
             }
@@ -38,7 +38,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Action action)
         {
-            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeout, _expiries);
             try
             {
                 action();
@@ -51,7 +51,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
         {
-            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeout, _expiries);
             try
             {
                 action(state);
@@ -64,7 +64,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Func<Task> action)
         {
-            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeout, _expiries);
             try
             {
                 await action();
@@ -77,7 +77,7 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
         {
-            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
+            var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(lockKey), _timeout, _expiries);
             try
             {
                 await action(state);
@@ -91,8 +91,8 @@ namespace ENode.Lock.Redis
         public RedLockService Initialize(
             RedisOptions redisOptions,
             string keyPrefix = "default",
-            TimeSpan? timeOut = null,
-            TimeSpan? holdDuration = null
+            TimeSpan? timeout = null,
+            TimeSpan? expiries = null
             )
         {
             _redisOptions = redisOptions;
@@ -103,14 +103,14 @@ namespace ENode.Lock.Redis
             Ensure.Positive(_redisOptions.DatabaseId, "redisOptions.DatabaseId");
             Ensure.NotNull(_keyPrefix, "keyPrefix");
 
-            if (timeOut.HasValue)
+            if (timeout.HasValue)
             {
-                _timeOutTimeSpan = timeOut.Value;
+                _timeout = timeout.Value;
             }
 
-            if (holdDuration.HasValue)
+            if (expiries.HasValue)
             {
-                _holdDurationTimeSpan = holdDuration.Value;
+                _expiries = expiries.Value;
             }
 
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
