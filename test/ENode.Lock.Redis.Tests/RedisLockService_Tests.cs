@@ -73,6 +73,7 @@ namespace ENode.Lock.Redis.Tests
             var results = new List<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>();
             var dic = new Dictionary<int, int>();
             var stopWatch = new Stopwatch();
+            var lockKey = Guid.NewGuid().ToString();
 
             var WaitAndRetryFunc = default(Func<int, DateTime?, Task<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>>);
             WaitAndRetryFunc = async (retryCount, beginTime) =>
@@ -84,7 +85,7 @@ namespace ENode.Lock.Redis.Tests
 
                 try
                 {
-                    await _lockService.ExecuteInLockAsync("test", async () =>
+                    await _lockService.ExecuteInLockAsync(lockKey, async () =>
                     {
                         //await Task.Yield();
                         await Task.Delay(10);

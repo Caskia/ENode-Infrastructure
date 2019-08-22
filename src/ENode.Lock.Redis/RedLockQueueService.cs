@@ -12,9 +12,9 @@ namespace ENode.Lock.Redis
     {
         #region Private Variables
 
-        private BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> _executingQueue = new BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>();
         private TimeSpan _holdDurationTimeSpan = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
+        private ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>>();
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
@@ -27,7 +27,6 @@ namespace ENode.Lock.Redis
 
         public RedLockQueueService()
         {
-            Task.Factory.StartNew(ProcessWorkAsync);
         }
 
         #endregion Ctor
@@ -41,9 +40,9 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            _executingQueue.Add((
+            GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
                 () =>
@@ -58,9 +57,9 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Action action)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            _executingQueue.Add((
+            GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
                 () =>
@@ -75,9 +74,9 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Func<Task> action)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            _executingQueue.Add((
+            GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
                 async () =>
@@ -91,9 +90,9 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            _executingQueue.Add((
+            GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
                 () =>
@@ -108,9 +107,9 @@ namespace ENode.Lock.Redis
 
         public async Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            _executingQueue.Add((
+            GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
                 async () =>
@@ -160,14 +159,39 @@ namespace ENode.Lock.Redis
 
         #region Private Methods
 
+        private BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> GetOrCreateExecutingQueue(string lockKey)
+        {
+            var executingQueue = new BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>();
+            if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> queue))
+            {
+                executingQueue = queue;
+            }
+            else
+            {
+                if (_lockQueues.TryAdd(lockKey, executingQueue))
+                {
+                    Task.Factory.StartNew(async () => await ProcessQueueTaskAsync(executingQueue));
+                }
+                else
+                {
+                    if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> addedQueue))
+                    {
+                        executingQueue = addedQueue;
+                    }
+                }
+            }
+
+            return executingQueue;
+        }
+
         private RedisKey GetRedisKey(string key)
         {
             return $"enode:lock:{_keyPrefix}:{key}";
         }
 
-        private async Task ProcessWorkAsync()
+        private async Task ProcessQueueTaskAsync(BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> queue)
         {
-            foreach (var item in _executingQueue.GetConsumingEnumerable())
+            foreach (var item in queue.GetConsumingEnumerable())
             {
                 var redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), _timeOutTimeSpan, _holdDurationTimeSpan);
                 try

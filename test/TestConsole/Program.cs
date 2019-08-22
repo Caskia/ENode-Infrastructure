@@ -44,19 +44,27 @@ namespace TestConsole
 
             _lockService = ObjectContainer.Resolve<ILockService>();
 
-            var dic = new Dictionary<int, int>();
+            var listDics = new List<(int index, Dictionary<int, int> dic)>();
+            for (int i = 0; i < 10; i++)
+            {
+                listDics.Add((i, new Dictionary<int, int>()));
+            }
             var tasks = new List<Task>();
             var stopWatch = new Stopwatch();
 
+            var lockKey = Guid.NewGuid().ToString();
             stopWatch.Start();
             for (int i = 0; i < 1000; i++)
             {
-                tasks.Add(_lockService.ExecuteInLockAsync("test", async () =>
+                foreach (var item in listDics)
                 {
-                    await Task.Delay(10);
-                    dic.Add(dic.Count, Thread.CurrentThread.GetHashCode());
-                    Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} {Thread.CurrentThread.GetHashCode()} {dic.Count} complete");
-                }));
+                    tasks.Add(_lockService.ExecuteInLockAsync($"{lockKey}-{item.index}", async () =>
+                     {
+                         await Task.Delay(10);
+                         item.dic.Add(item.dic.Count, Thread.CurrentThread.GetHashCode());
+                         Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} {Thread.CurrentThread.GetHashCode()} {item.dic.Count} complete");
+                     }));
+                }
             }
             await Task.WhenAll(tasks);
             stopWatch.Stop();
