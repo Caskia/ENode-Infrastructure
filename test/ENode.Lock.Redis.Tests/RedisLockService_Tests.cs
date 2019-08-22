@@ -46,12 +46,30 @@ namespace ENode.Lock.Redis.Tests
               .BuildContainer();
 
             enode.InitializeBusinessAssemblies(assemblies)
-                .InitializeRedisLockService(_redisOptions);
+                .InitializeRedisLockService(_redisOptions, timeout: TimeSpan.FromSeconds(5));
 
             _lockService = ObjectContainer.Resolve<ILockService>();
         }
 
-        [Fact(DisplayName = "Should_Execute_Async")]
+        [Fact]
+        public async Task Should_AquireLock_Timeout()
+        {
+            var lockKey = Guid.NewGuid().ToString();
+
+            var tasks = new List<Task>();
+
+            for (int i = 0; i < 2; i++)
+            {
+                tasks.Add(_lockService.ExecuteInLockAsync(lockKey, async () =>
+                {
+                    await Task.Delay(5 * 1000);
+                }));
+            }
+
+            await Assert.ThrowsAsync<DistributedLockTimeoutException>(async () => await Task.WhenAll(tasks));
+        }
+
+        [Fact]
         public async Task Should_Execute_Async()
         {
             //Act
@@ -61,7 +79,7 @@ namespace ENode.Lock.Redis.Tests
             });
         }
 
-        [Fact(DisplayName = "Should_Execute_In_Lock_By_Multiple_Threads")]
+        [Fact]
         public async Task Should_Execute_In_Lock_By_Multiple_Threads()
         {
             //ThreadPool.SetMinThreads(1, 1);
@@ -122,7 +140,7 @@ namespace ENode.Lock.Redis.Tests
             dic.Count.ShouldBe(1000);
         }
 
-        [Fact(DisplayName = "Should_Redis_Set_By_Multiple_Threads")]
+        [Fact]
         public async Task Should_Redis_Set_By_Multiple_Threads()
         {
             var redisProvider = new RedisProvider(_redisOptions);

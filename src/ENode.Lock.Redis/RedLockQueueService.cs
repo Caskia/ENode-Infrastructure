@@ -14,7 +14,7 @@ namespace ENode.Lock.Redis
 
         private TimeSpan _expiries = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
-        private ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>>();
+        private ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)>>();
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
@@ -45,6 +45,7 @@ namespace ENode.Lock.Redis
             GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
+                DateTime.UtcNow + _timeout,
                 () =>
                 {
                     action();
@@ -62,6 +63,7 @@ namespace ENode.Lock.Redis
             GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
+                DateTime.UtcNow + _timeout,
                 () =>
                 {
                     action();
@@ -79,6 +81,7 @@ namespace ENode.Lock.Redis
             GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
+                DateTime.UtcNow + _timeout,
                 async () =>
                 {
                     await action();
@@ -95,6 +98,7 @@ namespace ENode.Lock.Redis
             GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
+                DateTime.UtcNow + _timeout,
                 () =>
                 {
                     action(state);
@@ -112,6 +116,7 @@ namespace ENode.Lock.Redis
             GetOrCreateExecutingQueue(lockKey).Add((
                 lockKey,
                 tcs,
+                DateTime.UtcNow + _timeout,
                 async () =>
                 {
                     await action(state);
@@ -159,10 +164,10 @@ namespace ENode.Lock.Redis
 
         #region Private Methods
 
-        private BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> GetOrCreateExecutingQueue(string lockKey)
+        private BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> GetOrCreateExecutingQueue(string lockKey)
         {
-            var executingQueue = new BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)>();
-            if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> queue))
+            var executingQueue = new BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)>();
+            if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> queue))
             {
                 executingQueue = queue;
             }
@@ -174,7 +179,7 @@ namespace ENode.Lock.Redis
                 }
                 else
                 {
-                    if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> addedQueue))
+                    if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> addedQueue))
                     {
                         executingQueue = addedQueue;
                     }
@@ -189,14 +194,22 @@ namespace ENode.Lock.Redis
             return $"{_keyPrefix}:lock:{key}";
         }
 
-        private async Task ProcessQueueTaskAsync(BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, Func<Task> action)> queue)
+        private async Task ProcessQueueTaskAsync(BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> queue)
         {
             foreach (var item in queue.GetConsumingEnumerable())
             {
+                var leftTimeSpan = item.expirationTime - DateTime.UtcNow;
+
+                if (leftTimeSpan <= TimeSpan.Zero)
+                {
+                    item.tcs.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {item.lockKey} within given timeout ({_timeout})"));
+                    continue;
+                }
+
                 var redisLock = default(RedLock);
                 try
                 {
-                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), _timeout, _expiries);
+                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), leftTimeSpan, _expiries);
                     await item.action();
                 }
                 catch (Exception ex)
