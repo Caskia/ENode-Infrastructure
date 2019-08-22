@@ -119,13 +119,14 @@ namespace ENode.Lock.Redis.Tests
                 {
                     retryCount++;
 
+                    Debug.WriteLine($"thread: {Thread.CurrentThread.GetHashCode()} retry: {retryCount}");
                     return await WaitAndRetryFunc(retryCount, beginTime);
                 }
             };
 
             //Act
             stopWatch.Start();
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 //results.Add(await WaitAndRetryFunc(0, null));
                 tasks.Add(WaitAndRetryFunc(0, null));
