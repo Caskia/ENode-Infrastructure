@@ -14,7 +14,7 @@ namespace ENode.Lock.Redis
 
         private TimeSpan _expiries = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
-        private ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)>>();
+        private ConcurrentDictionary<string, BlockingCollection<WorkContext>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<WorkContext>>();
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
@@ -40,90 +40,92 @@ namespace ENode.Lock.Redis
 
         public void ExecuteInLock(string lockKey, Action action)
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            GetOrCreateExecutingQueue(lockKey).Add((
-                lockKey,
-                tcs,
-                DateTime.UtcNow + _timeout,
-                () =>
+            var context = new WorkContext()
+            {
+                LockKey = lockKey,
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                ExpirationTime = DateTime.UtcNow + _timeout,
+                Action = () =>
                 {
                     action();
                     return Task.CompletedTask;
-                }
-            ));
+                },
+            };
 
-            tcs.Task.Wait();
+            GetOrCreateExecutingQueue(lockKey).Add(context);
+
+            context.TaskCompletionSource.Task.Wait();
         }
 
         public async Task ExecuteInLockAsync(string lockKey, Action action)
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            GetOrCreateExecutingQueue(lockKey).Add((
-                lockKey,
-                tcs,
-                DateTime.UtcNow + _timeout,
-                () =>
+            var context = new WorkContext()
+            {
+                LockKey = lockKey,
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                ExpirationTime = DateTime.UtcNow + _timeout,
+                Action = () =>
                 {
                     action();
                     return Task.CompletedTask;
-                }
-            ));
+                },
+            };
 
-            await tcs.Task;
+            GetOrCreateExecutingQueue(lockKey).Add(context);
+
+            await context.TaskCompletionSource.Task;
         }
 
         public async Task ExecuteInLockAsync(string lockKey, Func<Task> action)
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var context = new WorkContext()
+            {
+                LockKey = lockKey,
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                ExpirationTime = DateTime.UtcNow + _timeout,
+                Action = action
+            };
 
-            GetOrCreateExecutingQueue(lockKey).Add((
-                lockKey,
-                tcs,
-                DateTime.UtcNow + _timeout,
-                async () =>
-                {
-                    await action();
-                }
-            ));
+            GetOrCreateExecutingQueue(lockKey).Add(context);
 
-            await tcs.Task;
+            await context.TaskCompletionSource.Task;
         }
 
         public async Task ExecuteInLockAsync(string lockKey, Action<object> action, object state)
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            GetOrCreateExecutingQueue(lockKey).Add((
-                lockKey,
-                tcs,
-                DateTime.UtcNow + _timeout,
-                () =>
+            var context = new WorkContext()
+            {
+                LockKey = lockKey,
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                ExpirationTime = DateTime.UtcNow + _timeout,
+                Action = () =>
                 {
                     action(state);
                     return Task.CompletedTask;
                 }
-            ));
+            };
 
-            await tcs.Task;
+            GetOrCreateExecutingQueue(lockKey).Add(context);
+
+            await context.TaskCompletionSource.Task;
         }
 
         public async Task ExecuteInLockAsync(string lockKey, Func<object, Task<object>> action, object state)
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            GetOrCreateExecutingQueue(lockKey).Add((
-                lockKey,
-                tcs,
-                DateTime.UtcNow + _timeout,
-                async () =>
+            var context = new WorkContext()
+            {
+                LockKey = lockKey,
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                ExpirationTime = DateTime.UtcNow + _timeout,
+                Action = async () =>
                 {
                     await action(state);
                 }
-            ));
+            };
 
-            await tcs.Task;
+            GetOrCreateExecutingQueue(lockKey).Add(context);
+
+            await context.TaskCompletionSource.Task;
         }
 
         public RedLockQueueService Initialize(
@@ -164,10 +166,10 @@ namespace ENode.Lock.Redis
 
         #region Private Methods
 
-        private BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> GetOrCreateExecutingQueue(string lockKey)
+        private BlockingCollection<WorkContext> GetOrCreateExecutingQueue(string lockKey)
         {
-            var executingQueue = new BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)>();
-            if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> queue))
+            var executingQueue = new BlockingCollection<WorkContext>();
+            if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<WorkContext> queue))
             {
                 executingQueue = queue;
             }
@@ -179,7 +181,7 @@ namespace ENode.Lock.Redis
                 }
                 else
                 {
-                    if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> addedQueue))
+                    if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<WorkContext> addedQueue))
                     {
                         executingQueue = addedQueue;
                     }
@@ -194,26 +196,26 @@ namespace ENode.Lock.Redis
             return $"{_keyPrefix}:lock:{key}";
         }
 
-        private async Task ProcessQueueTaskAsync(BlockingCollection<(string lockKey, TaskCompletionSource<bool> tcs, DateTime expirationTime, Func<Task> action)> queue)
+        private async Task ProcessQueueTaskAsync(BlockingCollection<WorkContext> queue)
         {
-            foreach (var item in queue.GetConsumingEnumerable())
+            foreach (var context in queue.GetConsumingEnumerable())
             {
-                var leftTimeSpan = item.expirationTime - DateTime.UtcNow;
+                var leftTimeSpan = context.ExpirationTime - DateTime.UtcNow;
                 if (leftTimeSpan <= TimeSpan.Zero)
                 {
-                    item.tcs.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {item.lockKey} within given timeout ({_timeout})"));
+                    context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
                     continue;
                 }
 
                 var redisLock = default(RedLock);
                 try
                 {
-                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(item.lockKey), leftTimeSpan, _expiries);
-                    await item.action();
+                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), leftTimeSpan, _expiries);
+                    await context.Action();
                 }
                 catch (Exception ex)
                 {
-                    item.tcs.TrySetException(ex);
+                    context.TaskCompletionSource.TrySetException(ex);
                 }
                 finally
                 {
@@ -221,7 +223,7 @@ namespace ENode.Lock.Redis
                     {
                         await redisLock.DisposeAsync();
                     }
-                    item.tcs.TrySetResult(true);
+                    context.TaskCompletionSource.TrySetResult(true);
                 }
             }
         }
