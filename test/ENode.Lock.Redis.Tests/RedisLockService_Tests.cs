@@ -17,15 +17,12 @@ namespace ENode.Lock.Redis.Tests
 {
     public class RedisLockService_Tests
     {
-        private static object lockObj = new object();
-
         private readonly RedisOptions _redisOptions = new RedisOptions()
         {
             ConnectionString = "127.0.0.1:20002,keepAlive=60,abortConnect=false,connectTimeout=5000,syncTimeout=5000",
             DatabaseId = 3
         };
 
-        private AsyncLock _asyncLock = new AsyncLock();
         private ILockService _lockService;
 
         public RedisLockService_Tests()
@@ -82,9 +79,6 @@ namespace ENode.Lock.Redis.Tests
         [Fact]
         public async Task Should_Execute_In_Lock_By_Multiple_Threads()
         {
-            //ThreadPool.SetMinThreads(1, 1);
-            //ThreadPool.SetMaxThreads(1, 1);
-
             //Arrange
             var redisProvider = new RedisProvider(_redisOptions);
             var tasks = new List<Task<(int RetryCount, DateTime BeginTime, DateTime EndTime, TimeSpan WaitTimeSpan)>>();
@@ -108,7 +102,6 @@ namespace ENode.Lock.Redis.Tests
                         //await Task.Yield();
                         await Task.Delay(10);
                         dic.Add(dic.Count + 1, Thread.CurrentThread.GetHashCode());
-                        Debug.WriteLine($"{Thread.CurrentThread.GetHashCode()}-{dic.Count}-{retryCount}-{beginTime.Value}-{DateTime.Now}-complete");
                     });
 
                     var now = DateTime.Now;
@@ -118,8 +111,6 @@ namespace ENode.Lock.Redis.Tests
                 catch (DistributedLockTimeoutException)
                 {
                     retryCount++;
-
-                    Debug.WriteLine($"thread: {Thread.CurrentThread.GetHashCode()} retry: {retryCount}");
                     return await WaitAndRetryFunc(retryCount, beginTime);
                 }
             };
@@ -138,6 +129,7 @@ namespace ENode.Lock.Redis.Tests
             results = tasks.Select(t => t.Result).ToList();
             var retryMostTasks = results.Where(t => t.RetryCount == results.Max(l => l.RetryCount)).ToList();
             var waitLongestTaks = results.Where(t => t.WaitTimeSpan == results.Max(l => l.WaitTimeSpan)).ToList();
+
             dic.Count.ShouldBe(1000);
         }
 

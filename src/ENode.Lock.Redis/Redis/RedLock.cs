@@ -1,6 +1,5 @@
 ﻿using StackExchange.Redis;
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -99,7 +98,7 @@ namespace ENode.Lock.Redis
 
             if (!_redis.LockRelease(_key, OwnerId))
             {
-                Debug.WriteLine($"Lock {_key} already timed out");
+                //Debug.WriteLine($"Lock {_key} already timed out");
             }
         }
 
@@ -110,7 +109,7 @@ namespace ENode.Lock.Redis
 
             if (!await _redis.LockReleaseAsync(_key, OwnerId))
             {
-                Debug.WriteLine($"Lock {_key} already timed out");
+                //Debug.WriteLine($"Lock {_key} already timed out");
             }
         }
 
@@ -152,7 +151,7 @@ namespace ENode.Lock.Redis
             {
                 _redis.LockExtendAsync(_key, OwnerId, (TimeSpan)state);
 
-                Debug.WriteLine($"Lock {_key} extend lock time");
+                //Debug.WriteLine($"Lock {_key} extend lock time");
             }
         }
 

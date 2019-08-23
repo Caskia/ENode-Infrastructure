@@ -199,7 +199,6 @@ namespace ENode.Lock.Redis
             foreach (var item in queue.GetConsumingEnumerable())
             {
                 var leftTimeSpan = item.expirationTime - DateTime.UtcNow;
-
                 if (leftTimeSpan <= TimeSpan.Zero)
                 {
                     item.tcs.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {item.lockKey} within given timeout ({_timeout})"));
