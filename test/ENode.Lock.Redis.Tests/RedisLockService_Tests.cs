@@ -6,10 +6,10 @@ using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 
@@ -129,7 +129,7 @@ namespace ENode.Lock.Redis.Tests
             results = tasks.Select(t => t.Result).ToList();
             var retryMostTasks = results.Where(t => t.RetryCount == results.Max(l => l.RetryCount)).ToList();
             var waitLongestTaks = results.Where(t => t.WaitTimeSpan == results.Max(l => l.WaitTimeSpan)).ToList();
-
+            //System.IO.File.WriteAllText(@"C:\Users\Caskia\Desktop\1.txt", $"retryCount:{retryMostTasks.FirstOrDefault().RetryCount}, waittime:{waitLongestTaks.FirstOrDefault().WaitTimeSpan.TotalMilliseconds}");
             dic.Count.ShouldBe(1000);
         }
 

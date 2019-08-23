@@ -11,6 +11,8 @@ namespace ENode.Lock.Redis
 
         public bool IsRunning { get; set; } = false;
 
+        public bool IsTimeout { get; set; } = false;
+
         public string LockKey { get; set; }
 
         public TaskCompletionSource<bool> TaskCompletionSource { get; set; }
