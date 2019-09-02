@@ -1,122 +1,115 @@
 ﻿using StackExchange.Redis;
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ENode.Lock.Redis
 {
-    public class RedisLock : IDisposable
+    public class RedLock : IDisposable
     {
         #region Private Variables
 
-        private static readonly TimeSpan DefaultHoldDuration = TimeSpan.FromMilliseconds(30);
+        private static readonly TimeSpan DefaultExpiries = TimeSpan.FromMilliseconds(30);
         private static readonly string OwnerId = Guid.NewGuid().ToString();
-        private static AsyncLock Lock = new AsyncLock();
 
+        private readonly Timer _keepLockAliveTimer;
         private readonly RedisKey _key;
-
         private readonly IDatabase _redis;
-
-        private readonly Timer _slidingExpirationTimer;
-
         private volatile bool _isDisposed = false;
 
         #endregion Private Variables
 
         #region Ctor
 
-        private RedisLock(IDatabase redis, RedisKey key, TimeSpan holdDuration)
+        private RedLock(IDatabase redis, RedisKey key, TimeSpan expiries)
         {
             _redis = redis;
             _key = key;
 
             // start sliding expiration timer at half timeout intervals
-            var halfLockHoldDuration = TimeSpan.FromTicks(holdDuration.Ticks / 2);
-            _slidingExpirationTimer = new Timer(ExpirationTimerTick, holdDuration, halfLockHoldDuration, halfLockHoldDuration);
+            var halfExpiries = TimeSpan.FromTicks(expiries.Ticks / 2);
+            _keepLockAliveTimer = new Timer(KeepLockAlive, expiries, halfExpiries, halfExpiries);
         }
 
         #endregion Ctor
 
         #region Public Methods
 
-        public static IDisposable Acquire(IDatabase redis, RedisKey key, TimeSpan timeOut)
+        public static IDisposable Acquire(IDatabase redis, RedisKey key, TimeSpan timeout)
         {
-            return Acquire(redis, key, timeOut, DefaultHoldDuration);
+            return Acquire(redis, key, timeout, DefaultExpiries);
         }
 
-        public static IDisposable Acquire(IDatabase redis, RedisKey key, TimeSpan timeOut, TimeSpan holdDuration)
+        public static IDisposable Acquire(IDatabase redis, RedisKey key, TimeSpan timeout, TimeSpan expiries)
         {
             if (redis == null)
                 throw new ArgumentNullException(nameof(redis));
 
-            // The comparison below uses timeOut as a max timeSpan in waiting Lock
-            var lockExpirationTime = DateTime.UtcNow + timeOut;
+            // The comparison below uses timeout as a max timeSpan in waiting Lock
+            var i = 0;
+            var lockExpirationTime = DateTime.UtcNow + timeout;
             do
             {
-                if (redis.LockTake(key, OwnerId, holdDuration))
+                if (redis.LockTake(key, OwnerId, expiries))
                 {
                     // we have successfully acquired the lock
-                    return new RedisLock(redis, key, holdDuration);
+                    return new RedLock(redis, key, expiries);
                 }
 
-                //SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
+                SleepBackOffMultiplier(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }
             while (DateTime.UtcNow < lockExpirationTime);
 
-            throw new DistributedLockTimeoutException($"Failed to acquire lock on {key} within given timeout ({timeOut})");
+            throw new DistributedLockTimeoutException($"Failed to acquire lock on {key} within given timeout ({timeout})");
         }
 
-        public static Task<RedisLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeOut)
+        public static Task<RedLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeout)
         {
-            return AcquireAsync(redis, key, timeOut, DefaultHoldDuration);
+            return AcquireAsync(redis, key, timeout, DefaultExpiries);
         }
 
-        public static async Task<RedisLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeOut, TimeSpan holdDuration)
+        public static async Task<RedLock> AcquireAsync(IDatabase redis, RedisKey key, TimeSpan timeout, TimeSpan expiries)
         {
             if (redis == null)
                 throw new ArgumentNullException(nameof(redis));
 
-            // The comparison below uses timeOut as a max timeSpan in waiting Lock
-            //var i = 0;
-            var lockExpirationTime = DateTime.UtcNow + timeOut;
+            // The comparison below uses timeout as a max timeSpan in waiting Lock
+            var i = 0;
+            var lockExpirationTime = DateTime.UtcNow + timeout;
             do
             {
-                using (var l = await Lock.LockAsync())
+                if (await redis.LockTakeAsync(key, OwnerId, expiries))
                 {
-                    if (await redis.LockTakeAsync(key, OwnerId, holdDuration))
-                    {
-                        // we have successfully acquired the lock
-                        return new RedisLock(redis, key, holdDuration);
-                    }
+                    //we have successfully acquired the lock
+                    return new RedLock(redis, key, expiries);
                 }
 
-                //await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
+                await SleepBackOffMultiplierAsync(i++, (int)(lockExpirationTime - DateTime.UtcNow).TotalMilliseconds);
             }
             while (DateTime.UtcNow < lockExpirationTime);
 
-            throw new DistributedLockTimeoutException($"Failed to acquire lock on {key} within given timeout ({timeOut})");
+            throw new DistributedLockTimeoutException($"Failed to acquire lock on {key} within given timeout ({timeout})");
         }
 
         public void Dispose()
         {
             _isDisposed = true;
-            _slidingExpirationTimer.Dispose();
+            _keepLockAliveTimer.Dispose();
 
             if (!_redis.LockRelease(_key, OwnerId))
             {
-                Debug.WriteLine("Lock {0} already timed out", _key);
+                //Debug.WriteLine($"Lock {_key} already timed out");
             }
         }
 
         public async Task DisposeAsync()
         {
             _isDisposed = true;
-            _slidingExpirationTimer.Dispose();
+            _keepLockAliveTimer.Dispose();
 
             if (!await _redis.LockReleaseAsync(_key, OwnerId))
             {
-                Debug.WriteLine("Lock {0} already timed out", _key);
+                //Debug.WriteLine($"Lock {_key} already timed out");
             }
         }
 
@@ -152,11 +145,13 @@ namespace ENode.Lock.Redis
             await Task.Delay(nextTry);
         }
 
-        private void ExpirationTimerTick(object state)
+        private void KeepLockAlive(object state)
         {
             if (!_isDisposed)
             {
                 _redis.LockExtendAsync(_key, OwnerId, (TimeSpan)state);
+
+                //Debug.WriteLine($"Lock {_key} extend lock time");
             }
         }
 

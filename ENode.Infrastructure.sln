@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.29001.49
+VisualStudioVersion = 16.0.29209.62
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4664B4BD-BA04-48AF-A5F5-BE12709B2256}"
 EndProject
@@ -29,7 +29,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot.Mon
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot.MySql", "src\ENode.AggregateSnapshot.MySql\ENode.AggregateSnapshot.MySql.csproj", "{52F471EA-D3BE-47B3-9FBE-E2E06D7522FE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot", "src\ENode.AggregateSnapshot\ENode.AggregateSnapshot.csproj", "{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ENode.AggregateSnapshot", "src\ENode.AggregateSnapshot\ENode.AggregateSnapshot.csproj", "{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot.MySql.Tests", "test\ENode.AggregateSnapshot.MySql.Tests\ENode.AggregateSnapshot.MySql.Tests.csproj", "{90743633-80DC-4F32-BC86-09090374325A}"
 EndProject

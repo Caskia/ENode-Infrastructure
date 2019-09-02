@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Description>enode infrastructure</Description>
     <Copyright>Copyright © Caskia 2019</Copyright>
     <PackageLicense>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicense>
@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.0.4" />
     <PackageReference Include="DeepCopy" Version="1.0.3" />
     <PackageReference Include="ECommon.Dapper" Version="2.5.1" />
     <PackageReference Include="MySqlConnector" Version="0.56.0" />

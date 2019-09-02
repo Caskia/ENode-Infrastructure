@@ -47,6 +47,8 @@ namespace ENode.AggregateSnapshot
 
             using (var connection = _snapshotRepository.GetConnection())
             {
+                await connection.OpenAsync();
+
                 var result = await connection.QueryListAsync<Snapshot>(new { AggregateRootId = aggregateRootId }, _snapshotRepository.GetTableName(aggregateRootId));
                 snapshot = result.SingleOrDefault();
             }

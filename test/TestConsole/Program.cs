@@ -4,7 +4,9 @@ using ENode.Configurations;
 using ENode.Lock.Redis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
 
@@ -20,7 +22,7 @@ namespace TestConsole
             DatabaseId = 3
         };
 
-        private static void Main(string[] args)
+        private static async Task Main(string[] args)
         {
             var assemblies = new[] { Assembly.GetExecutingAssembly() };
 
@@ -42,20 +44,33 @@ namespace TestConsole
 
             _lockService = ObjectContainer.Resolve<ILockService>();
 
-            var dic = new Dictionary<int, int>();
-            var tasks = new List<Task>();
-
-            for (int i = 0; i < 400; i++)
+            var listDics = new List<(int index, Dictionary<int, int> dic)>();
+            for (int i = 0; i < 10; i++)
             {
-                tasks.Add(
-                _lockService.ExecuteInLockAsync("test", t =>
-                {
-                    dic.Add((int)t, System.Threading.Thread.CurrentThread.GetHashCode());
-                }, i));
+                listDics.Add((i, new Dictionary<int, int>()));
             }
+            var tasks = new List<Task>();
+            var stopWatch = new Stopwatch();
 
-            Task.WaitAll(tasks.ToArray());
+            var lockKey = Guid.NewGuid().ToString();
+            stopWatch.Start();
+            for (int i = 0; i < 1000; i++)
+            {
+                foreach (var item in listDics)
+                {
+                    tasks.Add(_lockService.ExecuteInLockAsync($"{lockKey}-{item.index}", async () =>
+                     {
+                         await Task.Delay(10);
+                         item.dic.Add(item.dic.Count, Thread.CurrentThread.GetHashCode());
+                         Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} {Thread.CurrentThread.GetHashCode()} {item.dic.Count} complete");
+                     }));
+                }
+            }
+            await Task.WhenAll(tasks);
+            stopWatch.Stop();
 
+            Console.WriteLine($"{DateTime.Now.ToString("HH:mm:ss,fff")} all complete use time[{stopWatch.ElapsedMilliseconds}]");
+            await Task.Delay(60000);
             Console.ReadKey();
         }
     }
