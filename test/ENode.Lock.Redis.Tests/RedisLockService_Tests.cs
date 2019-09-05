@@ -77,6 +77,32 @@ namespace ENode.Lock.Redis.Tests
         }
 
         [Fact]
+        public async Task Should_Execute_In_Different_Lock_By_Multiple_Threads()
+        {
+            ThreadPool.SetMinThreads(1, 1);
+            ThreadPool.SetMaxThreads(4, 4);
+
+            //Arrange
+            Func<string, Task> func = async lockKey =>
+            {
+                await _lockService.ExecuteInLockAsync(lockKey, async () =>
+                {
+                    await Task.Delay(1000);
+                });
+            };
+            var tasks = new List<Task>();
+
+            //Act
+            for (int i = 0; i < 10; i++)
+            {
+                var lockKey = $"{i}-{Guid.NewGuid().ToString()}-{Guid.NewGuid().ToString()}";
+                tasks.Add(func(lockKey));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        [Fact]
         public async Task Should_Execute_In_Lock_By_Multiple_Threads()
         {
             //Arrange

@@ -198,37 +198,77 @@ namespace ENode.Lock.Redis
 
         private async Task ProcessQueueTaskAsync(BlockingCollection<WorkContext> queue)
         {
-            foreach (var context in queue.GetConsumingEnumerable())
+            while (true)
             {
-                lock (context)
+                if (queue.TryTake(out WorkContext context))
                 {
-                    context.IsRunning = true;
-                    if (context.IsTimeout)
+                    lock (context)
                     {
-                        context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
-                        continue;
+                        context.IsRunning = true;
+                        if (context.IsTimeout)
+                        {
+                            context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
+                            continue;
+                        }
                     }
-                }
 
-                var redisLock = default(RedLock);
-                try
-                {
-                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), context.ExpirationTime - DateTime.UtcNow, _expiries);
-                    await context.Action();
-                }
-                catch (Exception ex)
-                {
-                    context.TaskCompletionSource.TrySetException(ex);
-                }
-                finally
-                {
-                    if (redisLock != null)
+                    var redisLock = default(RedLock);
+                    try
                     {
-                        await redisLock.DisposeAsync();
+                        redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), context.ExpirationTime - DateTime.UtcNow, _expiries);
+                        await context.Action();
                     }
-                    context.TaskCompletionSource.TrySetResult(true);
+                    catch (Exception ex)
+                    {
+                        context.TaskCompletionSource.TrySetException(ex);
+                    }
+                    finally
+                    {
+                        if (redisLock != null)
+                        {
+                            await redisLock.DisposeAsync();
+                        }
+                        context.TaskCompletionSource.TrySetResult(true);
+                    }
+                }
+                else
+                {
+                    //await Task.Yield();
+                    await Task.Delay(1);
                 }
             }
+
+            //foreach (var context in queue.GetConsumingEnumerable())
+            //{
+            //    lock (context)
+            //    {
+            //        context.IsRunning = true;
+            //        if (context.IsTimeout)
+            //        {
+            //            context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
+            //            continue;
+            //        }
+            //    }
+
+            //    var redisLock = default(RedLock);
+            //    try
+            //    {
+            //        redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), context.ExpirationTime - DateTime.UtcNow, _expiries);
+            //        await context.Action();
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        context.TaskCompletionSource.TrySetException(ex);
+            //    }
+            //    finally
+            //    {
+            //        if (redisLock != null)
+            //        {
+            //            await redisLock.DisposeAsync();
+            //        }
+            //        context.TaskCompletionSource.TrySetResult(true);
+            //    }
+            //}
         }
 
         private async Task WaitWorkContextResultAsync(WorkContext context)
