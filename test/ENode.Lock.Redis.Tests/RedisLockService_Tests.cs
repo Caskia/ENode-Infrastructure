@@ -93,7 +93,7 @@ namespace ENode.Lock.Redis.Tests
             var tasks = new List<Task>();
 
             //Act
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 var lockKey = $"{i}-{Guid.NewGuid().ToString()}-{Guid.NewGuid().ToString()}";
                 tasks.Add(func(lockKey));

@@ -5,6 +5,7 @@ using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace ENode.Lock.Redis
 {
@@ -14,7 +15,7 @@ namespace ENode.Lock.Redis
 
         private TimeSpan _expiries = TimeSpan.FromSeconds(30);
         private string _keyPrefix;
-        private ConcurrentDictionary<string, BlockingCollection<WorkContext>> _lockQueues = new ConcurrentDictionary<string, BlockingCollection<WorkContext>>();
+        private ConcurrentDictionary<string, BufferBlock<WorkContext>> _lockQueues = new ConcurrentDictionary<string, BufferBlock<WorkContext>>();
         private ILogger _logger;
         private IDatabase _redisDatabase;
         private RedisOptions _redisOptions;
@@ -52,7 +53,7 @@ namespace ENode.Lock.Redis
                 },
             };
 
-            GetOrCreateExecutingQueue(lockKey).Add(context);
+            GetOrCreateExecutingQueue(lockKey).Post(context);
 
             WaitWorkContextResultAsync(context).ConfigureAwait(false).GetAwaiter().GetResult();
         }
@@ -71,7 +72,7 @@ namespace ENode.Lock.Redis
                 },
             };
 
-            GetOrCreateExecutingQueue(lockKey).Add(context);
+            GetOrCreateExecutingQueue(lockKey).Post(context);
 
             await WaitWorkContextResultAsync(context);
         }
@@ -86,7 +87,7 @@ namespace ENode.Lock.Redis
                 Action = action
             };
 
-            GetOrCreateExecutingQueue(lockKey).Add(context);
+            GetOrCreateExecutingQueue(lockKey).Post(context);
 
             await WaitWorkContextResultAsync(context);
         }
@@ -105,7 +106,7 @@ namespace ENode.Lock.Redis
                 }
             };
 
-            GetOrCreateExecutingQueue(lockKey).Add(context);
+            GetOrCreateExecutingQueue(lockKey).Post(context);
 
             await WaitWorkContextResultAsync(context);
         }
@@ -123,7 +124,7 @@ namespace ENode.Lock.Redis
                 }
             };
 
-            GetOrCreateExecutingQueue(lockKey).Add(context);
+            GetOrCreateExecutingQueue(lockKey).Post(context);
 
             await WaitWorkContextResultAsync(context);
         }
@@ -166,10 +167,10 @@ namespace ENode.Lock.Redis
 
         #region Private Methods
 
-        private BlockingCollection<WorkContext> GetOrCreateExecutingQueue(string lockKey)
+        private BufferBlock<WorkContext> GetOrCreateExecutingQueue(string lockKey)
         {
-            var executingQueue = new BlockingCollection<WorkContext>();
-            if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<WorkContext> queue))
+            var executingQueue = new BufferBlock<WorkContext>();
+            if (_lockQueues.TryGetValue(lockKey, out BufferBlock<WorkContext> queue))
             {
                 executingQueue = queue;
             }
@@ -181,7 +182,7 @@ namespace ENode.Lock.Redis
                 }
                 else
                 {
-                    if (_lockQueues.TryGetValue(lockKey, out BlockingCollection<WorkContext> addedQueue))
+                    if (_lockQueues.TryGetValue(lockKey, out BufferBlock<WorkContext> addedQueue))
                     {
                         executingQueue = addedQueue;
                     }
@@ -196,79 +197,41 @@ namespace ENode.Lock.Redis
             return $"{_keyPrefix}:lock:{key}";
         }
 
-        private async Task ProcessQueueTaskAsync(BlockingCollection<WorkContext> queue)
+        private async Task ProcessQueueTaskAsync(BufferBlock<WorkContext> queue)
         {
-            while (true)
+            while (await queue.OutputAvailableAsync())
             {
-                if (queue.TryTake(out WorkContext context))
-                {
-                    lock (context)
-                    {
-                        context.IsRunning = true;
-                        if (context.IsTimeout)
-                        {
-                            context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
-                            continue;
-                        }
-                    }
+                var context = await queue.ReceiveAsync();
 
-                    var redisLock = default(RedLock);
-                    try
+                lock (context)
+                {
+                    context.IsRunning = true;
+                    if (context.IsTimeout)
                     {
-                        redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), context.ExpirationTime - DateTime.UtcNow, _expiries);
-                        await context.Action();
-                    }
-                    catch (Exception ex)
-                    {
-                        context.TaskCompletionSource.TrySetException(ex);
-                    }
-                    finally
-                    {
-                        if (redisLock != null)
-                        {
-                            await redisLock.DisposeAsync();
-                        }
-                        context.TaskCompletionSource.TrySetResult(true);
+                        context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
+                        continue;
                     }
                 }
-                else
+
+                var redisLock = default(RedLock);
+                try
                 {
-                    //await Task.Yield();
-                    await Task.Delay(1);
+                    redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), context.ExpirationTime - DateTime.UtcNow, _expiries);
+                    await context.Action();
                 }
-            }
-
-            //foreach (var context in queue.GetConsumingEnumerable())
-            //{
-            //    lock (context)
-            //    {
-            //        context.IsRunning = true;
-            //        if (context.IsTimeout)
-            //        {
-            //            context.TaskCompletionSource.TrySetException(new DistributedLockTimeoutException($"Failed to acquire lock on {context.LockKey} within given timeout ({_timeout})"));
-            //            continue;
-            //        }
-            //    }
-
-            //    var redisLock = default(RedLock);
-            //    try
-            //    {
-            //        redisLock = await RedLock.AcquireAsync(_redisDatabase, GetRedisKey(context.LockKey), context.ExpirationTime - DateTime.UtcNow, _expiries);
-            //        await context.Action();
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        context.TaskCompletionSource.TrySetException(ex);
-            //    }
-            //    finally
-            //    {
-            //        if (redisLock != null)
-            //        {
-            //            await redisLock.DisposeAsync();
-            //        }
-            //        context.TaskCompletionSource.TrySetResult(true);
-            //    }
-            //}
+                catch (Exception ex)
+                {
+                    context.TaskCompletionSource.TrySetException(ex);
+                }
+                finally
+                {
+                    if (redisLock != null)
+                    {
+                        await redisLock.DisposeAsync();
+                    }
+                    context.TaskCompletionSource.TrySetResult(true);
+                }
+            };
         }
 
         private async Task WaitWorkContextResultAsync(WorkContext context)
