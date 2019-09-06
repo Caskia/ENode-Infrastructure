@@ -225,11 +225,18 @@ namespace ENode.Lock.Redis
                 }
                 finally
                 {
+                    context.TaskCompletionSource.TrySetResult(true);
+
                     if (redisLock != null)
                     {
-                        await redisLock.DisposeAsync();
+                        try
+                        {
+                            await redisLock.DisposeAsync();
+                        }
+                        catch
+                        {
+                        }
                     }
-                    context.TaskCompletionSource.TrySetResult(true);
                 }
             };
         }
