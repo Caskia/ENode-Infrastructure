@@ -8,6 +8,8 @@ using ENode.AggregateSnapshot.Serializers;
 using ENode.Domain;
 using ENode.Infrastructure;
 using System;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ENode.AggregateSnapshot
@@ -62,11 +64,14 @@ namespace ENode.AggregateSnapshot
             }
 
             var json = _aggregateSnapshotSerializer.Serialize(aggregateRoot);
+
             try
             {
                 if (aggregateRoot.UniqueId == "191443474891935744")
                 {
-                    _logger.Error($"error json:[{ json}]");
+                    File.WriteAllText("aggreaget.json", json, Encoding.UTF8);
+
+                    //_logger.Error($"error json:[{ json}]");
                 }
                 else
                 {
