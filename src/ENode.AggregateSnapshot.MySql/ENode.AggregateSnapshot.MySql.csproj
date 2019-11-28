@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.0.4" />
-    <PackageReference Include="DeepCopy" Version="1.0.3" />
     <PackageReference Include="ECommon.Dapper" Version="2.5.1" />
     <PackageReference Include="MySqlConnector" Version="0.58.0" />
   </ItemGroup>
