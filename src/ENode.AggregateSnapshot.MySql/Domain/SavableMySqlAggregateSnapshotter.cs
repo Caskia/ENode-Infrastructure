@@ -56,7 +56,7 @@ namespace ENode.AggregateSnapshot
                 throw new ArgumentNullException(nameof(aggregateRoot));
             }
 
-            if (publishedVersion % _aggregateSnapshotConfiguration.VersionInterval != 0)
+            if (publishedVersion % 10 /*_aggregateSnapshotConfiguration.VersionInterval*/ != 0)
             {
                 return;
             }
@@ -64,24 +64,31 @@ namespace ENode.AggregateSnapshot
             var json = _aggregateSnapshotSerializer.Serialize(aggregateRoot);
             try
             {
-                var copiedAggregateRoot = DeepCopier.Copy(aggregateRoot);
-                var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(copiedAggregateRoot);
-                var aggregateRootTypeName = _typeNameProvider.GetTypeName(aggregateRootType);
-                var snapshot = new Snapshot()
+                if (aggregateRoot.UniqueId == "191443474891935744")
                 {
-                    CreationTime = DateTime.UtcNow,
-                    ModificationTime = DateTime.UtcNow,
-                    AggregateRootId = copiedAggregateRoot.UniqueId,
-                    AggregateRootTypeName = aggregateRootTypeName,
-                    Version = copiedAggregateRoot.Version,
-                    SerializedPayload = aggregateRootJson,
-                };
-                var sql = string.Format(InsertOrUpdateSnapshotSql, _snapshotRepository.GetTableName(snapshot.AggregateRootId));
+                    _logger.Error($"error json:[{ json}]");
+                }
+                else
+                {
+                    var copiedAggregateRoot = DeepCopier.Copy(aggregateRoot);
+                    var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(copiedAggregateRoot);
+                    var aggregateRootTypeName = _typeNameProvider.GetTypeName(aggregateRootType);
+                    var snapshot = new Snapshot()
+                    {
+                        CreationTime = DateTime.UtcNow,
+                        ModificationTime = DateTime.UtcNow,
+                        AggregateRootId = copiedAggregateRoot.UniqueId,
+                        AggregateRootTypeName = aggregateRootTypeName,
+                        Version = copiedAggregateRoot.Version,
+                        SerializedPayload = aggregateRootJson,
+                    };
+                    var sql = string.Format(InsertOrUpdateSnapshotSql, _snapshotRepository.GetTableName(snapshot.AggregateRootId));
 
-                using (var connection = _snapshotRepository.GetConnection())
-                {
-                    await connection.OpenAsync();
-                    await connection.ExecuteAsync(sql, snapshot);
+                    using (var connection = _snapshotRepository.GetConnection())
+                    {
+                        await connection.OpenAsync();
+                        await connection.ExecuteAsync(sql, snapshot);
+                    }
                 }
             }
             catch (Exception ex)
