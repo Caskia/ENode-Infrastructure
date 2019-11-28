@@ -51,18 +51,19 @@ namespace ENode.AggregateSnapshot
 
         public async Task SaveSnapshotAsync(IAggregateRoot aggregateRoot, Type aggregateRootType, int publishedVersion)
         {
+            if (aggregateRoot == null)
+            {
+                throw new ArgumentNullException(nameof(aggregateRoot));
+            }
+
+            if (publishedVersion % _aggregateSnapshotConfiguration.VersionInterval != 0)
+            {
+                return;
+            }
+
+            var json = _aggregateSnapshotSerializer.Serialize(aggregateRoot);
             try
             {
-                if (aggregateRoot == null)
-                {
-                    throw new ArgumentNullException(nameof(aggregateRoot));
-                }
-
-                if (publishedVersion % _aggregateSnapshotConfiguration.VersionInterval != 0)
-                {
-                    return;
-                }
-
                 var copiedAggregateRoot = DeepCopier.Copy(aggregateRoot);
                 var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(copiedAggregateRoot);
                 var aggregateRootTypeName = _typeNameProvider.GetTypeName(aggregateRootType);
@@ -85,7 +86,7 @@ namespace ENode.AggregateSnapshot
             }
             catch (Exception ex)
             {
-                _logger.Error($"error json:[{ _aggregateSnapshotSerializer.Serialize(aggregateRoot)}]", ex);
+                _logger.Error($"error json:[{ json}]", ex);
 
                 throw ex;
             }
