@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <Description>enode infrastructure</Description>
     <Copyright>Copyright © Caskia 2019</Copyright>
     <PackageLicense>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicense>
@@ -15,6 +15,6 @@
   <ItemGroup>
     <PackageReference Include="ENode" Version="2.9.3" />
     <PackageReference Include="StackExchange.Redis" Version="2.0.571" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.10.0" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.11.0" />
   </ItemGroup>
 </Project>

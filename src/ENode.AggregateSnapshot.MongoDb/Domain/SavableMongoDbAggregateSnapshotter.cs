@@ -1,5 +1,4 @@
-﻿using DeepCopy;
-using ECommon.Logging;
+﻿using ECommon.Logging;
 using ENode.AggregateSnapshot.Collections;
 using ENode.AggregateSnapshot.Configurations;
 using ENode.AggregateSnapshot.Models;
@@ -61,8 +60,8 @@ namespace ENode.AggregateSnapshot
                 return;
             }
 
-            var copiedAggregateRoot = DeepCopier.Copy(aggregateRoot);
-            var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(copiedAggregateRoot);
+            var aggregateRootJson = _aggregateSnapshotSerializer.Serialize(aggregateRoot);
+            var copiedAggregateRoot = _aggregateSnapshotSerializer.Deserialize(aggregateRootJson, aggregateRootType) as IAggregateRoot;
             var aggregateRootTypeName = _typeNameProvider.GetTypeName(aggregateRootType);
             var snapshot = new Snapshot()
             {
