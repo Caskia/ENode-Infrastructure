@@ -28,12 +28,24 @@ namespace ENode.Lock.Redis
             throw new NotImplementedException("There is no need to add lock key when use redis lock service.");
         }
 
+        Task Infrastructure.ILockService.AddLockKey(string lockKey)
+        {
+            AddLockKey(lockKey);
+
+            return Task.CompletedTask;
+        }
+
         public void ExecuteInLock(string lockKey, Action action)
         {
             using (var redisLock = RedLock.Acquire(_redisDatabase, GetRedisKey(lockKey), _timeout, _expiries))
             {
                 action();
             }
+        }
+
+        public Task ExecuteInLock(string lockKey, Func<Task> action)
+        {
+            return ExecuteInLockAsync(lockKey, action);
         }
 
         public async Task ExecuteInLockAsync(string lockKey, Action action)

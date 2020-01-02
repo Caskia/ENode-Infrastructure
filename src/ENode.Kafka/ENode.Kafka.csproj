@@ -22,6 +22,6 @@
     <PackageReference Include="DotNetty.Handlers" Version="0.6.0" />
     <PackageReference Include="DotNetty.Transport" Version="0.6.0" />
     <PackageReference Include="DotNetty.Transport.Libuv" Version="0.6.0" />
-    <PackageReference Include="ENode" Version="2.9.3" />
+    <PackageReference Include="ENode" Version="2.9.4" />
   </ItemGroup>
 </Project>

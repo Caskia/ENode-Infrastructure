@@ -19,20 +19,20 @@ namespace ENode.Kafka
         private IEventSerializer _eventSerializer;
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
-        private IMessageProcessor<ProcessingDomainEventStreamMessage, DomainEventStreamMessage> _messageProcessor;
+        private IProcessingEventProcessor _messageProcessor;
         private bool _sendEventHandledMessage;
         private SendReplyService _sendReplyService;
 
         public Consumer Consumer { get; private set; }
 
-        public void Handle(KafkaMessage message, IKafkaMessageContext context)
+        public void Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
-            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(message.Value);
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
             var eventStreamMessage = _jsonSerializer.Deserialize<EventStreamMessage>(eNodeMessage.Body);
             var domainEventStreamMessage = ConvertToDomainEventStream(eventStreamMessage);
-            var processContext = new DomainEventStreamProcessContext(this, domainEventStreamMessage, message, context);
-            var processingMessage = new ProcessingDomainEventStreamMessage(domainEventStreamMessage, processContext);
-            _logger.InfoFormat("ENode event message received, messageId: {0}, aggregateRootId: {1}, aggregateRootType: {2}, version: {3}", domainEventStreamMessage.Id, domainEventStreamMessage.AggregateRootStringId, domainEventStreamMessage.AggregateRootTypeName, domainEventStreamMessage.Version);
+            var processContext = new DomainEventStreamProcessContext(this, domainEventStreamMessage, kafkaMessage, context);
+            var processingMessage = new ProcessingEvent(domainEventStreamMessage, processContext);
+            _logger.DebugFormat("ENode event message received, messageId: {0}, aggregateRootId: {1}, aggregateRootType: {2}, version: {3}", domainEventStreamMessage.Id, domainEventStreamMessage.AggregateRootId, domainEventStreamMessage.AggregateRootTypeName, domainEventStreamMessage.Version);
             _messageProcessor.Process(processingMessage);
         }
 
@@ -41,7 +41,7 @@ namespace ENode.Kafka
             _sendReplyService = new SendReplyService("EventConsumerSendReplyService");
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _eventSerializer = ObjectContainer.Resolve<IEventSerializer>();
-            _messageProcessor = ObjectContainer.Resolve<IMessageProcessor<ProcessingDomainEventStreamMessage, DomainEventStreamMessage>>();
+            _messageProcessor = ObjectContainer.Resolve<IProcessingEventProcessor>();
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
             _sendEventHandledMessage = sendEventHandledMessage;
             return this;
@@ -104,21 +104,24 @@ namespace ENode.Kafka
             return domainEventStreamMessage;
         }
 
-        private class DomainEventStreamProcessContext : KafkaMessageProcessContext
+        private class DomainEventStreamProcessContext : IEventProcessContext
         {
             private readonly DomainEventStreamMessage _domainEventStreamMessage;
             private readonly DomainEventConsumer _eventConsumer;
+            private readonly KafkaMessage _kafkaMessage;
+            private readonly IKafkaMessageContext _messageContext;
 
-            public DomainEventStreamProcessContext(DomainEventConsumer eventConsumer, DomainEventStreamMessage domainEventStreamMessage, KafkaMessage message, IKafkaMessageContext messageContext)
-                : base(message, messageContext)
+            public DomainEventStreamProcessContext(DomainEventConsumer eventConsumer, DomainEventStreamMessage domainEventStreamMessage, KafkaMessage kafkaMessage, IKafkaMessageContext messageContext)
             {
                 _eventConsumer = eventConsumer;
                 _domainEventStreamMessage = domainEventStreamMessage;
+                _kafkaMessage = kafkaMessage;
+                _messageContext = messageContext;
             }
 
-            public override void NotifyMessageProcessed()
+            public void NotifyEventProcessed()
             {
-                base.NotifyMessageProcessed();
+                _messageContext.OnMessageHandled(_kafkaMessage);
 
                 if (!_eventConsumer._sendEventHandledMessage)
                 {

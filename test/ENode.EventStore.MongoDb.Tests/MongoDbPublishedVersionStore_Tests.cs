@@ -1,17 +1,17 @@
 ﻿using ECommon.Components;
 using ECommon.Configurations;
-using ECommon.IO;
 using ECommon.Utilities;
+using ENode.AggregateSnapshot;
 using ENode.Configurations;
+using ENode.Eventing;
+using ENode.EventStore.MongoDb.Tests.Domain;
 using ENode.Infrastructure;
 using Shouldly;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
-using ENode.AggregateSnapshot;
 using Xunit;
 using ECommonConfiguration = ECommon.Configurations.Configuration;
-using ENode.EventStore.MongoDb.Tests.Domain;
 
 namespace ENode.EventStore.MongoDb.Tests
 {
@@ -66,8 +66,7 @@ namespace ENode.EventStore.MongoDb.Tests
 
             //Assert
             var publishedVersion = await _store.GetPublishedVersionAsync(processName, aggregateTypeName, aggregateId);
-            publishedVersion.Status.ShouldBe(AsyncTaskStatus.Success);
-            publishedVersion.Data.ShouldBe(version);
+            publishedVersion.ShouldBe(version);
         }
 
         [Fact(DisplayName = "Should_Insert_Published_Version")]
@@ -114,8 +113,7 @@ namespace ENode.EventStore.MongoDb.Tests
 
             //Assert
             var publishedVersion = await _store.GetPublishedVersionAsync(processName, aggregateTypeName, aggregateId);
-            publishedVersion.Status.ShouldBe(AsyncTaskStatus.Success);
-            publishedVersion.Data.ShouldBe(version + 1);
+            publishedVersion.ShouldBe(version + 1);
         }
     }
 }

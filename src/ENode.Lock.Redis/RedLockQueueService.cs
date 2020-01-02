@@ -39,6 +39,13 @@ namespace ENode.Lock.Redis
             throw new NotImplementedException("There is no need to add lock key when use redis lock service.");
         }
 
+        Task Infrastructure.ILockService.AddLockKey(string lockKey)
+        {
+            AddLockKey(lockKey);
+
+            return Task.CompletedTask;
+        }
+
         public void ExecuteInLock(string lockKey, Action action)
         {
             var context = new WorkContext()
@@ -56,6 +63,11 @@ namespace ENode.Lock.Redis
             GetOrCreateExecutingQueue(lockKey).Post(context);
 
             WaitWorkContextResultAsync(context).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        public Task ExecuteInLock(string lockKey, Func<Task> action)
+        {
+            return ExecuteInLockAsync(lockKey, action);
         }
 
         public async Task ExecuteInLockAsync(string lockKey, Action action)

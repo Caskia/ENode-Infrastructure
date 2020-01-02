@@ -12,9 +12,9 @@ namespace ENode.Kafka.Consumers
 
         public Action<ConsumeResult<Ignore, string>> MessageHandledAction { get; private set; }
 
-        public void OnMessageHandled(ConsumeResult<Ignore, string> queueMessage)
+        public void OnMessageHandled(ConsumeResult<Ignore, string> kafkaMessage)
         {
-            MessageHandledAction(queueMessage);
+            MessageHandledAction(kafkaMessage);
         }
     }
 }

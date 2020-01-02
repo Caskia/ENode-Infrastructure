@@ -42,24 +42,18 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var command1 = new AggregateThrowExceptionCommand
             {
                 AggregateRootId = aggregateId,
-                PublishableException = false
+                IsDomainException = false
             };
-            var asyncResult = _commandService.ExecuteAsync(command1).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command1).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
 
             var command2 = new AggregateThrowExceptionCommand
             {
                 AggregateRootId = aggregateId,
-                PublishableException = true
+                IsDomainException = true
             };
-            asyncResult = _commandService.ExecuteAsync(command2).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
+            commandResult = _commandService.ExecuteAsync(command2).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
         }
@@ -87,10 +81,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 AggregateRootId1 = command1.AggregateRootId,
                 AggregateRootId2 = command2.AggregateRootId
             };
-            var asyncResult = _commandService.ExecuteAsync(command3).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command3).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
         }
@@ -102,10 +93,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.NothingChanged, commandResult.Status);
         }
@@ -117,10 +105,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.NothingChanged, commandResult.Status);
             Assert.Equal("ResultFromBaseCommand", commandResult.Result);
@@ -129,10 +114,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
+            commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.NothingChanged, commandResult.Status);
             Assert.Equal("ResultFromChildCommand", commandResult.Result);
@@ -152,7 +134,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             //执行创建聚合根的命令
             var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Data.Status);
+            Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Sample Note", note.Title);
@@ -166,7 +148,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
             commandResult = _commandService.ExecuteAsync(command2).Result;
             Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Data.Status);
+            Assert.Equal(CommandStatus.Success, commandResult.Status);
             note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Changed Note", note.Title);
@@ -184,10 +166,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行创建聚合根的命令
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
@@ -210,9 +189,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 {
                     var result = t.Result;
                     Assert.NotNull(result);
-                    Assert.Equal(AsyncTaskStatus.Success, result.Status);
-                    Assert.NotNull(result.Data);
-                    Assert.Equal(CommandStatus.Success, result.Data.Status);
+                    Assert.Equal(CommandStatus.Success, result.Status);
 
                     var current = Interlocked.Increment(ref finishedCount);
                     if (current == totalCount)
@@ -239,10 +216,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行创建聚合根的命令
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
@@ -256,13 +230,44 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 AggregateRootId = aggregateId,
                 Title = "Changed Note"
             };
-            asyncResult = _commandService.ExecuteAsync(command2).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
+            commandResult = _commandService.ExecuteAsync(command2).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
+            Assert.NotNull(note);
+            Assert.Equal("Changed Note", note.Title);
+            Assert.Equal(2, ((IAggregateRoot)note).Version);
+        }
+
+        [Fact]
+        public void create_and_update_inherit_aggregate_test()
+        {
+            var aggregateId = ObjectId.GenerateNewStringId();
+            var command = new CreateInheritTestAggregateCommand
+            {
+                AggregateRootId = aggregateId,
+                Title = "Sample Note"
+            };
+
+            //执行创建聚合根的命令
+            var commandResult = _commandService.ExecuteAsync(command).Result;
+            Assert.NotNull(commandResult);
+            Assert.Equal(CommandStatus.Success, commandResult.Status);
+            var note = _memoryCache.GetAsync<InheritTestAggregate>(aggregateId).Result;
+            Assert.NotNull(note);
+            Assert.Equal("Sample Note", note.Title);
+            Assert.Equal(1, ((IAggregateRoot)note).Version);
+
+            //执行修改聚合根的命令
+            var command2 = new ChangeInheritTestAggregateTitleCommand
+            {
+                AggregateRootId = aggregateId,
+                Title = "Changed Note"
+            };
+            commandResult = _commandService.ExecuteAsync(command2).Result;
+            Assert.NotNull(commandResult);
+            Assert.Equal(CommandStatus.Success, commandResult.Status);
+            note = _memoryCache.GetAsync<InheritTestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
             Assert.Equal("Changed Note", note.Title);
             Assert.Equal(2, ((IAggregateRoot)note).Version);
@@ -279,10 +284,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行创建聚合根的命令
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
@@ -291,10 +293,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             Assert.Equal(1, ((IAggregateRoot)note).Version);
 
             //用同一个命令再次执行创建聚合根的命令
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
+            commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             Assert.Equal("Sample Note", note.Title);
@@ -306,10 +305,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 AggregateRootId = aggregateId,
                 Title = "Sample Note"
             };
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
+            commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
             Assert.Equal("Sample Note", note.Title);
@@ -327,7 +323,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //先创建一个聚合根
-            var status = _commandService.ExecuteAsync(command1).Result.Data.Status;
+            var status = _commandService.ExecuteAsync(command1).Result.Status;
             Assert.Equal(CommandStatus.Success, status);
 
             var command2 = new ChangeTestAggregateTitleCommand
@@ -337,10 +333,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行修改聚合根的命令
-            var asyncResult = _commandService.ExecuteAsync(command2, CommandReturnType.EventHandled).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command2, CommandReturnType.EventHandled).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
@@ -349,10 +342,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             Assert.Equal(2, ((IAggregateRoot)note).Version);
 
             //在重复执行该命令
-            asyncResult = _commandService.ExecuteAsync(command2).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
+            commandResult = _commandService.ExecuteAsync(command2).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
@@ -368,10 +358,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
         }
@@ -383,12 +370,21 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
+        }
+
+        [Fact]
+        public void set_application_message_command_handler_test()
+        {
+            var command = new SetApplicatonMessageCommand()
+            {
+                AggregateRootId = ObjectId.GenerateNewStringId()
+            };
+            var commandResult = _commandService.ExecuteAsync(command).Result;
+            Assert.NotNull(commandResult);
+            Assert.Equal(CommandStatus.Success, commandResult.Status);
         }
 
         [Fact]
@@ -399,10 +395,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 AggregateRootId = ObjectId.GenerateNewStringId(),
                 Result = "CommandResult"
             };
-            var asyncResult = _commandService.ExecuteAsync(command, CommandReturnType.EventHandled).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command, CommandReturnType.EventHandled).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             Assert.Equal("CommandResult", commandResult.Result);
@@ -415,225 +408,14 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             {
                 AggregateRootId = ObjectId.GenerateNewStringId()
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
         }
 
         #endregion Command Tests
 
-        #region Async Command Tests
-
-        [Fact]
-        public void async_command_handler_test()
-        {
-            var command = new AsyncHandlerCommand()
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId()
-            };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-        }
-
-        [Fact]
-        public void async_command_handler_throw_exception_test()
-        {
-            var asyncResult = _commandService.ExecuteAsync(new AsyncHandlerCommand
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId(),
-                ShouldThrowException = true
-            }).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Failed, commandResult.Status);
-
-            asyncResult = _commandService.ExecuteAsync(new AsyncHandlerCommand
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId(),
-                ShouldThrowIOException = true
-            }).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-        }
-
-        [Fact]
-        public void async_command_inheritance_test()
-        {
-            var command = new AsyncHandlerBaseCommand
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId()
-            };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-
-            command = new AsyncHandlerChildCommand
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId()
-            };
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-        }
-
-        [Fact]
-        public void async_command_two_handlers_test()
-        {
-            var command = new TwoAsyncHandlersCommand()
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId()
-            };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Failed, commandResult.Status);
-        }
-
-        [Fact]
-        public async Task async_send_command_concurrent_test()
-        {
-            var commands = new List<AsyncHandlerCommand>();
-
-            for (int i = 0; i < 100000; i++)
-            {
-                commands.Add(new AsyncHandlerCommand()
-                {
-                    AggregateRootId = ObjectId.GenerateNewStringId()
-                });
-            }
-
-            var tasks = new List<Task>();
-            foreach (var command in commands)
-            {
-                var task = _commandService.SendAsync(command);
-                tasks.Add(task);
-            }
-
-            await Task.WhenAll(tasks);
-        }
-
-        [Fact]
-        public void duplicate_async_command_not_check_handler_exist_with_result_test()
-        {
-            var command = new NotCheckAsyncHandlerExistWithResultCommand()
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId()
-            };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-        }
-
-        [Fact]
-        public void duplicate_async_command_test()
-        {
-            var command = new AsyncHandlerCommand()
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId()
-            };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-        }
-
-        [Fact]
-        public void duplicate_async_command_with_application_message_test()
-        {
-            var command = new AsyncHandlerCommand()
-            {
-                AggregateRootId = ObjectId.GenerateNewStringId(),
-                ShouldGenerateApplicationMessage = true
-            };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-
-            asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            commandResult = asyncResult.Data;
-            Assert.NotNull(commandResult);
-            Assert.Equal(CommandStatus.Success, commandResult.Status);
-        }
-
-        #endregion Async Command Tests
-
         #region Event Service Tests
-
-        [Fact]
-        public void create_concurrent_conflict_and_then_update_many_times_not_enable_batch_insert_test()
-        {
-            _eventStore.SupportBatchAppendEvent = false;
-
-            try
-            {
-                create_concurrent_conflict_and_then_update_many_times_test();
-                Thread.Sleep(10);
-            }
-            finally
-            {
-                _eventStore.SupportBatchAppendEvent = true;
-            }
-        }
-
-        [Fact]
-        public void create_concurrent_conflict_and_then_update_many_times_not_enable_batch_insert_test2()
-        {
-            _eventStore.SupportBatchAppendEvent = false;
-
-            try
-            {
-                create_concurrent_conflict_and_then_update_many_times_test2();
-            }
-            finally
-            {
-                _eventStore.SupportBatchAppendEvent = true;
-            }
-        }
 
         [Fact]
         public void create_concurrent_conflict_and_then_update_many_times_test()
@@ -646,19 +428,15 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 commandId,
                 aggregateId,
                 typeof(TestAggregate).FullName,
-                1,
                 DateTime.Now,
-                new IDomainEvent[] { new TestAggregateTitleChanged("Note Title") { AggregateRootId = aggregateId, Version = 1 } },
+                new IDomainEvent[] { new TestAggregateCreated("Note Title") { AggregateRootId = aggregateId, Version = 1 } },
                 null);
-            var result = _eventStore.AppendAsync(eventStream).Result;
+            var result = _eventStore.BatchAppendAsync(new DomainEventStream[] { eventStream }).Result;
             Assert.NotNull(result);
-            Assert.Equal(AsyncTaskStatus.Success, result.Status);
-            Assert.Equal(EventAppendResult.Success, result.Data);
+            Assert.Equal(aggregateId, result.SuccessAggregateRootIdList[0]);
             _logger.Info("----create_concurrent_conflict_and_then_update_many_times_test, _eventStore.AppendAsync success");
 
-            var result2 = _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 1).Result;
-            Assert.NotNull(result2);
-            Assert.Equal(AsyncTaskStatus.Success, result2.Status);
+            _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 1).Wait();
             _logger.Info("----create_concurrent_conflict_and_then_update_many_times_test, UpdatePublishedVersionAsync success");
 
             //执行创建聚合根的命令
@@ -668,10 +446,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 AggregateRootId = aggregateId,
                 Title = "Sample Note"
             };
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             _logger.Info("----create_concurrent_conflict_and_then_update_many_times_test, _commandService.ExecuteAsync create success");
@@ -693,8 +468,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 _commandService.ExecuteAsync(updateCommand).ContinueWith(t =>
                 {
                     Assert.NotNull(t.Result);
-                    Assert.Equal(AsyncTaskStatus.Success, t.Result.Status);
-                    var updateCommandResult = t.Result.Data;
+                    var updateCommandResult = t.Result;
                     Assert.NotNull(updateCommandResult);
                     Assert.Equal(CommandStatus.Success, updateCommandResult.Status);
                     var totalCount = Interlocked.Increment(ref count);
@@ -722,18 +496,14 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 commandId,
                 aggregateId,
                 typeof(TestAggregate).FullName,
-                1,
                 DateTime.Now,
-                new IDomainEvent[] { new TestAggregateTitleChanged("Note Title") { AggregateRootId = aggregateId, Version = 1 } },
+                new IDomainEvent[] { new TestAggregateCreated("Note Title") { AggregateRootId = aggregateId, Version = 1 } },
                 null);
-            var result = _eventStore.AppendAsync(eventStream).Result;
+            var result = _eventStore.BatchAppendAsync(new DomainEventStream[] { eventStream }).Result;
             Assert.NotNull(result);
-            Assert.Equal(AsyncTaskStatus.Success, result.Status);
-            Assert.Equal(EventAppendResult.Success, result.Data);
+            Assert.Equal(aggregateId, result.SuccessAggregateRootIdList[0]);
 
-            var result2 = _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 1).Result;
-            Assert.NotNull(result2);
-            Assert.Equal(AsyncTaskStatus.Success, result2.Status);
+            _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 1).Wait();
 
             var commandList = new List<ICommand>();
             commandList.Add(new CreateTestAggregateCommand
@@ -759,8 +529,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 _commandService.ExecuteAsync(updateCommand).ContinueWith(t =>
                 {
                     Assert.NotNull(t.Result);
-                    Assert.Equal(AsyncTaskStatus.Success, t.Result.Status);
-                    var commandResult = t.Result.Data;
+                    var commandResult = t.Result;
                     Assert.NotNull(commandResult);
                     Assert.Equal(CommandStatus.Success, commandResult.Status);
                     if (commandResult.CommandId != commandId)
@@ -780,91 +549,8 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             waitHandle.WaitOne();
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
             Assert.NotNull(note);
-            Assert.True(createCommandSuccess);
+            Assert.Equal(true, createCommandSuccess);
             Assert.Equal(commandList.Count, ((IAggregateRoot)note).Version);
-        }
-
-        [Fact]
-        public void create_concurrent_conflict_not_enable_batch_insert_test()
-        {
-            _eventStore.SupportBatchAppendEvent = false;
-
-            try
-            {
-                var aggregateId = ObjectId.GenerateNewStringId();
-                var commandId = ObjectId.GenerateNewStringId();
-
-                //往EventStore直接插入事件，用于模拟并发冲突的情况
-                var eventStream = new DomainEventStream(
-                    commandId,
-                    aggregateId,
-                    typeof(TestAggregate).FullName,
-                    1,
-                    DateTime.Now,
-                    new IDomainEvent[] { new TestAggregateTitleChanged("Note Title") { AggregateRootId = aggregateId, Version = 1 } },
-                    null);
-                var result = _eventStore.AppendAsync(eventStream).Result;
-                Assert.NotNull(result);
-                Assert.Equal(AsyncTaskStatus.Success, result.Status);
-                Assert.Equal(EventAppendResult.Success, result.Data);
-                var result2 = _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 1).Result;
-                Assert.NotNull(result2);
-                Assert.Equal(AsyncTaskStatus.Success, result2.Status);
-
-                //执行创建聚合根的命令
-                var command = new CreateTestAggregateCommand
-                {
-                    AggregateRootId = aggregateId,
-                    Title = "Sample Note"
-                };
-                var asyncResult = _commandService.ExecuteAsync(command).Result;
-                Assert.NotNull(asyncResult);
-                Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-                var commandResult = asyncResult.Data;
-                Assert.NotNull(commandResult);
-                Assert.Equal(CommandStatus.Failed, commandResult.Status);
-                var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
-                Assert.NotNull(note);
-                Assert.Equal("Note Title", note.Title);
-                Assert.Equal(1, ((IAggregateRoot)note).Version);
-
-                //执行创建聚合根的命令
-                command = new CreateTestAggregateCommand
-                {
-                    Id = commandId,
-                    AggregateRootId = aggregateId,
-                    Title = "Sample Note"
-                };
-                asyncResult = _commandService.ExecuteAsync(command).Result;
-                Assert.NotNull(asyncResult);
-                Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-                commandResult = asyncResult.Data;
-                Assert.NotNull(commandResult);
-                Assert.Equal(CommandStatus.Success, commandResult.Status);
-                note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
-                Assert.NotNull(note);
-                Assert.Equal("Note Title", note.Title);
-                Assert.Equal(1, ((IAggregateRoot)note).Version);
-            }
-            finally
-            {
-                _eventStore.SupportBatchAppendEvent = true;
-            }
-        }
-
-        [Fact]
-        public void update_concurrent_conflict_not_enable_batch_insert_test()
-        {
-            _eventStore.SupportBatchAppendEvent = false;
-
-            try
-            {
-                update_concurrent_conflict_test();
-            }
-            finally
-            {
-                _eventStore.SupportBatchAppendEvent = true;
-            }
         }
 
         [Fact]
@@ -878,10 +564,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行创建聚合根的命令
-            var asyncResult = _commandService.ExecuteAsync(command).Result;
-            Assert.NotNull(asyncResult);
-            Assert.Equal(AsyncTaskStatus.Success, asyncResult.Status);
-            var commandResult = asyncResult.Data;
+            var commandResult = _commandService.ExecuteAsync(command).Result;
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = _memoryCache.GetAsync<TestAggregate>(aggregateId).Result;
@@ -894,18 +577,14 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 ObjectId.GenerateNewStringId(),
                 aggregateId,
                 typeof(TestAggregate).FullName,
-                2,
                 DateTime.Now,
                 new IDomainEvent[] { new TestAggregateTitleChanged("Changed Title") { AggregateRootId = aggregateId, Version = 2 } },
                 null);
-            var result = _eventStore.AppendAsync(eventStream).Result;
+            var result = _eventStore.BatchAppendAsync(new DomainEventStream[] { eventStream }).Result;
             Assert.NotNull(result);
-            Assert.Equal(AsyncTaskStatus.Success, result.Status);
-            Assert.Equal(EventAppendResult.Success, result.Data);
+            Assert.Equal(aggregateId, result.SuccessAggregateRootIdList[0]);
 
-            var result2 = _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 2).Result;
-            Assert.NotNull(result2);
-            Assert.Equal(AsyncTaskStatus.Success, result2.Status);
+            _publishedVersionStore.UpdatePublishedVersionAsync("DefaultEventProcessor", typeof(TestAggregate).FullName, aggregateId, 2).Wait();
 
             var commandList = new List<ICommand>();
             for (var i = 0; i < 50; i++)
@@ -924,8 +603,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 _commandService.ExecuteAsync(updateCommand).ContinueWith(t =>
                 {
                     Assert.NotNull(t.Result);
-                    Assert.Equal(AsyncTaskStatus.Success, t.Result.Status);
-                    var currentCommandResult = t.Result.Data;
+                    var currentCommandResult = t.Result;
                     Assert.NotNull(currentCommandResult);
                     Assert.Equal(CommandStatus.Success, currentCommandResult.Status);
                     var totalCount = Interlocked.Increment(ref count);
@@ -950,8 +628,13 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var noteId = ObjectId.GenerateNewStringId();
             var command1 = new CreateTestAggregateCommand { AggregateRootId = noteId, Title = "Sample Title1" };
             var command2 = new TestEventPriorityCommand { AggregateRootId = noteId };
-            _commandService.ExecuteAsync(command1, CommandReturnType.EventHandled).Wait();
-            _commandService.ExecuteAsync(command2, CommandReturnType.EventHandled).Wait();
+            var commandResult1 = _commandService.ExecuteAsync(command1, CommandReturnType.EventHandled).Result;
+            var commandResult2 = _commandService.ExecuteAsync(command2, CommandReturnType.EventHandled).Result;
+
+            Thread.Sleep(3000);
+
+            Assert.Equal(CommandStatus.Success, commandResult1.Status);
+            Assert.Equal(CommandStatus.Success, commandResult2.Status);
 
             Assert.Equal(3, HandlerTypes[1].Count);
             Assert.Equal(typeof(Handler3).Name, HandlerTypes[1][0]);
@@ -974,26 +657,26 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         [Fact]
         public void sequence_domain_event_process_test()
         {
-            var processor = ObjectContainer.Resolve<IMessageProcessor<ProcessingDomainEventStreamMessage, DomainEventStreamMessage>>();
+            var processor = ObjectContainer.Resolve<IProcessingEventProcessor>();
 
             var note = new TestAggregate(ObjectId.GenerateNewStringId(), "initial title");
             var aggregate = note as IAggregateRoot;
             var message1 = CreateMessage(aggregate);
 
-            aggregate.AcceptChanges(1);
+            aggregate.AcceptChanges();
             note.ChangeTitle("title1");
             var message2 = CreateMessage(aggregate);
 
-            aggregate.AcceptChanges(2);
+            aggregate.AcceptChanges();
             note.ChangeTitle("title2");
             var message3 = CreateMessage(aggregate);
 
             var waitHandle = new ManualResetEvent(false);
             var versionList = new List<int>();
 
-            processor.Process(new ProcessingDomainEventStreamMessage(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
-            processor.Process(new ProcessingDomainEventStreamMessage(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
-            processor.Process(new ProcessingDomainEventStreamMessage(message2, new DomainEventStreamProcessContext(message2, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message2, new DomainEventStreamProcessContext(message2, waitHandle, versionList)));
 
             waitHandle.WaitOne();
 
@@ -1014,7 +697,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 new Dictionary<string, string>());
         }
 
-        private class DomainEventStreamProcessContext : IMessageProcessContext
+        private class DomainEventStreamProcessContext : IEventProcessContext
         {
             private DomainEventStreamMessage _domainEventStreamMessage;
             private IList<int> _versionList;
@@ -1027,7 +710,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 _versionList = versionList;
             }
 
-            public void NotifyMessageProcessed()
+            public void NotifyEventProcessed()
             {
                 _versionList.Add(_domainEventStreamMessage.Version);
                 if (_domainEventStreamMessage.Version == 3)

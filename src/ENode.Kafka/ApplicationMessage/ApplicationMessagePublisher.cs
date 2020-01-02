@@ -1,11 +1,10 @@
 ﻿using ECommon.Components;
-using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Infrastructure;
 using ENode.Kafka.Producers;
+using ENode.Messaging;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka
@@ -36,10 +35,10 @@ namespace ENode.Kafka
             return this;
         }
 
-        public Task<AsyncTaskResult> PublishAsync(IApplicationMessage message)
+        public Task PublishAsync(IApplicationMessage message)
         {
-            var queueMessage = CreateENodeMessage(message);
-            return _sendMessageService.SendMessageAsync(Producer, queueMessage, message.GetRoutingKey() ?? message.Id, message.Id, null);
+            var enodeMessage = CreateENodeMessage(message);
+            return _sendMessageService.SendMessageAsync(Producer, "applicationMessage", message.GetType().Name, enodeMessage, message.Id, message.Id, message.Items);
         }
 
         public ApplicationMessagePublisher Shutdown()

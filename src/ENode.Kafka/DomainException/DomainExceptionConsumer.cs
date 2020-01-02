@@ -1,39 +1,50 @@
 ﻿using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Serializing;
+using ENode.Domain;
 using ENode.Infrastructure;
 using ENode.Kafka.Consumers;
 using ENode.Messaging;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
 using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
 
 namespace ENode.Kafka
 {
-    public class ApplicationMessageConsumer : IKafkaMessageHandler
+    public class DomainExceptionConsumer : IKafkaMessageHandler
     {
-        private const string DefaultMessageConsumerGroup = "ApplicationMessageConsumerGroup";
+        private const string DefaultExceptionConsumerGroup = "ExceptionConsumerGroup";
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private IMessageDispatcher _messageDispatcher;
         private ITypeNameProvider _typeNameProvider;
+
         public Consumer Consumer { get; private set; }
 
-        void IKafkaMessageHandler.Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public void Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
             var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
-            var applicationMessageType = _typeNameProvider.GetType(eNodeMessage.Tag);
-            var applicationMessage = _jsonSerializer.Deserialize(eNodeMessage.Body, applicationMessageType) as IApplicationMessage;
-            _logger.DebugFormat("ENode application message received, messageId: {0}, messageType: {1}", applicationMessage.Id, applicationMessage.GetType().Name);
+            var exceptionMessage = _jsonSerializer.Deserialize<DomainExceptionMessage>(eNodeMessage.Body);
+            var exceptionType = _typeNameProvider.GetType(eNodeMessage.Tag);
+            var exception = FormatterServices.GetUninitializedObject(exceptionType) as IDomainException;
+            exception.Id = exceptionMessage.UniqueId;
+            exception.Timestamp = exceptionMessage.Timestamp;
+            exception.Items = exceptionMessage.Items;
+            exception.RestoreFrom(exceptionMessage.SerializableInfo);
+            _logger.DebugFormat("ENode domain exception message received, messageId: {0}, exceptionType: {1}",
+                exceptionMessage.UniqueId,
+                exceptionType.Name);
 
-            _messageDispatcher.DispatchMessageAsync(applicationMessage).ContinueWith(x =>
+            _messageDispatcher.DispatchMessageAsync(exception).ContinueWith(x =>
             {
                 context.OnMessageHandled(kafkaMessage);
             });
         }
 
-        public ApplicationMessageConsumer InitializeENode()
+        public DomainExceptionConsumer InitializeENode()
         {
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _messageDispatcher = ObjectContainer.Resolve<IMessageDispatcher>();
@@ -42,7 +53,7 @@ namespace ENode.Kafka
             return this;
         }
 
-        public ApplicationMessageConsumer InitializeKafka(ConsumerSetting consumerSetting)
+        public DomainExceptionConsumer InitializeKafka(ConsumerSetting consumerSetting)
         {
             InitializeENode();
 
@@ -51,27 +62,26 @@ namespace ENode.Kafka
             return this;
         }
 
-        public ApplicationMessageConsumer Shutdown()
+        public DomainExceptionConsumer Shutdown()
         {
             Consumer.Stop();
             return this;
         }
 
-        public ApplicationMessageConsumer Start()
+        public DomainExceptionConsumer Start()
         {
-            Consumer.OnError = (_, error) => _logger.Error($"ENode ApplicationMessageConsumer has an error: {error}");
+            Consumer.OnError += (_, error) => _logger.Error($"ENode PublishableExceptionConsumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
-
             return this;
         }
 
-        public ApplicationMessageConsumer Subscribe(string topic)
+        public DomainExceptionConsumer Subscribe(string topic)
         {
             Consumer.Subscribe(topic);
             return this;
         }
 
-        public ApplicationMessageConsumer Subscribe(IList<string> topics)
+        public DomainExceptionConsumer Subscribe(IList<string> topics)
         {
             Consumer.Subscribe(topics);
             return this;

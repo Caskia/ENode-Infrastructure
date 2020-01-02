@@ -4,36 +4,40 @@ using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Kafka.Producers;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka
 {
     internal class SendQueueMessageService
     {
-        private readonly IOHelper _ioHelper;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly ILogger _logger;
 
         public SendQueueMessageService()
         {
-            _ioHelper = ObjectContainer.Resolve<IOHelper>();
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
         }
 
-        public async Task<AsyncTaskResult> SendMessageAsync(Producer producer, ENodeMessage message, string routingKey, string messageId, string version)
+        public async Task SendMessageAsync(Producer producer, string messageType, string messageClass, ENodeMessage message, string routingKey, string messageId, IDictionary<string, string> messageExtensionItems)
         {
             try
             {
                 var content = _jsonSerializer.Serialize(message);
-                await producer.ProduceAsync(message.Topic, routingKey, content);
-                _logger.InfoFormat("ENode message async send success, routingKey: {0}, messageId: {1}, version: {2}", routingKey, messageId, version);
-                return AsyncTaskResult.Success;
+                await producer.ProduceAsync(message.Topic, routingKey, content).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.Error(string.Format("ENode message async send has exception, message: {0}, routingKey: {1}, messageId: {2}, version: {3}", message, routingKey, messageId, version), ex);
-                return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
+                _logger.Error(string.Format("ENode {0} message send has exception, message: {1}, routingKey: {2}, messageType: {3}, messageId: {4}, messageExtensionItems: {5}",
+                    messageType,
+                    message,
+                    routingKey,
+                    messageClass,
+                    messageId,
+                    _jsonSerializer.Serialize(messageExtensionItems)
+                ), ex);
+                throw new IOException("Send equeue message has exception.", ex);
             }
         }
     }

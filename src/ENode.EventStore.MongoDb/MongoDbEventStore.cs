@@ -6,6 +6,7 @@ using ENode.EventStore.MongoDb.Collections;
 using ENode.EventStore.MongoDb.Models;
 using MongoDB.Driver;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -53,51 +54,34 @@ namespace ENode.EventStore.MongoDb
 
         #region Public Methods
 
-        public Task<AsyncTaskResult<EventAppendResult>> AppendAsync(DomainEventStream eventStream)
+        public Task<EventAppendResult> BatchAppendAsync(IEnumerable<DomainEventStream> eventStreams)
         {
-            var record = ConvertTo(eventStream);
-            return _ioHelper.TryIOFuncAsync(async () =>
+            if (eventStreams.Count() == 0)
             {
-                try
-                {
-                    var collection = _eventStreamCollection.GetCollection(record.AggregateRootId);
-
-                    await collection.InsertOneAsync(record);
-
-                    return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Success, EventAppendResult.Success);
-                }
-                catch (MongoWriteException ex)
-                {
-                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.Version)))
-                    {
-                        return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Success, EventAppendResult.DuplicateEvent);
-                    }
-                    else if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.CommandId)))
-                    {
-                        return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Success, EventAppendResult.DuplicateCommand);
-                    }
-                    _logger.Error(string.Format("Append event has write exception, eventStream: {0}", eventStream), ex);
-                    return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.IOException, ex.Message, EventAppendResult.Failed);
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(string.Format("Append event has unknown exception, eventStream: {0}", eventStream), ex);
-                    return new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Failed, ex.Message, EventAppendResult.Failed);
-                }
-            }, "AppendEventsAsync");
-        }
-
-        public Task<AsyncTaskResult<EventAppendResult>> BatchAppendAsync(IEnumerable<DomainEventStream> eventStreams)
-        {
-            if (!SupportBatchAppendEvent)
-            {
-                throw new NotSupportedException("Unsupport batch append event.");
+                return Task.FromResult(new EventAppendResult());
             }
 
-            throw new NotImplementedException();
+            var eventStreamDict = new Dictionary<string, IList<DomainEventStream>>();
+            var aggregateRootIdList = eventStreams.Select(x => x.AggregateRootId).Distinct().ToList();
+            foreach (var aggregateRootId in aggregateRootIdList)
+            {
+                var eventStreamList = eventStreams.Where(x => x.AggregateRootId == aggregateRootId).ToList();
+                if (eventStreamList.Count > 0)
+                {
+                    eventStreamDict.Add(aggregateRootId, eventStreamList);
+                }
+            }
+
+            var batchAggregateEventAppendResult = new BatchAggregateEventAppendResult(eventStreamDict.Keys.Count);
+            foreach (var entry in eventStreamDict)
+            {
+                BatchAppendAggregateEventsAsync(entry.Key, entry.Value, batchAggregateEventAppendResult, 0);
+            }
+
+            return batchAggregateEventAppendResult.TaskCompletionSource.Task;
         }
 
-        public Task<AsyncTaskResult<DomainEventStream>> FindAsync(string aggregateRootId, int version)
+        public Task<DomainEventStream> FindAsync(string aggregateRootId, int version)
         {
             return _ioHelper.TryIOFuncAsync(async () =>
             {
@@ -107,23 +91,17 @@ namespace ENode.EventStore.MongoDb
                     var filter = builder.Eq(e => e.AggregateRootId, aggregateRootId) & builder.Eq(e => e.Version, version);
                     var result = await _eventStreamCollection.GetCollection(aggregateRootId).FindAsync(filter);
                     var record = result.SingleOrDefault();
-                    var stream = record != null ? ConvertFrom(record) : null;
-                    return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.Success, stream);
-                }
-                catch (MongoQueryException ex)
-                {
-                    _logger.Error(string.Format("Find event by version has query exception, aggregateRootId: {0}, version: {1}", aggregateRootId, version), ex);
-                    return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.IOException, ex.Message);
+                    return record != null ? ConvertFrom(record) : null;
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(string.Format("Find event by version has unknown exception, aggregateRootId: {0}, version: {1}", aggregateRootId, version), ex);
-                    return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.Failed, ex.Message);
+                    throw;
                 }
             }, "FindEventByVersionAsync");
         }
 
-        public Task<AsyncTaskResult<DomainEventStream>> FindAsync(string aggregateRootId, string commandId)
+        public Task<DomainEventStream> FindAsync(string aggregateRootId, string commandId)
         {
             return _ioHelper.TryIOFuncAsync(async () =>
             {
@@ -133,59 +111,17 @@ namespace ENode.EventStore.MongoDb
                     var filter = builder.Eq(e => e.AggregateRootId, aggregateRootId) & builder.Eq(e => e.CommandId, commandId);
                     var result = await _eventStreamCollection.GetCollection(aggregateRootId).FindAsync(filter);
                     var record = result.SingleOrDefault();
-                    var stream = record != null ? ConvertFrom(record) : null;
-                    return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.Success, stream);
-                }
-                catch (MongoQueryException ex)
-                {
-                    _logger.Error(string.Format("Find event by commandId has query exception, aggregateRootId: {0}, commandId: {1}", aggregateRootId, commandId), ex);
-                    return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.IOException, ex.Message);
+                    return record != null ? ConvertFrom(record) : null;
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(string.Format("Find event by commandId has unknown exception, aggregateRootId: {0}, commandId: {1}", aggregateRootId, commandId), ex);
-                    return new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.Failed, ex.Message);
+                    throw;
                 }
             }, "FindEventByCommandIdAsync");
         }
 
-        public IEnumerable<DomainEventStream> QueryAggregateEvents(string aggregateRootId, string aggregateRootTypeName, int minVersion, int maxVersion)
-        {
-            return _ioHelper.TryIOFunc(() =>
-            {
-                try
-                {
-                    var builder = Builders<EventStream>.Filter;
-
-                    var filter = builder.Eq(e => e.AggregateRootId, aggregateRootId)
-                    & builder.Gte(e => e.Version, minVersion)
-                    & builder.Lte(e => e.Version, maxVersion);
-
-                    var sort = Builders<EventStream>.Sort.Ascending(e => e.Version);
-
-                    var result = _eventStreamCollection.GetCollection(aggregateRootId)
-                    .Find(filter)
-                    .Sort(sort)
-                    .ToList();
-
-                    return result.Select(record => ConvertFrom(record));
-                }
-                catch (MongoQueryException ex)
-                {
-                    var errorMessage = string.Format("Failed to query aggregate events, aggregateRootId: {0}, aggregateRootType: {1}", aggregateRootId, aggregateRootTypeName);
-                    _logger.Error(errorMessage, ex);
-                    throw new IOException(errorMessage, ex);
-                }
-                catch (Exception ex)
-                {
-                    var errorMessage = string.Format("Failed to query aggregate events, aggregateRootId: {0}, aggregateRootType: {1}", aggregateRootId, aggregateRootTypeName);
-                    _logger.Error(errorMessage, ex);
-                    throw;
-                }
-            }, "QueryAggregateEvents");
-        }
-
-        public Task<AsyncTaskResult<IEnumerable<DomainEventStream>>> QueryAggregateEventsAsync(string aggregateRootId, string aggregateRootTypeName, int minVersion, int maxVersion)
+        public Task<IEnumerable<DomainEventStream>> QueryAggregateEventsAsync(string aggregateRootId, string aggregateRootTypeName, int minVersion, int maxVersion)
         {
             return _ioHelper.TryIOFuncAsync(async () =>
             {
@@ -204,20 +140,13 @@ namespace ENode.EventStore.MongoDb
                     .Sort(sort)
                     .ToListAsync();
 
-                    var streams = result.Select(ConvertFrom);
-                    return new AsyncTaskResult<IEnumerable<DomainEventStream>>(AsyncTaskStatus.Success, streams);
-                }
-                catch (MongoQueryException ex)
-                {
-                    var errorMessage = string.Format("Failed to query aggregate events async, aggregateRootId: {0}, aggregateRootType: {1}", aggregateRootId, aggregateRootTypeName);
-                    _logger.Error(errorMessage, ex);
-                    return new AsyncTaskResult<IEnumerable<DomainEventStream>>(AsyncTaskStatus.IOException, ex.Message);
+                    return result.Select(ConvertFrom);
                 }
                 catch (Exception ex)
                 {
                     var errorMessage = string.Format("Failed to query aggregate events async, aggregateRootId: {0}, aggregateRootType: {1}", aggregateRootId, aggregateRootTypeName);
                     _logger.Error(errorMessage, ex);
-                    return new AsyncTaskResult<IEnumerable<DomainEventStream>>(AsyncTaskStatus.Failed, ex.Message);
+                    throw;
                 }
             }, "QueryAggregateEventsAsync");
         }
@@ -226,15 +155,79 @@ namespace ENode.EventStore.MongoDb
 
         #region Private Methods
 
+        private void BatchAppendAggregateEventsAsync(string aggregateRootId, IList<DomainEventStream> eventStreamList, BatchAggregateEventAppendResult batchAggregateEventAppendResult, int retryTimes)
+        {
+            _ioHelper.TryAsyncActionRecursively("BatchAppendAggregateEventsAsync",
+            () => BatchAppendAggregateEventsAsync(aggregateRootId, eventStreamList),
+            currentRetryTimes => BatchAppendAggregateEventsAsync(aggregateRootId, eventStreamList, batchAggregateEventAppendResult, currentRetryTimes),
+            async result =>
+            {
+                if (result == EventAppendStatus.Success)
+                {
+                    batchAggregateEventAppendResult.AddCompleteAggregate(aggregateRootId, new AggregateEventAppendResult
+                    {
+                        EventAppendStatus = EventAppendStatus.Success
+                    });
+                }
+                else if (result == EventAppendStatus.DuplicateEvent)
+                {
+                    batchAggregateEventAppendResult.AddCompleteAggregate(aggregateRootId, new AggregateEventAppendResult
+                    {
+                        EventAppendStatus = EventAppendStatus.DuplicateEvent
+                    });
+                }
+                else if (result == EventAppendStatus.DuplicateCommand)
+                {
+                    var duplicateCommandIds = new List<string>();
+                    foreach (var eventStream in eventStreamList)
+                    {
+                        await TryFindEventByCommandIdAsync(aggregateRootId, eventStream.CommandId, duplicateCommandIds, 0);
+                    }
+                    batchAggregateEventAppendResult.AddCompleteAggregate(aggregateRootId, new AggregateEventAppendResult
+                    {
+                        EventAppendStatus = EventAppendStatus.DuplicateCommand,
+                        DuplicateCommandIds = duplicateCommandIds
+                    });
+                }
+            },
+            () => string.Format("[aggregateRootId: {0}, eventStreamCount: {1}]", aggregateRootId, eventStreamList.Count),
+            null,
+            retryTimes, true);
+        }
+
+        private async Task<EventAppendStatus> BatchAppendAggregateEventsAsync(string aggregateRootId, IList<DomainEventStream> eventStreamList)
+        {
+            try
+            {
+                var collection = _eventStreamCollection.GetCollection(aggregateRootId);
+                var streamRecords = eventStreamList.Select(ConvertTo);
+                await collection.InsertManyAsync(streamRecords);
+
+                return EventAppendStatus.Success;
+            }
+            catch (MongoWriteException ex)
+            {
+                if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(EventStream.AggregateRootId)) && ex.Message.Contains(nameof(EventStream.Version)))
+                {
+                    return EventAppendStatus.DuplicateEvent;
+                }
+
+                if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(EventStream.AggregateRootId)) && ex.Message.Contains(nameof(EventStream.CommandId)))
+                {
+                    return EventAppendStatus.DuplicateCommand;
+                }
+                throw;
+            }
+        }
+
         private DomainEventStream ConvertFrom(EventStream record)
         {
             return new DomainEventStream(
-                record.CommandId,
-                record.AggregateRootId,
-                record.AggregateRootTypeName,
-                record.Version,
-                record.CreatedOn,
-                _eventSerializer.Deserialize<IDomainEvent>(_jsonSerializer.Deserialize<IDictionary<string, string>>(record.Events)));
+               record.CommandId,
+               record.AggregateRootId,
+               record.AggregateRootTypeName,
+               record.CreatedOn,
+               _eventSerializer.Deserialize<IDomainEvent>(_jsonSerializer.Deserialize<IDictionary<string, string>>(record.Events)));
         }
 
         private EventStream ConvertTo(DomainEventStream eventStream)
@@ -250,6 +243,74 @@ namespace ENode.EventStore.MongoDb
             };
         }
 
+        private Task TryFindEventByCommandIdAsync(string aggregateRootId, string commandId, IList<string> duplicateCommandIds, int retryTimes)
+        {
+            var taskCompletionSource = new TaskCompletionSource<bool>();
+
+            _ioHelper.TryAsyncActionRecursively("TryFindEventByCommandIdAsync",
+            () => FindAsync(aggregateRootId, commandId),
+            currentRetryTimes => TryFindEventByCommandIdAsync(aggregateRootId, commandId, duplicateCommandIds, currentRetryTimes),
+            result =>
+            {
+                if (result != null)
+                {
+                    duplicateCommandIds.Add(commandId);
+                }
+                taskCompletionSource.SetResult(true);
+            },
+            () => string.Format("[aggregateRootId:{0}, commandId:{1}]", aggregateRootId, commandId),
+            null,
+            retryTimes, true);
+
+            return taskCompletionSource.Task;
+        }
+
         #endregion Private Methods
+
+        private class AggregateEventAppendResult
+        {
+            public IList<string> DuplicateCommandIds;
+            public EventAppendStatus EventAppendStatus;
+        }
+
+        private class BatchAggregateEventAppendResult
+        {
+            public TaskCompletionSource<EventAppendResult> TaskCompletionSource = new TaskCompletionSource<EventAppendResult>();
+            private readonly int _expectedAggregateRootCount;
+            private ConcurrentDictionary<string, AggregateEventAppendResult> _aggregateEventAppendResultDict = new ConcurrentDictionary<string, AggregateEventAppendResult>();
+
+            public BatchAggregateEventAppendResult(int expectedAggregateRootCount)
+            {
+                _expectedAggregateRootCount = expectedAggregateRootCount;
+            }
+
+            public void AddCompleteAggregate(string aggregateRootId, AggregateEventAppendResult result)
+            {
+                if (_aggregateEventAppendResultDict.TryAdd(aggregateRootId, result))
+                {
+                    var completedAggregateRootCount = _aggregateEventAppendResultDict.Keys.Count;
+                    if (completedAggregateRootCount == _expectedAggregateRootCount)
+                    {
+                        var eventAppendResult = new EventAppendResult();
+                        foreach (var entry in _aggregateEventAppendResultDict)
+                        {
+                            if (entry.Value.EventAppendStatus == EventAppendStatus.Success)
+                            {
+                                eventAppendResult.AddSuccessAggregateRootId(entry.Key);
+                            }
+                            else if (entry.Value.EventAppendStatus == EventAppendStatus.DuplicateEvent)
+                            {
+                                eventAppendResult.AddDuplicateEventAggregateRootId(entry.Key);
+                            }
+                            else if (entry.Value.EventAppendStatus == EventAppendStatus.DuplicateCommand)
+                            {
+                                eventAppendResult.AddDuplicateCommandIds(entry.Key, entry.Value.DuplicateCommandIds);
+                            }
+                        }
+                        TaskCompletionSource.TrySetResult(eventAppendResult);
+                    }
+                }
+            }
+        }
     }
 }

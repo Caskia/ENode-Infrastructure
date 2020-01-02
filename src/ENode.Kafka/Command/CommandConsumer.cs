@@ -5,10 +5,10 @@ using ENode.Commanding;
 using ENode.Domain;
 using ENode.Infrastructure;
 using ENode.Kafka.Consumers;
+using ENode.Messaging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
@@ -29,16 +29,16 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        void IKafkaMessageHandler.Handle(KafkaMessage message, IKafkaMessageContext context)
+        void IKafkaMessageHandler.Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
             var commandItems = new Dictionary<string, string>();
-            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(message.Value);
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
             var commandMessage = _jsonSerializer.Deserialize<CommandMessage>(eNodeMessage.Body);
             var commandType = _typeNameProvider.GetType(eNodeMessage.Tag);
             var command = _jsonSerializer.Deserialize(commandMessage.CommandData, commandType) as ICommand;
-            var commandExecuteContext = new CommandExecuteContext(_repository, _aggregateStorage, message, context, commandMessage, _sendReplyService);
+            var commandExecuteContext = new CommandExecuteContext(_repository, _aggregateStorage, kafkaMessage, context, commandMessage, _sendReplyService);
             commandItems["CommandReplyAddress"] = commandMessage.ReplyAddress;
-            _logger.InfoFormat("ENode command message received, messageId: {0}, aggregateRootId: {1}", command.Id, command.AggregateRootId);
+            _logger.DebugFormat("ENode command message received, messageId: {0}, aggregateRootId: {1}", command.Id, command.AggregateRootId);
             _commandProcessor.Process(new ProcessingCommand(command, commandExecuteContext, commandItems));
         }
 
@@ -101,6 +101,7 @@ namespace ENode.Kafka
             private readonly IRepository _repository;
             private readonly SendReplyService _sendReplyService;
             private readonly ConcurrentDictionary<string, IAggregateRoot> _trackingAggregateRootDict;
+            private IApplicationMessage _applicationMessage;
             private string _result;
 
             public CommandExecuteContext(IRepository repository, IAggregateStorage aggregateRootStorage, KafkaMessage message, IKafkaMessageContext messageContext, CommandMessage commandMessage, SendReplyService sendReplyService)
@@ -138,6 +139,11 @@ namespace ENode.Kafka
                 _result = null;
             }
 
+            public IApplicationMessage GetApplicationMessage()
+            {
+                return _applicationMessage;
+            }
+
             public async Task<T> GetAsync<T>(object id, bool firstFromCache = true) where T : class, IAggregateRoot
             {
                 if (id == null)
@@ -153,11 +159,11 @@ namespace ENode.Kafka
 
                 if (firstFromCache)
                 {
-                    aggregateRoot = await _repository.GetAsync<T>(id);
+                    aggregateRoot = await _repository.GetAsync<T>(id).ConfigureAwait(false);
                 }
                 else
                 {
-                    aggregateRoot = await _aggregateRootStorage.GetAsync(typeof(T), aggregateRootId);
+                    aggregateRoot = await _aggregateRootStorage.GetAsync(typeof(T), aggregateRootId).ConfigureAwait(false);
                 }
 
                 if (aggregateRoot != null)
@@ -179,18 +185,6 @@ namespace ENode.Kafka
                 return _trackingAggregateRootDict.Values;
             }
 
-            public void OnCommandExecuted(CommandResult commandResult)
-            {
-                _messageContext.OnMessageHandled(_message);
-
-                if (string.IsNullOrEmpty(_commandMessage.ReplyAddress))
-                {
-                    return;
-                }
-
-                _sendReplyService.SendReply((int)CommandReturnType.CommandExecuted, commandResult, _commandMessage.ReplyAddress);
-            }
-
             public Task OnCommandExecutedAsync(CommandResult commandResult)
             {
                 _messageContext.OnMessageHandled(_message);
@@ -201,6 +195,11 @@ namespace ENode.Kafka
                 }
 
                 return _sendReplyService.SendReplyAsync((int)CommandReturnType.CommandExecuted, commandResult, _commandMessage.ReplyAddress);
+            }
+
+            public void SetApplicationMessage(IApplicationMessage applicationMessage)
+            {
+                _applicationMessage = applicationMessage;
             }
 
             public void SetResult(string result)

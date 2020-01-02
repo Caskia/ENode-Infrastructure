@@ -1,6 +1,7 @@
 ﻿using ECommon.IO;
 using ECommon.Logging;
 using ENode.AggregateSnapshot;
+using ENode.Eventing;
 using ENode.EventStore.MongoDb.Collections;
 using ENode.EventStore.MongoDb.Models;
 using ENode.Infrastructure;
@@ -44,30 +45,31 @@ namespace ENode.EventStore.MongoDb
 
         #region Public Methods
 
-        public async Task<AsyncTaskResult<int>> GetPublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId)
+        public async Task<int> GetPublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId)
         {
             try
             {
                 var builder = Builders<PublishedVersion>.Filter;
                 var filter = builder.Eq(e => e.ProcessorName, processorName) & builder.Eq(e => e.AggregateRootId, aggregateRootId);
                 var result = await _publishedVersionCollection.GetCollection(aggregateRootId).Find(filter).ToListAsync();
-                var version = result.Select(r => r.Version).SingleOrDefault();
 
-                return new AsyncTaskResult<int>(AsyncTaskStatus.Success, version);
+                return result.Select(r => r.Version).SingleOrDefault();
             }
             catch (MongoQueryException ex)
             {
-                _logger.Error("Get aggregate published version has query exception.", ex);
-                return new AsyncTaskResult<int>(AsyncTaskStatus.IOException, ex.Message);
+                var errorMessage = string.Format("Get aggregate published version has mongo exception, aggregateRootType: {0}, aggregateRootId: {1}", aggregateRootTypeName, aggregateRootId);
+                _logger.Error(errorMessage, ex);
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.Error("Get aggregate published version has unknown exception.", ex);
-                return new AsyncTaskResult<int>(AsyncTaskStatus.Failed, ex.Message);
+                var errorMessage = string.Format("Get aggregate published version has unknown exception, aggregateRootType: {0}, aggregateRootId: {1}", aggregateRootTypeName, aggregateRootId);
+                _logger.Error(errorMessage, ex);
+                throw;
             }
         }
 
-        public async Task<AsyncTaskResult> UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
+        public async Task UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
         {
             if (publishedVersion == 1)
             {
@@ -82,22 +84,22 @@ namespace ENode.EventStore.MongoDb
                 try
                 {
                     await _publishedVersionCollection.GetCollection(aggregateRootId).InsertOneAsync(record);
-
-                    return AsyncTaskResult.Success;
                 }
                 catch (MongoWriteException ex)
                 {
-                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(record.ProcessorName)) && ex.Message.Contains(nameof(record.AggregateRootId)) && ex.Message.Contains(nameof(record.Version)))
+                    if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(PublishedVersion.ProcessorName)) && ex.Message.Contains(nameof(PublishedVersion.AggregateRootId)) && ex.Message.Contains(nameof(PublishedVersion.Version)))
                     {
-                        return AsyncTaskResult.Success;
+                        return;
                     }
-                    _logger.Error("Insert aggregate published version has write exception.", ex);
-                    return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
+                    var errorMessage = string.Format("Insert aggregate published version has mongo exception, aggregateRootType: {0}, aggregateRootId: {1}", aggregateRootTypeName, aggregateRootId);
+                    _logger.Error(errorMessage, ex);
+                    throw;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error("Insert aggregate published version has unknown exception.", ex);
-                    return new AsyncTaskResult(AsyncTaskStatus.Failed, ex.Message);
+                    var errorMessage = string.Format("Insert aggregate published version has unknown exception, aggregateRootType: {0}, aggregateRootId: {1}", aggregateRootTypeName, aggregateRootId);
+                    _logger.Error(errorMessage, ex);
+                    throw;
                 }
             }
             else
@@ -116,18 +118,18 @@ namespace ENode.EventStore.MongoDb
                         .UpdateOneAsync(filter, update);
 
                     await _savableAggregateSnapshotter.SaveSnapshotAsync(aggregateRootId, _typeNameProvider.GetType(aggregateRootTypeName), publishedVersion);
-
-                    return AsyncTaskResult.Success;
                 }
                 catch (MongoException ex)
                 {
-                    _logger.Error("Update aggregate published version has update exception.", ex);
-                    return new AsyncTaskResult(AsyncTaskStatus.IOException, ex.Message);
+                    var errorMessage = string.Format("Update aggregate published version has mongo exception, aggregateRootType: {0}, aggregateRootId: {1}", aggregateRootTypeName, aggregateRootId);
+                    _logger.Error(errorMessage, ex);
+                    throw;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error("Update aggregate published version has unknown exception.", ex);
-                    return new AsyncTaskResult(AsyncTaskStatus.Failed, ex.Message);
+                    var errorMessage = string.Format("Update aggregate published version has unknown exception, aggregateRootType: {0}, aggregateRootId: {1}", aggregateRootTypeName, aggregateRootId);
+                    _logger.Error(errorMessage, ex);
+                    throw;
                 }
             }
         }

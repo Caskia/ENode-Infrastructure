@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using ECommon.Components;
+﻿using ECommon.Components;
 using ECommon.IO;
 using ECommon.Logging;
 using ENode.Eventing;
 using ENode.Eventing.Impl;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
 {
@@ -16,36 +16,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
         private FailedType _failedType;
         private InMemoryEventStore _inMemoryEventStore = new InMemoryEventStore(ObjectContainer.Resolve<ILoggerFactory>());
 
-        public MockEventStore()
-        {
-            SupportBatchAppendEvent = true;
-        }
-
-        public bool SupportBatchAppendEvent { get; set; }
-
-        public Task<AsyncTaskResult<EventAppendResult>> AppendAsync(DomainEventStream eventStream)
-        {
-            if (_currentFailedCount < _expectFailedCount)
-            {
-                _currentFailedCount++;
-
-                if (_failedType == FailedType.UnKnownException)
-                {
-                    throw new Exception("AppendAsyncUnKnownException" + _currentFailedCount);
-                }
-                else if (_failedType == FailedType.IOException)
-                {
-                    throw new IOException("AppendAsyncIOException" + _currentFailedCount);
-                }
-                else if (_failedType == FailedType.TaskIOException)
-                {
-                    return Task.FromResult(new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Failed, "AppendAsyncError" + _currentFailedCount));
-                }
-            }
-            return _inMemoryEventStore.AppendAsync(eventStream);
-        }
-
-        public Task<AsyncTaskResult<EventAppendResult>> BatchAppendAsync(IEnumerable<DomainEventStream> eventStreams)
+        public Task<EventAppendResult> BatchAppendAsync(IEnumerable<DomainEventStream> eventStreams)
         {
             if (_currentFailedCount < _expectFailedCount)
             {
@@ -59,15 +30,11 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
                 {
                     throw new IOException("BatchAppendAsyncIOException" + _currentFailedCount);
                 }
-                else if (_failedType == FailedType.TaskIOException)
-                {
-                    return Task.FromResult(new AsyncTaskResult<EventAppendResult>(AsyncTaskStatus.Failed, "BatchAppendAsyncError" + _currentFailedCount));
-                }
             }
             return _inMemoryEventStore.BatchAppendAsync(eventStreams);
         }
 
-        public Task<AsyncTaskResult<DomainEventStream>> FindAsync(string aggregateRootId, int version)
+        public Task<DomainEventStream> FindAsync(string aggregateRootId, int version)
         {
             if (_currentFailedCount < _expectFailedCount)
             {
@@ -81,15 +48,11 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
                 {
                     throw new IOException("AppendAsyncIOException" + _currentFailedCount);
                 }
-                else if (_failedType == FailedType.TaskIOException)
-                {
-                    return Task.FromResult(new AsyncTaskResult<DomainEventStream>(AsyncTaskStatus.Failed, "AppendAsyncError" + _currentFailedCount));
-                }
             }
             return _inMemoryEventStore.FindAsync(aggregateRootId, version);
         }
 
-        public Task<AsyncTaskResult<DomainEventStream>> FindAsync(string aggregateRootId, string commandId)
+        public Task<DomainEventStream> FindAsync(string aggregateRootId, string commandId)
         {
             return _inMemoryEventStore.FindAsync(aggregateRootId, commandId);
         }
@@ -99,7 +62,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
             throw new NotImplementedException();
         }
 
-        public Task<AsyncTaskResult<IEnumerable<DomainEventStream>>> QueryAggregateEventsAsync(string aggregateRootId, string aggregateRootTypeName, int minVersion, int maxVersion)
+        public Task<IEnumerable<DomainEventStream>> QueryAggregateEventsAsync(string aggregateRootId, string aggregateRootTypeName, int minVersion, int maxVersion)
         {
             throw new NotImplementedException();
         }

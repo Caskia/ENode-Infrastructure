@@ -9,6 +9,7 @@ using ENode.Eventing;
 using ENode.EventStore.MongoDb;
 using ENode.Infrastructure;
 using ENode.Kafka.Utils;
+using ENode.Messaging;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -27,10 +28,10 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         protected IMessagePublisher<IApplicationMessage> _applicationMessagePublisher;
         protected ICommandService _commandService;
         protected IMessagePublisher<DomainEventStreamMessage> _domainEventPublisher;
+        protected IMessagePublisher<IDomainException> _domainExceptionPublisher;
         protected IEventStore _eventStore;
         protected ILogger _logger;
         protected IMemoryCache _memoryCache;
-        protected IMessagePublisher<IPublishableException> _publishableExceptionPublisher;
         protected IPublishedVersionStore _publishedVersionStore;
         private ENodeConfiguration _enodeConfiguration;
 
@@ -229,7 +230,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             _publishedVersionStore = ObjectContainer.Resolve<IPublishedVersionStore>();
             _domainEventPublisher = ObjectContainer.Resolve<IMessagePublisher<DomainEventStreamMessage>>();
             _applicationMessagePublisher = ObjectContainer.Resolve<IMessagePublisher<IApplicationMessage>>();
-            _publishableExceptionPublisher = ObjectContainer.Resolve<IMessagePublisher<IPublishableException>>();
+            _domainExceptionPublisher = ObjectContainer.Resolve<IMessagePublisher<IDomainException>>();
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(typeof(BaseTest));
             _logger.Info("----ENode initialized.");
         }

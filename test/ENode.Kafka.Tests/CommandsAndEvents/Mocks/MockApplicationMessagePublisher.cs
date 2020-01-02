@@ -1,18 +1,17 @@
-﻿using System;
+﻿using ECommon.IO;
+using ENode.Messaging;
+using System;
 using System.Threading.Tasks;
-using ECommon.IO;
-using ENode.Infrastructure;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
 {
     public class MockApplicationMessagePublisher : IMessagePublisher<IApplicationMessage>
     {
-        private static Task<AsyncTaskResult> _successResultTask = Task.FromResult(AsyncTaskResult.Success);
         private int _currentFailedCount = 0;
         private int _expectFailedCount = 0;
         private FailedType _failedType;
 
-        public Task<AsyncTaskResult> PublishAsync(IApplicationMessage message)
+        public Task PublishAsync(IApplicationMessage message)
         {
             if (_currentFailedCount < _expectFailedCount)
             {
@@ -26,12 +25,8 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
                 {
                     throw new IOException("PublishApplicationMessageAsyncIOException" + _currentFailedCount);
                 }
-                else if (_failedType == FailedType.TaskIOException)
-                {
-                    return Task.FromResult(new AsyncTaskResult(AsyncTaskStatus.Failed, "PublishApplicationMessageAsyncError" + _currentFailedCount));
-                }
             }
-            return _successResultTask;
+            return Task.CompletedTask;
         }
 
         public void Reset()

@@ -3,74 +3,13 @@ using ENode.Commanding;
 using ENode.Infrastructure;
 using ENode.Kafka.Tests.CommandsAndEvents.Commands;
 using ENode.Kafka.Tests.CommandsAndEvents.Domain;
+using ENode.Messaging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents.CommandHandlers
 {
-    public class AsyncHandlerBaseCommandAsyncHandler : ICommandAsyncHandler<AsyncHandlerBaseCommand>
-    {
-        public bool CheckCommandHandledFirst
-        {
-            get { return true; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(AsyncHandlerBaseCommand command)
-        {
-            return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-        }
-    }
-
-    public class AsyncHandlerChildCommandAsyncHandler : ICommandAsyncHandler<AsyncHandlerChildCommand>
-    {
-        public bool CheckCommandHandledFirst
-        {
-            get { return true; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(AsyncHandlerChildCommand command)
-        {
-            return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-        }
-    }
-
-    public class AsyncHandlerCommandHandler : ICommandAsyncHandler<AsyncHandlerCommand>
-    {
-        private int _count;
-
-        public bool CheckCommandHandledFirst
-        {
-            get { return true; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(AsyncHandlerCommand command)
-        {
-            if (command.ShouldGenerateApplicationMessage)
-            {
-                return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success, new TestApplicationMessage(command.AggregateRootId)));
-            }
-            else if (command.ShouldThrowException)
-            {
-                throw new Exception("AsyncCommandException");
-            }
-            else if (command.ShouldThrowIOException)
-            {
-                _count++;
-                if (_count <= 5)
-                {
-                    throw new IOException("AsyncCommandIOException" + _count);
-                }
-                _count = 0;
-                return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-            }
-            else
-            {
-                return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-            }
-        }
-    }
-
     public class BaseCommandHandler : ICommandHandler<BaseCommand>
     {
         public Task HandleAsync(ICommandContext context, BaseCommand command)
@@ -89,32 +28,6 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.CommandHandlers
         }
     }
 
-    public class NotCheckAsyncHandlerExistCommandHandler : ICommandAsyncHandler<NotCheckAsyncHandlerExistCommand>
-    {
-        public bool CheckCommandHandledFirst
-        {
-            get { return false; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(NotCheckAsyncHandlerExistCommand command)
-        {
-            return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-        }
-    }
-
-    public class NotCheckAsyncHandlerExistWithResultCommandHandler : ICommandAsyncHandler<NotCheckAsyncHandlerExistWithResultCommand>
-    {
-        public bool CheckCommandHandledFirst
-        {
-            get { return false; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(NotCheckAsyncHandlerExistWithResultCommand command)
-        {
-            return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success, new TestApplicationMessage(command.AggregateRootId)));
-        }
-    }
-
     public class TestApplicationMessage : ApplicationMessage
     {
         public TestApplicationMessage()
@@ -127,48 +40,19 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.CommandHandlers
         }
 
         public string AggregateRootId { get; set; }
-
-        public override string GetRoutingKey()
-        {
-            return AggregateRootId;
-        }
-    }
-
-    public class TestCommandAsyncHandler1 : ICommandAsyncHandler<TwoAsyncHandlersCommand>
-    {
-        public bool CheckCommandHandledFirst
-        {
-            get { return true; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(TwoAsyncHandlersCommand command)
-        {
-            return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-        }
-    }
-
-    public class TestCommandAsyncHandler2 : ICommandAsyncHandler<TwoAsyncHandlersCommand>
-    {
-        public bool CheckCommandHandledFirst
-        {
-            get { return true; }
-        }
-
-        public Task<AsyncTaskResult<IApplicationMessage>> HandleAsync(TwoAsyncHandlersCommand command)
-        {
-            return Task.FromResult(new AsyncTaskResult<IApplicationMessage>(AsyncTaskStatus.Success));
-        }
     }
 
     public class TestCommandHandler :
-     ICommandHandler<CreateTestAggregateCommand>,
-     ICommandHandler<ChangeTestAggregateTitleCommand>,
-     ICommandHandler<TestEventPriorityCommand>,
-     ICommandHandler<ChangeMultipleAggregatesCommand>,
-     ICommandHandler<ChangeNothingCommand>,
-     ICommandHandler<ThrowExceptionCommand>,
-     ICommandHandler<AggregateThrowExceptionCommand>,
-     ICommandHandler<SetResultCommand>
+                      ICommandHandler<CreateTestAggregateCommand>,
+          ICommandHandler<ChangeTestAggregateTitleCommand>,
+          ICommandHandler<CreateInheritTestAggregateCommand>,
+          ICommandHandler<ChangeInheritTestAggregateTitleCommand>,
+          ICommandHandler<TestEventPriorityCommand>,
+          ICommandHandler<ChangeMultipleAggregatesCommand>,
+          ICommandHandler<ChangeNothingCommand>,
+          ICommandHandler<ThrowExceptionCommand>,
+          ICommandHandler<AggregateThrowExceptionCommand>,
+          ICommandHandler<SetResultCommand>
     {
         public Task HandleAsync(ICommandContext context, CreateTestAggregateCommand command)
         {
@@ -184,6 +68,18 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.CommandHandlers
         {
             var testAggregate = await context.GetAsync<TestAggregate>(command.AggregateRootId);
             testAggregate.ChangeTitle(command.Title);
+        }
+
+        public Task HandleAsync(ICommandContext context, CreateInheritTestAggregateCommand command)
+        {
+            context.Add(new InheritTestAggregate(command.AggregateRootId, command.Title));
+            return Task.CompletedTask;
+        }
+
+        public async Task HandleAsync(ICommandContext context, ChangeInheritTestAggregateTitleCommand command)
+        {
+            var testAggregate = await context.GetAsync<InheritTestAggregate>(command.AggregateRootId);
+            testAggregate.ChangeMyTitle(command.Title);
         }
 
         public Task HandleAsync(ICommandContext context, ChangeNothingCommand command)
@@ -214,13 +110,22 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.CommandHandlers
         public async Task HandleAsync(ICommandContext context, AggregateThrowExceptionCommand command)
         {
             var testAggregate = await context.GetAsync<TestAggregate>(command.AggregateRootId);
-            testAggregate.ThrowException(command.PublishableException);
+            testAggregate.ThrowException(command.IsDomainException);
         }
 
         public async Task HandleAsync(ICommandContext context, TestEventPriorityCommand command)
         {
             var testAggregate = await context.GetAsync<TestAggregate>(command.AggregateRootId);
             testAggregate.TestEvents();
+        }
+
+        public class SetApplicatonMessageCommandHandler : ICommandHandler<SetApplicatonMessageCommand>
+        {
+            public Task HandleAsync(ICommandContext context, SetApplicatonMessageCommand command)
+            {
+                context.SetApplicationMessage(new TestApplicationMessage(command.AggregateRootId));
+                return Task.CompletedTask;
+            }
         }
     }
 

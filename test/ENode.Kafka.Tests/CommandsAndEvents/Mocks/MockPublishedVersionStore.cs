@@ -1,8 +1,8 @@
-﻿using System;
+﻿using ECommon.IO;
+using ENode.Eventing;
+using ENode.Eventing.Impl;
+using System;
 using System.Threading.Tasks;
-using ECommon.IO;
-using ENode.Infrastructure;
-using ENode.Infrastructure.Impl.InMemory;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
 {
@@ -15,7 +15,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
         private FailedType _failedType;
         private InMemoryPublishedVersionStore _inMemoryPublishedVersionStore = new InMemoryPublishedVersionStore();
 
-        public Task<AsyncTaskResult<int>> GetPublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId)
+        public Task<int> GetPublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId)
         {
             if (_currentGetFailedCount < _expectGetFailedCount)
             {
@@ -28,10 +28,6 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
                 else if (_failedType == FailedType.IOException)
                 {
                     throw new IOException("GetPublishedVersionAsyncIOException" + _currentGetFailedCount);
-                }
-                else if (_failedType == FailedType.TaskIOException)
-                {
-                    return Task.FromResult(new AsyncTaskResult<int>(AsyncTaskStatus.Failed, "GetPublishedVersionAsyncError" + _currentGetFailedCount));
                 }
             }
             return _inMemoryPublishedVersionStore.GetPublishedVersionAsync(processorName, aggregateRootTypeName, aggregateRootId);
@@ -53,7 +49,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
             _expectUpdateFailedCount = count;
         }
 
-        public Task<AsyncTaskResult> UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
+        public Task UpdatePublishedVersionAsync(string processorName, string aggregateRootTypeName, string aggregateRootId, int publishedVersion)
         {
             if (_currentUpdateFailedCount < _expectUpdateFailedCount)
             {
@@ -66,10 +62,6 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Mocks
                 else if (_failedType == FailedType.IOException)
                 {
                     throw new IOException("UpdatePublishedVersionAsyncIOException" + _currentUpdateFailedCount);
-                }
-                else if (_failedType == FailedType.TaskIOException)
-                {
-                    return Task.FromResult(new AsyncTaskResult(AsyncTaskStatus.Failed, "UpdatePublishedVersionAsyncError" + _currentUpdateFailedCount));
                 }
             }
             return _inMemoryPublishedVersionStore.UpdatePublishedVersionAsync(processorName, aggregateRootTypeName, aggregateRootId, publishedVersion);

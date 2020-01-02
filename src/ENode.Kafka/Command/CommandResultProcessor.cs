@@ -1,7 +1,6 @@
 ﻿using DotNetty.Codecs;
 using ECommon.Components;
 using ECommon.Extensions;
-using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using ECommon.Serializing;
@@ -103,11 +102,11 @@ namespace ENode.Kafka
             if (_commandTaskDict.TryRemove(command.Id, out CommandTaskCompletionSource commandTaskCompletionSource))
             {
                 var commandResult = new CommandResult(CommandStatus.Failed, command.Id, command.AggregateRootId, "Failed to send the command.", typeof(string).FullName);
-                commandTaskCompletionSource.TaskCompletionSource.TrySetResult(new AsyncTaskResult<CommandResult>(AsyncTaskStatus.Success, commandResult));
+                commandTaskCompletionSource.TaskCompletionSource.TrySetResult(commandResult);
             }
         }
 
-        public void RegisterProcessingCommand(ICommand command, CommandReturnType commandReturnType, TaskCompletionSource<AsyncTaskResult<CommandResult>> taskCompletionSource)
+        public void RegisterProcessingCommand(ICommand command, CommandReturnType commandReturnType, TaskCompletionSource<CommandResult> taskCompletionSource)
         {
             if (!_commandTaskDict.TryAdd(command.Id, new CommandTaskCompletionSource { CommandReturnType = commandReturnType, TaskCompletionSource = taskCompletionSource }))
             {
@@ -143,7 +142,7 @@ namespace ENode.Kafka
             if (_commandTaskDict.TryRemove(message.CommandId, out CommandTaskCompletionSource commandTaskCompletionSource))
             {
                 var commandResult = new CommandResult(CommandStatus.Success, message.CommandId, message.AggregateRootId, message.CommandResult, message.CommandResult != null ? typeof(string).FullName : null);
-                if (commandTaskCompletionSource.TaskCompletionSource.TrySetResult(new AsyncTaskResult<CommandResult>(AsyncTaskStatus.Success, commandResult)))
+                if (commandTaskCompletionSource.TaskCompletionSource.TrySetResult(commandResult))
                 {
                     if (_logger.IsDebugEnabled)
                     {
@@ -160,7 +159,7 @@ namespace ENode.Kafka
                 if (commandTaskCompletionSource.CommandReturnType == CommandReturnType.CommandExecuted)
                 {
                     _commandTaskDict.Remove(commandResult.CommandId);
-                    if (commandTaskCompletionSource.TaskCompletionSource.TrySetResult(new AsyncTaskResult<CommandResult>(AsyncTaskStatus.Success, commandResult)))
+                    if (commandTaskCompletionSource.TaskCompletionSource.TrySetResult(commandResult))
                     {
                         if (_logger.IsDebugEnabled)
                         {
@@ -173,7 +172,7 @@ namespace ENode.Kafka
                     if (commandResult.Status == CommandStatus.Failed || commandResult.Status == CommandStatus.NothingChanged)
                     {
                         _commandTaskDict.Remove(commandResult.CommandId);
-                        if (commandTaskCompletionSource.TaskCompletionSource.TrySetResult(new AsyncTaskResult<CommandResult>(AsyncTaskStatus.Success, commandResult)))
+                        if (commandTaskCompletionSource.TaskCompletionSource.TrySetResult(commandResult))
                         {
                             if (_logger.IsDebugEnabled)
                             {
@@ -188,7 +187,8 @@ namespace ENode.Kafka
         private class CommandTaskCompletionSource
         {
             public CommandReturnType CommandReturnType { get; set; }
-            public TaskCompletionSource<AsyncTaskResult<CommandResult>> TaskCompletionSource { get; set; }
+
+            public TaskCompletionSource<CommandResult> TaskCompletionSource { get; set; }
         }
     }
 }

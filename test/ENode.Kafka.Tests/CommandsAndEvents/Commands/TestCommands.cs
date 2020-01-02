@@ -4,26 +4,16 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Commands
 {
     public class AggregateThrowExceptionCommand : Command<string>
     {
-        public bool PublishableException { get; set; }
-    }
-
-    public class AsyncHandlerBaseCommand : Command<string>
-    {
-    }
-
-    public class AsyncHandlerChildCommand : AsyncHandlerBaseCommand
-    {
-    }
-
-    public class AsyncHandlerCommand : Command<string>
-    {
-        public bool ShouldGenerateApplicationMessage { get; set; }
-        public bool ShouldThrowException { get; set; }
-        public bool ShouldThrowIOException { get; set; }
+        public bool IsDomainException { get; set; }
     }
 
     public class BaseCommand : Command<string>
     {
+    }
+
+    public class ChangeInheritTestAggregateTitleCommand : Command<string>
+    {
+        public string Title { get; set; }
     }
 
     public class ChangeMultipleAggregatesCommand : Command<string>
@@ -45,6 +35,11 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Commands
     {
     }
 
+    public class CreateInheritTestAggregateCommand : Command<string>
+    {
+        public string Title { get; set; }
+    }
+
     public class CreateTestAggregateCommand : Command<string>
     {
         public int SleepMilliseconds { get; set; }
@@ -55,11 +50,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Commands
     {
     }
 
-    public class NotCheckAsyncHandlerExistCommand : Command<string>
-    {
-    }
-
-    public class NotCheckAsyncHandlerExistWithResultCommand : Command<string>
+    public class SetApplicatonMessageCommand : Command<string>
     {
     }
 
@@ -73,10 +64,6 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Commands
     }
 
     public class ThrowExceptionCommand : Command<string>
-    {
-    }
-
-    public class TwoAsyncHandlersCommand : Command<string>
     {
     }
 

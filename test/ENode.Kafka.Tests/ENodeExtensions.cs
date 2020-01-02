@@ -1,6 +1,7 @@
 ﻿using ENode.AggregateSnapshot;
 using ENode.Commanding;
 using ENode.Configurations;
+using ENode.Domain;
 using ENode.Eventing;
 using ENode.EventStore.MongoDb;
 using ENode.Infrastructure;
@@ -8,6 +9,7 @@ using ENode.Kafka.Consumers;
 using ENode.Kafka.Producers;
 using ENode.Kafka.Tests.CommandsAndEvents.Mocks;
 using ENode.Kafka.Utils;
+using ENode.Messaging;
 using System.Collections.Generic;
 using System.Net;
 using System.Reflection;
@@ -25,8 +27,8 @@ namespace ENode.Kafka.Tests
         private static DomainEventPublisher _eventPublisher;
         private static bool _isKafkaInitialized;
         private static bool _isKafkaStarted;
-        private static PublishableExceptionConsumer _publishableExceptionConsumer;
-        private static PublishableExceptionPublisher _publishableExceptionPublisher;
+        private static DomainExceptionConsumer _publishableExceptionConsumer;
+        private static DomainExceptionPublisher _publishableExceptionPublisher;
 
         public static ENodeConfiguration BuildContainer(this ENodeConfiguration enodeConfiguration)
         {
@@ -44,7 +46,7 @@ namespace ENode.Kafka.Tests
             _commandService = new CommandService();
             _eventPublisher = new DomainEventPublisher();
             _applicationMessagePublisher = new ApplicationMessagePublisher();
-            _publishableExceptionPublisher = new PublishableExceptionPublisher();
+            _publishableExceptionPublisher = new DomainExceptionPublisher();
 
             _brokerEndPoints = brokerEndPoints;
 
@@ -87,7 +89,7 @@ namespace ENode.Kafka.Tests
             _commandConsumer = new CommandConsumer().InitializeKafka(consumerSetting).Subscribe("CommandTopic");
             _eventConsumer = new DomainEventConsumer().InitializeKafka(consumerSetting).Subscribe("EventTopic");
             _applicationMessageConsumer = new ApplicationMessageConsumer().InitializeKafka(consumerSetting).Subscribe("ApplicationMessageTopic");
-            _publishableExceptionConsumer = new PublishableExceptionConsumer().InitializeKafka(consumerSetting).Subscribe("PublishableExceptionTopic");
+            _publishableExceptionConsumer = new DomainExceptionConsumer().InitializeKafka(consumerSetting).Subscribe("PublishableExceptionTopic");
 
             _eventConsumer.Start();
             _commandConsumer.Start();
@@ -157,11 +159,11 @@ namespace ENode.Kafka.Tests
 
             if (useMockPublishableExceptionPublisher)
             {
-                configuration.SetDefault<IMessagePublisher<IPublishableException>, MockPublishableExceptionPublisher>();
+                configuration.SetDefault<IMessagePublisher<IDomainException>, MockDomainExceptionPublisher>();
             }
             else
             {
-                configuration.SetDefault<IMessagePublisher<IPublishableException>, PublishableExceptionPublisher>(_publishableExceptionPublisher);
+                configuration.SetDefault<IMessagePublisher<IDomainException>, DomainExceptionPublisher>(_publishableExceptionPublisher);
             }
 
             configuration.SetDefault<ICommandService, CommandService>(_commandService);
