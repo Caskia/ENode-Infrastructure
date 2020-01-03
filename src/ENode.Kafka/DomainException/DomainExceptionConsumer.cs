@@ -70,7 +70,7 @@ namespace ENode.Kafka
 
         public DomainExceptionConsumer Start()
         {
-            Consumer.OnError += (_, error) => _logger.Error($"ENode PublishableExceptionConsumer has an error: {error}");
+            Consumer.OnError += (_, error) => _logger.Error($"ENode DomainExceptionConsumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
             return this;
         }

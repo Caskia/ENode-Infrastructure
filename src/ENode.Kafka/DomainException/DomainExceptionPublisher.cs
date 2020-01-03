@@ -53,8 +53,8 @@ namespace ENode.Kafka
 
         public DomainExceptionPublisher Start()
         {
-            Producer.OnLog = (_, info) => _logger.Info($"ENode PublishableExceptionPublisher: {info}");
-            Producer.OnError = (_, error) => _logger.Error($"ENode PublishableExceptionPublisher has an error: {error}");
+            Producer.OnLog = (_, info) => _logger.Info($"ENode DomainExceptionPublisher: {info}");
+            Producer.OnError = (_, error) => _logger.Error($"ENode DomainExceptionPublisher has an error: {error}");
             Producer.Start();
             return this;
         }
