@@ -162,6 +162,8 @@ namespace ENode.Lock.Redis.Tests
         [Fact]
         public async Task Should_Redis_Set_By_Multiple_Threads()
         {
+            ThreadPool.SetMinThreads(200, 200);
+
             var redisProvider = new RedisProvider(_redisOptions);
             var database = redisProvider.GetDatabase();
             var tasks = new List<Task>();
