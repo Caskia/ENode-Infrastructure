@@ -96,7 +96,7 @@ namespace ENode.Kafka
         {
             private readonly IAggregateStorage _aggregateRootStorage;
             private readonly CommandMessage _commandMessage;
-            private readonly KafkaMessage _message;
+            private readonly KafkaMessage _kafkaMessage;
             private readonly IKafkaMessageContext _messageContext;
             private readonly IRepository _repository;
             private readonly SendReplyService _sendReplyService;
@@ -104,13 +104,13 @@ namespace ENode.Kafka
             private IApplicationMessage _applicationMessage;
             private string _result;
 
-            public CommandExecuteContext(IRepository repository, IAggregateStorage aggregateRootStorage, KafkaMessage message, IKafkaMessageContext messageContext, CommandMessage commandMessage, SendReplyService sendReplyService)
+            public CommandExecuteContext(IRepository repository, IAggregateStorage aggregateRootStorage, KafkaMessage kafkaMessage, IKafkaMessageContext messageContext, CommandMessage commandMessage, SendReplyService sendReplyService)
             {
                 _trackingAggregateRootDict = new ConcurrentDictionary<string, IAggregateRoot>();
                 _repository = repository;
                 _aggregateRootStorage = aggregateRootStorage;
                 _sendReplyService = sendReplyService;
-                _message = message;
+                _kafkaMessage = kafkaMessage;
                 _commandMessage = commandMessage;
                 _messageContext = messageContext;
             }
@@ -187,7 +187,7 @@ namespace ENode.Kafka
 
             public Task OnCommandExecutedAsync(CommandResult commandResult)
             {
-                _messageContext.OnMessageHandled(_message);
+                _messageContext.OnMessageHandled(_kafkaMessage);
 
                 if (string.IsNullOrEmpty(_commandMessage.ReplyAddress))
                 {
