@@ -202,6 +202,16 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         [Fact]
         public async Task create_and_update_aggregate_test()
         {
+            //var aId = "5e0f2641f5dd054a1474e9ae";
+            //var command3 = new ChangeTestAggregateTitleCommand
+            //{
+            //    AggregateRootId = aId,
+            //    Title = "Changed Note2"
+            //};
+            //var commandResult1 = await _commandService.ExecuteAsync(command3);
+
+            //await Task.Delay(6000 * 1000);
+
             var aggregateId = ObjectId.GenerateNewStringId();
             var command = new CreateTestAggregateCommand
             {

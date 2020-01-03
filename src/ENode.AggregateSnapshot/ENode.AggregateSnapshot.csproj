@@ -19,7 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ENode" Version="2.9.4" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ENode\ENode.csproj" />
   </ItemGroup>
 </Project>

@@ -35,6 +35,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.AggregateSnapshot.MyS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode.EventStore.MongoDb.Performance.Tests", "test\ENode.EventStore.MongoDb.Performance.Tests\ENode.EventStore.MongoDb.Performance.Tests.csproj", "{562F5C0D-4409-4623-9F98-5C3DBC10B290}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ENode", "src\ENode\ENode.csproj", "{E803C0A9-CBB2-4774-8294-6A37F1650E1F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,10 @@ Global
 		{562F5C0D-4409-4623-9F98-5C3DBC10B290}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{562F5C0D-4409-4623-9F98-5C3DBC10B290}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{562F5C0D-4409-4623-9F98-5C3DBC10B290}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E803C0A9-CBB2-4774-8294-6A37F1650E1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E803C0A9-CBB2-4774-8294-6A37F1650E1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E803C0A9-CBB2-4774-8294-6A37F1650E1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E803C0A9-CBB2-4774-8294-6A37F1650E1F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -116,6 +122,7 @@ Global
 		{BD22C073-4B06-4CF8-A5B2-F66A3A8E0BFF} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 		{90743633-80DC-4F32-BC86-09090374325A} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
 		{562F5C0D-4409-4623-9F98-5C3DBC10B290} = {2CEA6BC3-17A4-4E38-8403-8C0C866AF9E4}
+		{E803C0A9-CBB2-4774-8294-6A37F1650E1F} = {4664B4BD-BA04-48AF-A5F5-BE12709B2256}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5674F7FB-D3F7-43F3-B00F-B514DBF892D5}
