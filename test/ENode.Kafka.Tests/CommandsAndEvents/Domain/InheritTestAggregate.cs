@@ -6,6 +6,10 @@
         {
         }
 
+        protected InheritTestAggregate()
+        {
+        }
+
         public void ChangeMyTitle(string title)
         {
             ApplyEvent(new TestAggregateTitleChanged(title));

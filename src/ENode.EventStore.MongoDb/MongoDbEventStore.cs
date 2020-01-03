@@ -201,21 +201,26 @@ namespace ENode.EventStore.MongoDb
             {
                 var collection = _eventStreamCollection.GetCollection(aggregateRootId);
                 var streamRecords = eventStreamList.Select(ConvertTo);
-                await collection.InsertManyAsync(streamRecords);
+                await collection.InsertManyAsync(streamRecords, new InsertManyOptions() { IsOrdered = false });
 
                 return EventAppendStatus.Success;
             }
-            catch (MongoWriteException ex)
+            catch (MongoBulkWriteException ex)
             {
-                if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(EventStream.AggregateRootId)) && ex.Message.Contains(nameof(EventStream.Version)))
+                var duplicateWriteError = ex.WriteErrors.FirstOrDefault(w => w.Code == 11000);
+                if (duplicateWriteError != null)
                 {
-                    return EventAppendStatus.DuplicateEvent;
+                    if (duplicateWriteError.Message.Contains(nameof(EventStream.AggregateRootId)) && duplicateWriteError.Message.Contains(nameof(EventStream.Version)))
+                    {
+                        return EventAppendStatus.DuplicateEvent;
+                    }
+
+                    if (duplicateWriteError.Message.Contains(nameof(EventStream.AggregateRootId)) && duplicateWriteError.Message.Contains(nameof(EventStream.CommandId)))
+                    {
+                        return EventAppendStatus.DuplicateCommand;
+                    }
                 }
 
-                if (ex.WriteError.Code == 11000 && ex.Message.Contains(nameof(EventStream.AggregateRootId)) && ex.Message.Contains(nameof(EventStream.CommandId)))
-                {
-                    return EventAppendStatus.DuplicateCommand;
-                }
                 throw;
             }
         }

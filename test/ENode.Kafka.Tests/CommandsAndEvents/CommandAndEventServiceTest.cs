@@ -1,22 +1,15 @@
 ﻿using ECommon.Components;
-using ECommon.IO;
 using ECommon.Utilities;
 using ENode.Commanding;
 using ENode.Domain;
 using ENode.Eventing;
-using ENode.Infrastructure;
-using ENode.Kafka.Producers;
 using ENode.Kafka.Tests.CommandsAndEvents.Commands;
 using ENode.Kafka.Tests.CommandsAndEvents.Domain;
 using ENode.Kafka.Tests.CommandsAndEvents.Tests;
-using ENode.Kafka.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents

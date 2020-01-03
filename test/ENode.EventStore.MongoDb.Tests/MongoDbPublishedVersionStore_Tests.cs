@@ -69,7 +69,7 @@ namespace ENode.EventStore.MongoDb.Tests
             publishedVersion.ShouldBe(version);
         }
 
-        [Fact(DisplayName = "Should_Insert_Published_Version")]
+        [Fact(DisplayName = "Should_Insert_Published_Version_Concurrent")]
         public async Task Should_Insert_Published_Version_Concurrent()
         {
             var tasks = new List<Task>();

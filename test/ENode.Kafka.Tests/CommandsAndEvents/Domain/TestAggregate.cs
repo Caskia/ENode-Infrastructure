@@ -21,6 +21,10 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Domain
             ApplyEvent(new TestAggregateCreated(title));
         }
 
+        protected TestAggregate()
+        {
+        }
+
         public string Title { get { return _title; } }
 
         public void ChangeTitle(string title)

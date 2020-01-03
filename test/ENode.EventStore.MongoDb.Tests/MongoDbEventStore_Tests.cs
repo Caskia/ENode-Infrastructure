@@ -52,7 +52,7 @@ namespace ENode.EventStore.MongoDb.Tests
         public async Task Should_Append_EventStream()
         {
             //Arrange
-            var eventStream = GetTestDomainEventStream();
+            var eventStream = GetTestDomainEventStream(ObjectId.GenerateNewStringId());
 
             //Act
             await _store.BatchAppendAsync(new List<DomainEventStream> { eventStream });
@@ -74,7 +74,7 @@ namespace ENode.EventStore.MongoDb.Tests
         public async Task Should_Append_Same_EventStream()
         {
             //Arrange
-            var eventStream = GetTestDomainEventStream();
+            var eventStream = GetTestDomainEventStream(ObjectId.GenerateNewStringId());
             await _store.BatchAppendAsync(new List<DomainEventStream> { eventStream });
 
             //Act
@@ -89,7 +89,7 @@ namespace ENode.EventStore.MongoDb.Tests
         public async Task Should_Find_By_Command_Id()
         {
             //Arrange
-            var eventStream = GetTestDomainEventStream();
+            var eventStream = GetTestDomainEventStream(ObjectId.GenerateNewStringId());
             await _store.BatchAppendAsync(new List<DomainEventStream> { eventStream });
 
             //Act
@@ -112,45 +112,45 @@ namespace ENode.EventStore.MongoDb.Tests
         public async Task Should_Query_Aggregate_Events_Async()
         {
             //Arrange
-            var eventStream1 = GetTestDomainEventStream();
-            var eventStream2 = new DomainEventStream(ObjectId.GenerateNewStringId(), eventStream1.AggregateRootId, "typename", DateTime.Now, new List<DomainEvent<long>>()
+            var eventStream1 = GetTestDomainEventStream(ObjectId.GenerateNewStringId());
+            var eventStream2 = new DomainEventStream(ObjectId.GenerateNewStringId(), eventStream1.AggregateRootId, "typename", DateTime.Now, new List<DomainEvent<string>>()
             {
                 new Test1DomainEvent()
                 {
-                    AggregateRootId = 1,
+                    AggregateRootId = eventStream1.AggregateRootId,
                     Name = "test1",
                     Version = 2,
                 },
                 new Test2DomainEvent()
                 {
-                    AggregateRootId = 2,
+                    AggregateRootId = eventStream1.AggregateRootId,
                     Name = "test2",
                     Version = 2,
                 },
                 new Test3DomainEvent()
                 {
-                    AggregateRootId = 3,
+                    AggregateRootId = eventStream1.AggregateRootId,
                     Name = "test3",
                     Version = 2,
                 },
             });
-            var eventStream3 = new DomainEventStream(ObjectId.GenerateNewStringId(), eventStream1.AggregateRootId, "typename", DateTime.Now, new List<DomainEvent<long>>()
+            var eventStream3 = new DomainEventStream(ObjectId.GenerateNewStringId(), eventStream1.AggregateRootId, "typename", DateTime.Now, new List<DomainEvent<string>>()
             {
                 new Test1DomainEvent()
                 {
-                    AggregateRootId = 1,
+                    AggregateRootId = eventStream1.AggregateRootId,
                     Name = "test1",
                     Version = 3,
                 },
                 new Test2DomainEvent()
                 {
-                    AggregateRootId = 2,
+                    AggregateRootId = eventStream1.AggregateRootId,
                     Name = "test2",
                     Version = 3,
                 },
                 new Test3DomainEvent()
                 {
-                    AggregateRootId = 3,
+                    AggregateRootId = eventStream1.AggregateRootId,
                     Name = "test3",
                     Version = 3,
                 },
@@ -165,25 +165,25 @@ namespace ENode.EventStore.MongoDb.Tests
             events.Count().ShouldBe(3);
         }
 
-        private DomainEventStream GetTestDomainEventStream()
+        private DomainEventStream GetTestDomainEventStream(string aggregateRootId)
         {
-            return new DomainEventStream(ObjectId.GenerateNewStringId(), ObjectId.GenerateNewStringId(), "typename", DateTime.Now, new List<DomainEvent<long>>()
+            return new DomainEventStream(ObjectId.GenerateNewStringId(), aggregateRootId, "typename", DateTime.Now, new List<DomainEvent<string>>()
             {
                 new Test1DomainEvent()
                 {
-                    AggregateRootId = 1,
+                    AggregateRootId = aggregateRootId,
                     Name = "test1",
                     Version = 1,
                 },
                 new Test2DomainEvent()
                 {
-                    AggregateRootId = 2,
+                    AggregateRootId = aggregateRootId,
                     Name = "test2",
                     Version = 1,
                 },
                 new Test3DomainEvent()
                 {
-                    AggregateRootId = 3,
+                    AggregateRootId =aggregateRootId,
                     Name = "test3",
                     Version = 1,
                 },
@@ -191,17 +191,17 @@ namespace ENode.EventStore.MongoDb.Tests
         }
     }
 
-    public class Test1DomainEvent : DomainEvent<long>
+    public class Test1DomainEvent : DomainEvent<string>
     {
         public string Name { get; set; }
     }
 
-    public class Test2DomainEvent : DomainEvent<long>
+    public class Test2DomainEvent : DomainEvent<string>
     {
         public string Name { get; set; }
     }
 
-    public class Test3DomainEvent : DomainEvent<long>
+    public class Test3DomainEvent : DomainEvent<string>
     {
         public string Name { get; set; }
     }
