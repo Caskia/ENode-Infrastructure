@@ -201,7 +201,7 @@ namespace ENode.EventStore.MongoDb
             {
                 var collection = _eventStreamCollection.GetCollection(aggregateRootId);
                 var streamRecords = eventStreamList.Select(ConvertTo);
-                await collection.InsertManyAsync(streamRecords, new InsertManyOptions() { IsOrdered = false });
+                await collection.InsertManyAsync(streamRecords);
 
                 return EventAppendStatus.Success;
             }
