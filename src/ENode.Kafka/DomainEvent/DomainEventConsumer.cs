@@ -31,7 +31,7 @@ namespace ENode.Kafka
             var processContext = new DomainEventStreamProcessContext(this, domainEventStreamMessage, kafkaMessage, context);
             var processingMessage = new ProcessingEvent(domainEventStreamMessage, processContext);
             _logger.DebugFormat("ENode event message received, messageId: {0}, aggregateRootId: {1}, aggregateRootType: {2}, version: {3}", domainEventStreamMessage.Id, domainEventStreamMessage.AggregateRootId, domainEventStreamMessage.AggregateRootTypeName, domainEventStreamMessage.Version);
-            _messageProcessor.Process(processingMessage);
+            _messageProcessor.ProcessAsync(processingMessage);
         }
 
         public DomainEventConsumer InitializeENode(bool sendEventHandledMessage = true)

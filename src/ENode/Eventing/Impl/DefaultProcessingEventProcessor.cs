@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using ENode.Configurations;
+using ENode.Infrastructure;
 using ENode.Messaging;
 
 namespace ENode.Eventing.Impl
 {
     public class DefaultProcessingEventProcessor : IProcessingEventProcessor
     {
+        private readonly AsyncLock _asyncLock = new AsyncLock();
         private readonly IMessageDispatcher _dispatcher;
         private readonly IOHelper _ioHelper;
-        private readonly object _lockObj = new object();
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<string, ProcessingEventMailBox> _mailboxDict;
         private readonly string _processorName;
@@ -37,7 +39,7 @@ namespace ENode.Eventing.Impl
             _scanExpiredAggregateIntervalMilliseconds = ENodeConfiguration.Instance.Setting.ScanExpiredAggregateIntervalMilliseconds;
         }
 
-        public void Process(ProcessingEvent processingMessage)
+        public async Task ProcessAsync(ProcessingEvent processingMessage)
         {
             var aggregateRootId = processingMessage.Message.AggregateRootId;
             if (string.IsNullOrEmpty(aggregateRootId))
@@ -45,13 +47,14 @@ namespace ENode.Eventing.Impl
                 throw new ArgumentException("aggregateRootId of domain event stream cannot be null or empty, domainEventStreamId:" + processingMessage.Message.Id);
             }
 
-            lock (_lockObj)
+            using (await _asyncLock.LockAsync().ConfigureAwait(false))
             {
-                var mailbox = _mailboxDict.GetOrAdd(aggregateRootId, x =>
+                if (!_mailboxDict.TryGetValue(aggregateRootId, out ProcessingEventMailBox mailbox))
                 {
-                    var latestHandledEventVersion = GetAggregateRootLatestHandledEventVersion(processingMessage.Message.AggregateRootTypeName, aggregateRootId);
-                    return new ProcessingEventMailBox(aggregateRootId, latestHandledEventVersion, y => DispatchProcessingMessageAsync(y, 0), _logger);
-                });
+                    var latestHandledEventVersion = await GetAggregateRootLatestHandledEventVersionAsync(processingMessage.Message.AggregateRootTypeName, aggregateRootId);
+                    mailbox = new ProcessingEventMailBox(aggregateRootId, latestHandledEventVersion, y => DispatchProcessingMessageAsync(y, 0), _logger);
+                    _mailboxDict.TryAdd(aggregateRootId, mailbox);
+                }
 
                 if (!mailbox.EnqueueMessage(processingMessage))
                 {
@@ -62,7 +65,7 @@ namespace ENode.Eventing.Impl
 
         public void Start()
         {
-            _scheduleService.StartTask(_taskName, CleanInactiveMailbox, _scanExpiredAggregateIntervalMilliseconds, _scanExpiredAggregateIntervalMilliseconds);
+            _scheduleService.StartTask(_taskName, async () => { await CleanInactiveMailboxAsync(); }, _scanExpiredAggregateIntervalMilliseconds, _scanExpiredAggregateIntervalMilliseconds);
         }
 
         public void Stop()
@@ -70,7 +73,7 @@ namespace ENode.Eventing.Impl
             _scheduleService.StopTask(_taskName);
         }
 
-        private void CleanInactiveMailbox()
+        private async Task CleanInactiveMailboxAsync()
         {
             var inactiveList = new List<KeyValuePair<string, ProcessingEventMailBox>>();
             foreach (var pair in _mailboxDict)
@@ -82,7 +85,7 @@ namespace ENode.Eventing.Impl
             }
             foreach (var pair in inactiveList)
             {
-                lock (_lockObj)
+                using (await _asyncLock.LockAsync().ConfigureAwait(false))
                 {
                     if (pair.Value.IsInactive(_timeoutSeconds) && !pair.Value.IsRunning && pair.Value.TotalUnHandledMessageCount == 0)
                     {
@@ -109,11 +112,11 @@ namespace ENode.Eventing.Impl
             retryTimes, true);
         }
 
-        private int GetAggregateRootLatestHandledEventVersion(string aggregateRootType, string aggregateRootId)
+        private Task<int> GetAggregateRootLatestHandledEventVersionAsync(string aggregateRootType, string aggregateRootId)
         {
             try
             {
-                return _publishedVersionStore.GetPublishedVersionAsync(_processorName, aggregateRootType, aggregateRootId).Result;
+                return _publishedVersionStore.GetPublishedVersionAsync(_processorName, aggregateRootType, aggregateRootId);
             }
             catch (Exception ex)
             {

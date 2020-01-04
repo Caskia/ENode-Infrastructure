@@ -202,6 +202,17 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         [Fact]
         public async Task create_and_update_aggregate_test()
         {
+            //var tasks = new List<Task>();
+            //for (int i = 0; i < 100000; i++)
+            //{
+            //    tasks.Add(_commandService.SendAsync(new CreateTestAggregateCommand()
+            //    {
+            //        AggregateRootId = ObjectId.GenerateNewStringId(),
+            //        Title = ObjectId.GenerateNewStringId()
+            //    }));
+            //}
+
+            //await Task.WhenAll(tasks);
             //var aId = "5e0f2641f5dd054a1474e9ae";
             //var command3 = new ChangeTestAggregateTitleCommand
             //{
@@ -210,7 +221,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             //};
             //var commandResult1 = await _commandService.ExecuteAsync(command3);
 
-            await Task.Delay(6000 * 1000);
+            //await Task.Delay(6000 * 1000);
 
             var aggregateId = ObjectId.GenerateNewStringId();
             var command = new CreateTestAggregateCommand
@@ -659,7 +670,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         }
 
         [Fact]
-        public void sequence_domain_event_process_test()
+        public async Task sequence_domain_event_process_test()
         {
             var processor = ObjectContainer.Resolve<IProcessingEventProcessor>();
 
@@ -678,9 +689,9 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var waitHandle = new ManualResetEvent(false);
             var versionList = new List<int>();
 
-            processor.Process(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
-            processor.Process(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
-            processor.Process(new ProcessingEvent(message2, new DomainEventStreamProcessContext(message2, waitHandle, versionList)));
+            await processor.ProcessAsync(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
+            await processor.ProcessAsync(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
+            await processor.ProcessAsync(new ProcessingEvent(message2, new DomainEventStreamProcessContext(message2, waitHandle, versionList)));
 
             waitHandle.WaitOne();
 
