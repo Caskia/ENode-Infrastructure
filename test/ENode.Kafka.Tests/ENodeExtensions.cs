@@ -130,7 +130,7 @@ namespace ENode.Kafka.Tests
         }
 
         public static ENodeConfiguration UseKafka(this ENodeConfiguration enodeConfiguration,
-                            bool useMockDomainEventPublisher = false,
+            bool useMockDomainEventPublisher = false,
             bool useMockApplicationMessagePublisher = false,
             bool useMockPublishableExceptionPublisher = false)
         {

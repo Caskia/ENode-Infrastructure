@@ -16,19 +16,19 @@ namespace ENode.Commanding.Impl
     {
         #region Private Variables
 
-        private readonly IJsonSerializer _jsonSerializer;
-        private readonly IEventStore _eventStore;
-        private readonly IMemoryCache _memoryCache;
-        private readonly ICommandHandlerProvider _commandHandlerProvider;
-        private readonly ITypeNameProvider _typeNameProvider;
-        private readonly IEventCommittingService _eventCommittingService;
         private readonly IMessagePublisher<IApplicationMessage> _applicationMessagePublisher;
+        private readonly ICommandHandlerProvider _commandHandlerProvider;
+        private readonly IEventCommittingService _eventCommittingService;
+        private readonly IEventStore _eventStore;
         private readonly IMessagePublisher<IDomainException> _exceptionPublisher;
         private readonly IOHelper _ioHelper;
+        private readonly IJsonSerializer _jsonSerializer;
         private readonly ILogger _logger;
+        private readonly IMemoryCache _memoryCache;
         private readonly ITimeProvider _timeProvider;
+        private readonly ITypeNameProvider _typeNameProvider;
 
-        #endregion
+        #endregion Private Variables
 
         #region Constructors
 
@@ -58,7 +58,7 @@ namespace ENode.Commanding.Impl
             _timeProvider = timeProvider;
         }
 
-        #endregion
+        #endregion Constructors
 
         #region Public Methods
 
@@ -96,9 +96,143 @@ namespace ENode.Commanding.Impl
             }
         }
 
-        #endregion
+        #endregion Public Methods
 
         #region Private Methods
+
+        private enum HandlerFindResult
+        {
+            NotFound,
+            Found,
+            TooManyHandlerData,
+            TooManyHandler
+        }
+
+        private async Task CommitAggregateChanges(ProcessingCommand processingCommand)
+        {
+            var command = processingCommand.Message;
+            var context = processingCommand.CommandExecuteContext;
+            var trackedAggregateRoots = context.GetTrackedAggregateRoots();
+            var dirtyAggregateRootCount = 0;
+            var dirtyAggregateRoot = default(IAggregateRoot);
+            var changedEvents = default(IEnumerable<IDomainEvent>);
+
+            foreach (var aggregateRoot in trackedAggregateRoots)
+            {
+                var events = aggregateRoot.GetChanges();
+                if (events.Any())
+                {
+                    dirtyAggregateRootCount++;
+                    if (dirtyAggregateRootCount > 1)
+                    {
+                        var errorMessage = string.Format("Detected more than one aggregate created or modified by command. commandType:{0}, commandId:{1}",
+                            command.GetType().Name,
+                            command.Id);
+                        _logger.ErrorFormat(errorMessage);
+                        await CompleteCommand(processingCommand, CommandStatus.Failed, typeof(string).FullName, errorMessage).ConfigureAwait(false);
+                        return;
+                    }
+                    dirtyAggregateRoot = aggregateRoot;
+                    changedEvents = events;
+                }
+            }
+
+            //如果当前command没有对任何聚合根做修改，框架仍然需要尝试获取该command之前是否有产生事件，
+            //如果有，则需要将事件再次发布到MQ；如果没有，则完成命令，返回command的结果为NothingChanged。
+            //之所以要这样做是因为有可能当前command上次执行的结果可能是事件持久化完成，但是发布到MQ未完成，然后那时正好机器断电宕机了；
+            //这种情况下，如果机器重启，当前command对应的聚合根从eventstore恢复的聚合根是被当前command处理过后的；
+            //所以如果该command再次被处理，可能对应的聚合根就不会再产生事件了；
+            //所以，我们要考虑到这种情况，尝试再次发布该命令产生的事件到MQ；
+            //否则，如果我们直接将当前command设置为完成，即对MQ进行ack操作，那该command的事件就永远不会再发布到MQ了，这样就无法保证CQRS数据的最终一致性了。
+            if (dirtyAggregateRootCount == 0 || changedEvents == null || changedEvents.Count() == 0)
+            {
+                await RepublishCommandEvents(processingCommand, 0, new TaskCompletionSource<bool>()).ConfigureAwait(false);
+                return;
+            }
+
+            //接受聚合根的最新修改
+            dirtyAggregateRoot.AcceptChanges();
+
+            //刷新聚合根的内存缓存
+            await _memoryCache.UpdateAggregateRootCache(dirtyAggregateRoot).ConfigureAwait(false);
+
+            //构造出一个事件流对象
+            var commandResult = processingCommand.CommandExecuteContext.GetResult();
+            if (commandResult != null)
+            {
+                processingCommand.Items["CommandResult"] = commandResult;
+            }
+            var eventStream = new DomainEventStream(
+                processingCommand.Message.Id,
+                dirtyAggregateRoot.UniqueId,
+                _typeNameProvider.GetTypeName(dirtyAggregateRoot.GetType()),
+                _timeProvider.GetCurrentTime(),
+                changedEvents,
+                command.Items);
+
+            //异步将事件流提交到EventStore
+            _eventCommittingService.CommitDomainEventAsync(new EventCommittingContext(dirtyAggregateRoot, eventStream, processingCommand));
+        }
+
+        private async Task CommitChangesAsync(ProcessingCommand processingCommand, bool success, IApplicationMessage message, string errorMessage, TaskCompletionSource<bool> taskSource)
+        {
+            if (success)
+            {
+                if (message != null)
+                {
+                    message.MergeItems(processingCommand.Message.Items);
+                    await PublishMessageAsync(processingCommand, message, 0, new TaskCompletionSource<bool>()).ConfigureAwait(false);
+                    taskSource.SetResult(true);
+                }
+                else
+                {
+                    await CompleteCommand(processingCommand, CommandStatus.Success, null, null).ConfigureAwait(false);
+                    taskSource.SetResult(true);
+                }
+            }
+            else
+            {
+                await CompleteCommand(processingCommand, CommandStatus.Failed, typeof(string).FullName, errorMessage).ConfigureAwait(false);
+                taskSource.SetResult(true);
+            }
+        }
+
+        private async Task CompleteCommand(ProcessingCommand processingCommand, CommandStatus commandStatus, string resultType, string result)
+        {
+            var commandResult = new CommandResult(commandStatus, processingCommand.Message.Id, processingCommand.Message.AggregateRootId, result, resultType);
+            await processingCommand.MailBox.CompleteMessage(processingCommand, commandResult).ConfigureAwait(false);
+        }
+
+        private HandlerFindResult GetCommandHandler<T>(ProcessingCommand processingCommand, out T handlerProxy) where T : class, IObjectProxy
+        {
+            handlerProxy = null;
+
+            var command = processingCommand.Message;
+            var handlerDataList = _commandHandlerProvider.GetHandlers(command.GetType());
+
+            if (handlerDataList == null || handlerDataList.Count() == 0)
+            {
+                return HandlerFindResult.NotFound;
+            }
+            else if (handlerDataList.Count() > 1)
+            {
+                return HandlerFindResult.TooManyHandlerData;
+            }
+
+            var handlerData = handlerDataList.Single();
+            if (handlerData.ListHandlers == null || handlerData.ListHandlers.Count() == 0)
+            {
+                return HandlerFindResult.NotFound;
+            }
+            else if (handlerData.ListHandlers.Count() > 1)
+            {
+                return HandlerFindResult.TooManyHandler;
+            }
+
+            handlerProxy = handlerData.ListHandlers.Single() as T;
+
+            return HandlerFindResult.Found;
+        }
 
         private Task HandleCommandInternal(ProcessingCommand processingCommand, ICommandHandlerProxy commandHandler, int retryTimes, TaskCompletionSource<bool> taskSource)
         {
@@ -106,6 +240,11 @@ namespace ENode.Commanding.Impl
             var commandContext = processingCommand.CommandExecuteContext;
 
             commandContext.Clear();
+
+            if (processingCommand.IsDuplicated)
+            {
+                return RepublishCommandEvents(processingCommand, 0, new TaskCompletionSource<bool>());
+            }
 
             _ioHelper.TryAsyncActionRecursivelyWithoutResult("HandleCommandAsync",
             async () =>
@@ -157,98 +296,7 @@ namespace ENode.Commanding.Impl
 
             return taskSource.Task;
         }
-        private async Task CommitAggregateChanges(ProcessingCommand processingCommand)
-        {
-            var command = processingCommand.Message;
-            var context = processingCommand.CommandExecuteContext;
-            var trackedAggregateRoots = context.GetTrackedAggregateRoots();
-            var dirtyAggregateRootCount = 0;
-            var dirtyAggregateRoot = default(IAggregateRoot);
-            var changedEvents = default(IEnumerable<IDomainEvent>);
 
-            foreach (var aggregateRoot in trackedAggregateRoots)
-            {
-                var events = aggregateRoot.GetChanges();
-                if (events.Any())
-                {
-                    dirtyAggregateRootCount++;
-                    if (dirtyAggregateRootCount > 1)
-                    {
-                        var errorMessage = string.Format("Detected more than one aggregate created or modified by command. commandType:{0}, commandId:{1}",
-                            command.GetType().Name,
-                            command.Id);
-                        _logger.ErrorFormat(errorMessage);
-                        await CompleteCommand(processingCommand, CommandStatus.Failed, typeof(string).FullName, errorMessage).ConfigureAwait(false);
-                        return;
-                    }
-                    dirtyAggregateRoot = aggregateRoot;
-                    changedEvents = events;
-                }
-            }
-
-            //如果当前command没有对任何聚合根做修改，框架仍然需要尝试获取该command之前是否有产生事件，
-            //如果有，则需要将事件再次发布到MQ；如果没有，则完成命令，返回command的结果为NothingChanged。
-            //之所以要这样做是因为有可能当前command上次执行的结果可能是事件持久化完成，但是发布到MQ未完成，然后那时正好机器断电宕机了；
-            //这种情况下，如果机器重启，当前command对应的聚合根从eventstore恢复的聚合根是被当前command处理过后的；
-            //所以如果该command再次被处理，可能对应的聚合根就不会再产生事件了；
-            //所以，我们要考虑到这种情况，尝试再次发布该命令产生的事件到MQ；
-            //否则，如果我们直接将当前command设置为完成，即对MQ进行ack操作，那该command的事件就永远不会再发布到MQ了，这样就无法保证CQRS数据的最终一致性了。
-            if (dirtyAggregateRootCount == 0 || changedEvents == null || changedEvents.Count() == 0)
-            {
-                await ProcessIfNoEventsOfCommand(processingCommand, 0, new TaskCompletionSource<bool>()).ConfigureAwait(false);
-                return;
-            }
-
-            //接受聚合根的最新修改
-            dirtyAggregateRoot.AcceptChanges();
-
-            //刷新聚合根的内存缓存
-            await _memoryCache.UpdateAggregateRootCache(dirtyAggregateRoot).ConfigureAwait(false);
-
-            //构造出一个事件流对象
-            var commandResult = processingCommand.CommandExecuteContext.GetResult();
-            if (commandResult != null)
-            {
-                processingCommand.Items["CommandResult"] = commandResult;
-            }
-            var eventStream = new DomainEventStream(
-                processingCommand.Message.Id,
-                dirtyAggregateRoot.UniqueId,
-                _typeNameProvider.GetTypeName(dirtyAggregateRoot.GetType()),
-                _timeProvider.GetCurrentTime(),
-                changedEvents,
-                command.Items);
-
-            //异步将事件流提交到EventStore
-            _eventCommittingService.CommitDomainEventAsync(new EventCommittingContext(dirtyAggregateRoot, eventStream, processingCommand));
-        }
-        private Task ProcessIfNoEventsOfCommand(ProcessingCommand processingCommand, int retryTimes, TaskCompletionSource<bool> taskSource)
-        {
-            var command = processingCommand.Message;
-
-            _ioHelper.TryAsyncActionRecursively("ProcessIfNoEventsOfCommand",
-            () => _eventStore.FindAsync(command.AggregateRootId, command.Id),
-            currentRetryTimes => ProcessIfNoEventsOfCommand(processingCommand, currentRetryTimes, taskSource),
-            async result =>
-            {
-                var existingEventStream = result;
-                if (existingEventStream != null)
-                {
-                    _eventCommittingService.PublishDomainEventAsync(processingCommand, existingEventStream);
-                    taskSource.SetResult(true);
-                }
-                else
-                {
-                    await CompleteCommand(processingCommand, CommandStatus.NothingChanged, typeof(string).FullName, processingCommand.CommandExecuteContext.GetResult()).ConfigureAwait(false);
-                    taskSource.SetResult(true);
-                }
-            },
-            () => string.Format("[commandId:{0}]", command.Id),
-            null,
-            retryTimes, true);
-
-            return taskSource.Task;
-        }
         private Task HandleExceptionAsync(ProcessingCommand processingCommand, ICommandHandlerProxy commandHandler, Exception exception, string errorMessage, int retryTimes, TaskCompletionSource<bool> taskSource)
         {
             var command = processingCommand.Message;
@@ -291,24 +339,7 @@ namespace ENode.Commanding.Impl
 
             return taskSource.Task;
         }
-        private IDomainException TryGetDomainException(Exception exception)
-        {
-            if (exception == null)
-            {
-                return null;
-            }
-            else if (exception is IDomainException)
-            {
-                return exception as IDomainException;
-            }
-            else if (exception is AggregateException)
-            {
-                var aggregateException = exception as AggregateException;
-                var domainException = aggregateException.InnerExceptions.FirstOrDefault(x => x is IDomainException) as IDomainException;
-                return domainException;
-            }
-            return null;
-        }
+
         private Task PublishExceptionAsync(ProcessingCommand processingCommand, IDomainException exception, int retryTimes, TaskCompletionSource<bool> taskSource)
         {
             exception.MergeItems(processingCommand.Message.Items);
@@ -333,28 +364,7 @@ namespace ENode.Commanding.Impl
 
             return taskSource.Task;
         }
-        private async Task CommitChangesAsync(ProcessingCommand processingCommand, bool success, IApplicationMessage message, string errorMessage, TaskCompletionSource<bool> taskSource)
-        {
-            if (success)
-            {
-                if (message != null)
-                {
-                    message.MergeItems(processingCommand.Message.Items);
-                    await PublishMessageAsync(processingCommand, message, 0, new TaskCompletionSource<bool>()).ConfigureAwait(false);
-                    taskSource.SetResult(true);
-                }
-                else
-                {
-                    await CompleteCommand(processingCommand, CommandStatus.Success, null, null).ConfigureAwait(false);
-                    taskSource.SetResult(true);
-                }
-            }
-            else
-            {
-                await CompleteCommand(processingCommand, CommandStatus.Failed, typeof(string).FullName, errorMessage).ConfigureAwait(false);
-                taskSource.SetResult(true);
-            }
-        }
+
         private Task PublishMessageAsync(ProcessingCommand processingCommand, IApplicationMessage message, int retryTimes, TaskCompletionSource<bool> taskSource)
         {
             var command = processingCommand.Message;
@@ -373,49 +383,54 @@ namespace ENode.Commanding.Impl
 
             return taskSource.Task;
         }
-        private HandlerFindResult GetCommandHandler<T>(ProcessingCommand processingCommand, out T handlerProxy) where T : class, IObjectProxy
-        {
-            handlerProxy = null;
 
+        private Task RepublishCommandEvents(ProcessingCommand processingCommand, int retryTimes, TaskCompletionSource<bool> taskSource)
+        {
             var command = processingCommand.Message;
-            var handlerDataList = _commandHandlerProvider.GetHandlers(command.GetType());
 
-            if (handlerDataList == null || handlerDataList.Count() == 0)
+            _ioHelper.TryAsyncActionRecursively("ProcessIfNoEventsOfCommand",
+            () => _eventStore.FindAsync(command.AggregateRootId, command.Id),
+            currentRetryTimes => RepublishCommandEvents(processingCommand, currentRetryTimes, taskSource),
+            async result =>
             {
-                return HandlerFindResult.NotFound;
-            }
-            else if (handlerDataList.Count() > 1)
-            {
-                return HandlerFindResult.TooManyHandlerData;
-            }
+                var existingEventStream = result;
+                if (existingEventStream != null)
+                {
+                    _eventCommittingService.PublishDomainEventAsync(processingCommand, existingEventStream);
+                    taskSource.SetResult(true);
+                }
+                else
+                {
+                    await CompleteCommand(processingCommand, CommandStatus.NothingChanged, typeof(string).FullName, processingCommand.CommandExecuteContext.GetResult()).ConfigureAwait(false);
+                    taskSource.SetResult(true);
+                }
+            },
+            () => string.Format("[commandId:{0}]", command.Id),
+            null,
+            retryTimes, true);
 
-            var handlerData = handlerDataList.Single();
-            if (handlerData.ListHandlers == null || handlerData.ListHandlers.Count() == 0)
-            {
-                return HandlerFindResult.NotFound;
-            }
-            else if (handlerData.ListHandlers.Count() > 1)
-            {
-                return HandlerFindResult.TooManyHandler;
-            }
-
-            handlerProxy = handlerData.ListHandlers.Single() as T;
-
-            return HandlerFindResult.Found;
+            return taskSource.Task;
         }
-        private async Task CompleteCommand(ProcessingCommand processingCommand, CommandStatus commandStatus, string resultType, string result)
+
+        private IDomainException TryGetDomainException(Exception exception)
         {
-            var commandResult = new CommandResult(commandStatus, processingCommand.Message.Id, processingCommand.Message.AggregateRootId, result, resultType);
-            await processingCommand.MailBox.CompleteMessage(processingCommand, commandResult).ConfigureAwait(false);
-        }
-        private enum HandlerFindResult
-        {
-            NotFound,
-            Found,
-            TooManyHandlerData,
-            TooManyHandler
+            if (exception == null)
+            {
+                return null;
+            }
+            else if (exception is IDomainException)
+            {
+                return exception as IDomainException;
+            }
+            else if (exception is AggregateException)
+            {
+                var aggregateException = exception as AggregateException;
+                var domainException = aggregateException.InnerExceptions.FirstOrDefault(x => x is IDomainException) as IDomainException;
+                return domainException;
+            }
+            return null;
         }
 
-        #endregion
+        #endregion Private Methods
     }
 }

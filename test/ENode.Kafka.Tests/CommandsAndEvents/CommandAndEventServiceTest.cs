@@ -210,7 +210,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             //};
             //var commandResult1 = await _commandService.ExecuteAsync(command3);
 
-            //await Task.Delay(6000 * 1000);
+            await Task.Delay(6000 * 1000);
 
             var aggregateId = ObjectId.GenerateNewStringId();
             var command = new CreateTestAggregateCommand
