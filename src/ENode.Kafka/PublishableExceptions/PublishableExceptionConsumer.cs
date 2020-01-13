@@ -47,7 +47,7 @@ namespace ENode.Kafka
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _publishableExceptionProcessor = ObjectContainer.Resolve<IMessageProcessor<ProcessingPublishableExceptionMessage, IPublishableException>>();
             _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(nameof(PublishableExceptionConsumer));
             return this;
         }
 
@@ -68,7 +68,8 @@ namespace ENode.Kafka
 
         public PublishableExceptionConsumer Start()
         {
-            Consumer.OnError += (_, error) => _logger.Error($"ENode PublishableExceptionConsumer has an error: {error}");
+            Consumer.OnLog += (_, info) => _logger.Info(info.Message);
+            Consumer.OnError += (_, error) => _logger.Error($"consumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
             return this;
         }
