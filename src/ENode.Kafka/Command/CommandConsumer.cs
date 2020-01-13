@@ -50,7 +50,7 @@ namespace ENode.Kafka
             _commandProcessor = ObjectContainer.Resolve<ICommandProcessor>();
             _repository = ObjectContainer.Resolve<IRepository>();
             _aggregateStorage = ObjectContainer.Resolve<IAggregateStorage>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(nameof(CommandConsumer));
             return this;
         }
 
@@ -74,7 +74,8 @@ namespace ENode.Kafka
         {
             _sendReplyService.Start();
 
-            Consumer.OnError += (_, error) => _logger.Error($"ENode CommandConsumer has an error: {error}");
+            Consumer.OnLog += (_, info) => _logger.Info(info.Message);
+            Consumer.OnError += (_, error) => _logger.Error($"consumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
 
             return this;

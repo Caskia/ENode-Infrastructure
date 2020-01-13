@@ -49,7 +49,7 @@ namespace ENode.Kafka
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _messageDispatcher = ObjectContainer.Resolve<IMessageDispatcher>();
             _typeNameProvider = ObjectContainer.Resolve<ITypeNameProvider>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(nameof(DomainExceptionConsumer));
             return this;
         }
 
@@ -70,7 +70,8 @@ namespace ENode.Kafka
 
         public DomainExceptionConsumer Start()
         {
-            Consumer.OnError += (_, error) => _logger.Error($"ENode DomainExceptionConsumer has an error: {error}");
+            Consumer.OnLog += (_, info) => _logger.Info(info.Message);
+            Consumer.OnError += (_, error) => _logger.Error($"consumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
             return this;
         }

@@ -40,7 +40,7 @@ namespace ENode.Kafka
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _eventSerializer = ObjectContainer.Resolve<IEventSerializer>();
             _messageProcessor = ObjectContainer.Resolve<IProcessingEventProcessor>();
-            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
+            _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(nameof(DomainEventConsumer));
             _sendEventHandledMessage = sendEventHandledMessage;
             return this;
         }
@@ -68,7 +68,8 @@ namespace ENode.Kafka
         {
             _sendReplyService.Start();
 
-            Consumer.OnError += (_, error) => _logger.Error($"ENode DomainEventConsumer has an error: {error}");
+            Consumer.OnLog += (_, info) => _logger.Info(info.Message);
+            Consumer.OnError += (_, error) => _logger.Error($"consumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();
 
             return this;
