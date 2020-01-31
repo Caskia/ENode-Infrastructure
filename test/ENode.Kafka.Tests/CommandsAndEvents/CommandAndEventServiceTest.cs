@@ -579,7 +579,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             };
 
             //执行创建聚合根的命令
-            var commandResult = await _commandService.ExecuteAsync(command);
+            var commandResult = await _commandService.ExecuteAsync(command, CommandReturnType.EventHandled);
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Success, commandResult.Status);
             var note = await _memoryCache.GetAsync<TestAggregate>(aggregateId);
