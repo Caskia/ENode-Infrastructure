@@ -391,6 +391,45 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         }
 
         [Fact]
+        public async Task sequence_domain_event_process_test2()
+        {
+            var processor = ObjectContainer.Resolve<IProcessingEventProcessor>();
+
+            var note = new TestAggregate(ObjectId.GenerateNewStringId(), "initial title");
+            var aggregate = note as IAggregateRoot;
+            var message1 = CreateMessage(aggregate);
+
+            aggregate.AcceptChanges();
+            note.ChangeTitle("title1");
+            var message2 = CreateMessage(aggregate);
+
+            aggregate.AcceptChanges();
+            note.ChangeTitle("title2");
+            var message3 = CreateMessage(aggregate);
+
+            var waitHandle = new ManualResetEvent(false);
+            var versionList = new List<int>();
+
+            //模拟从publishedVersionStore中取到的publishedVersion不是最新的场景
+            await processor.ProcessAsync(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
+            await processor.ProcessAsync(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
+
+            //等待5秒后更新publishedVersion为2
+            Thread.Sleep(5000);
+            var publishedVersionStore = ObjectContainer.Resolve<IPublishedVersionStore>();
+            publishedVersionStore.UpdatePublishedVersionAsync(processor.Name, typeof(TestAggregate).FullName, aggregate.UniqueId, 2).Wait();
+
+            //等待ENode内部自动检测到最新的publishedVersion，并继续处理mailbox waitingList中的version=3的事件
+            waitHandle.WaitOne();
+
+            Assert.Equal(1, versionList[0]);
+            Assert.Equal(3, versionList[1]);
+
+            //再等待3秒，等待ENode内部异步打印Removed problem aggregate的日志
+            Thread.Sleep(3000);
+        }
+
+        [Fact]
         public async Task set_application_message_command_handler_test()
         {
             var command = new SetApplicatonMessageCommand()

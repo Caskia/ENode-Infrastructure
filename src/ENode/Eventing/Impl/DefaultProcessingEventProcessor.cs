@@ -19,7 +19,6 @@ namespace ENode.Eventing.Impl
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<string, ProcessingEventMailBox> _mailboxDict;
         private readonly ConcurrentDictionary<string, ProcessingEventMailBox> _problemAggregateRootMailBoxDict;
-        private readonly string _processorName;
         private readonly int _processProblemAggregateIntervalMilliseconds;
         private readonly string _processProblemAggregateTaskName;
         private readonly IPublishedVersionStore _publishedVersionStore;
@@ -40,10 +39,12 @@ namespace ENode.Eventing.Impl
             _scanInactiveMailBoxTaskName = "CleanInactiveProcessingEventMailBoxes_" + DateTime.Now.Ticks + new Random().Next(10000);
             _processProblemAggregateTaskName = "ProcessProblemAggregate_" + DateTime.Now.Ticks + new Random().Next(10000);
             _timeoutSeconds = ENodeConfiguration.Instance.Setting.AggregateRootMaxInactiveSeconds;
-            _processorName = ENodeConfiguration.Instance.Setting.DomainEventProcessorName;
+            Name = ENodeConfiguration.Instance.Setting.DomainEventProcessorName;
             _scanExpiredAggregateIntervalMilliseconds = ENodeConfiguration.Instance.Setting.ScanExpiredAggregateIntervalMilliseconds;
             _processProblemAggregateIntervalMilliseconds = ENodeConfiguration.Instance.Setting.ProcessProblemAggregateIntervalMilliseconds;
         }
+
+        public string Name { get; }
 
         public async Task ProcessAsync(ProcessingEvent processingMessage)
         {
@@ -97,7 +98,10 @@ namespace ENode.Eventing.Impl
 
         private void AddProblemAggregateMailBoxToDict(ProcessingEventMailBox mailbox)
         {
-            _problemAggregateRootMailBoxDict.TryAdd(mailbox.AggregateRootId, mailbox);
+            if (_problemAggregateRootMailBoxDict.TryAdd(mailbox.AggregateRootId, mailbox))
+            {
+                _logger.WarnFormat("Added problem aggregate mailbox, aggregateRootTypeName: {0}, aggregateRootId: {1}", mailbox.AggregateRootTypeName, mailbox.AggregateRootId);
+            }
         }
 
         private async Task<ProcessingEventMailBox> BuildProcessingEventMailBoxAsync(ProcessingEvent processingMessage)
@@ -126,7 +130,7 @@ namespace ENode.Eventing.Impl
                         if (_mailboxDict.TryRemove(pair.Key, out ProcessingEventMailBox removed))
                         {
                             removed.MarkAsRemoved();
-                            _logger.InfoFormat("Removed inactive domain event stream mailbox, aggregateRootId: {0}", pair.Key);
+                            _logger.InfoFormat("Removed inactive domain event stream mailbox, aggregateRootTypeName: {0}, aggregateRootId: {1}", removed.AggregateRootTypeName, removed.AggregateRootId);
                         }
                     }
                 }
@@ -152,7 +156,7 @@ namespace ENode.Eventing.Impl
         {
             try
             {
-                return _publishedVersionStore.GetPublishedVersionAsync(_processorName, aggregateRootTypeName, aggregateRootId);
+                return _publishedVersionStore.GetPublishedVersionAsync(Name, aggregateRootTypeName, aggregateRootId);
             }
             catch (Exception ex)
             {
@@ -193,7 +197,10 @@ namespace ENode.Eventing.Impl
             }
             foreach (var mailbox in recoveredMailboxList)
             {
-                _problemAggregateRootMailBoxDict.TryRemove(mailbox.AggregateRootId, out ProcessingEventMailBox removed);
+                if (_problemAggregateRootMailBoxDict.TryRemove(mailbox.AggregateRootId, out ProcessingEventMailBox removed))
+                {
+                    _logger.InfoFormat("Removed problem aggregate mailbox, aggregateRootTypeName: {0}, aggregateRootId: {1}", removed.AggregateRootTypeName, removed.AggregateRootId);
+                }
             }
         }
 
@@ -201,7 +208,7 @@ namespace ENode.Eventing.Impl
         {
             var message = processingMessage.Message;
             _ioHelper.TryAsyncActionRecursivelyWithoutResult("UpdatePublishedVersionAsync",
-            () => _publishedVersionStore.UpdatePublishedVersionAsync(_processorName, message.AggregateRootTypeName, message.AggregateRootId, message.Version),
+            () => _publishedVersionStore.UpdatePublishedVersionAsync(Name, message.AggregateRootTypeName, message.AggregateRootId, message.Version),
             currentRetryTimes => UpdatePublishedVersionAsync(processingMessage, currentRetryTimes),
             () =>
             {

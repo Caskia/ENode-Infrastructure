@@ -9,26 +9,6 @@ namespace ENode.Eventing
 {
     public class ProcessingEventMailBox
     {
-        public enum EnqueueMessageResult
-        {
-            Success,
-            AddToWaitingList,
-            Ignored
-        }
-        #region Private Variables 
-
-        private int _nextExpectingEventVersion;
-        private volatile int _isUsing;
-        private volatile int _isRemoved;
-        private volatile int _isRunning;
-        private readonly object _lockObj = new object();
-        private readonly ConcurrentQueue<ProcessingEvent> _processingEventQueue;
-        private readonly ConcurrentDictionary<int, ProcessingEvent> _waitingProcessingEventDict = new ConcurrentDictionary<int, ProcessingEvent>();
-        private readonly Action<ProcessingEvent> _handleProcessingEventAction;
-        private readonly ILogger _logger;
-
-        #endregion
-
         public ProcessingEventMailBox(string aggregateRootTypeName, string aggregateRootId, int nextExpectingEventVersion, Action<ProcessingEvent> handleProcessingEventAction, ILogger logger)
         {
             _processingEventQueue = new ConcurrentQueue<ProcessingEvent>();
@@ -40,11 +20,34 @@ namespace ENode.Eventing
             LastActiveTime = DateTime.Now;
         }
 
+        public enum EnqueueMessageResult
+        {
+            Success,
+            AddToWaitingList,
+            Ignored
+        }
+
+        #region Private Variables
+
+        private readonly Action<ProcessingEvent> _handleProcessingEventAction;
+        private readonly object _lockObj = new object();
+        private readonly ILogger _logger;
+        private readonly ConcurrentQueue<ProcessingEvent> _processingEventQueue;
+        private readonly ConcurrentDictionary<int, ProcessingEvent> _waitingProcessingEventDict = new ConcurrentDictionary<int, ProcessingEvent>();
+        private volatile int _isRemoved;
+        private volatile int _isRunning;
+        private volatile int _isUsing;
+        private int _nextExpectingEventVersion;
+
+        #endregion Private Variables
+
         public string AggregateRootId { get; private set; }
         public string AggregateRootTypeName { get; private set; }
-        public bool IsUsing { get { return _isUsing == 1; } }
-        public bool IsRunning { get { return _isRunning == 1; } }
         public bool IsRemoved { get { return _isRemoved == 1; } }
+        public bool IsRunning { get { return _isRunning == 1; } }
+        public bool IsUsing { get { return _isUsing == 1; } }
+        public DateTime LastActiveTime { get; private set; }
+
         public long TotalUnHandledMessageCount
         {
             get
@@ -52,24 +55,23 @@ namespace ENode.Eventing
                 return _processingEventQueue.Count;
             }
         }
+
         public long WaitingMessageCount
         {
             get { return _waitingProcessingEventDict.Count; }
         }
-        public DateTime LastActiveTime { get; private set; }
 
-        public void SetNextExpectingEventVersion(int nextExpectingEventVersion)
+        public void CompleteRun()
         {
-            lock (_lockObj)
+            LastActiveTime = DateTime.Now;
+            _logger.DebugFormat("{0} complete run, aggregateRootId: {1}", GetType().Name, AggregateRootId);
+            SetAsNotRunning();
+            if (TotalUnHandledMessageCount > 0)
             {
-                if (nextExpectingEventVersion > _nextExpectingEventVersion)
-                {
-                    _nextExpectingEventVersion = nextExpectingEventVersion;
-                    _logger.InfoFormat("{0} refreshed next expecting event version, aggregateRootId: {1}, aggregateRootTypeName: {2}", GetType().Name, AggregateRootId, AggregateRootTypeName);
-                    TryEnqueueWaitingMessage();
-                }
+                TryRun();
             }
         }
+
         public EnqueueMessageResult EnqueueMessage(ProcessingEvent processingEvent)
         {
             lock (_lockObj)
@@ -103,6 +105,37 @@ namespace ENode.Eventing
                 return EnqueueMessageResult.Ignored;
             }
         }
+
+        public void ExitUsing()
+        {
+            Interlocked.Exchange(ref _isUsing, 0);
+        }
+
+        public bool IsInactive(int timeoutSeconds)
+        {
+            return (DateTime.Now - LastActiveTime).TotalSeconds >= timeoutSeconds;
+        }
+
+        public void MarkAsRemoved()
+        {
+            Interlocked.Exchange(ref _isRemoved, 1);
+        }
+
+        public void SetNextExpectingEventVersion(int nextExpectingEventVersion)
+        {
+            lock (_lockObj)
+            {
+                if (nextExpectingEventVersion > _nextExpectingEventVersion)
+                {
+                    _nextExpectingEventVersion = nextExpectingEventVersion;
+                    _logger.InfoFormat("{0} refreshed nextExpectingEventVersion, aggregateRootId: {1}, aggregateRootTypeName: {2}, version: {3}", GetType().Name, AggregateRootId, AggregateRootTypeName, nextExpectingEventVersion);
+                    TryEnqueueWaitingMessage();
+                    LastActiveTime = DateTime.Now;
+                    TryRun();
+                }
+            }
+        }
+
         public void TryRun()
         {
             lock (_lockObj)
@@ -116,40 +149,35 @@ namespace ENode.Eventing
                 Task.Factory.StartNew(ProcessMessage);
             }
         }
-        public void CompleteRun()
-        {
-            LastActiveTime = DateTime.Now;
-            _logger.DebugFormat("{0} complete run, aggregateRootId: {1}", GetType().Name, AggregateRootId);
-            SetAsNotRunning();
-            if (TotalUnHandledMessageCount > 0)
-            {
-                TryRun();
-            }
-        }
-        public bool IsInactive(int timeoutSeconds)
-        {
-            return (DateTime.Now - LastActiveTime).TotalSeconds >= timeoutSeconds;
-        }
+
         public bool TryUsing()
         {
             return Interlocked.CompareExchange(ref _isUsing, 1, 0) == 0;
         }
-        public void ExitUsing()
-        {
-            Interlocked.Exchange(ref _isUsing, 0);
-        }
-        public void MarkAsRemoved()
-        {
-            Interlocked.Exchange(ref _isRemoved, 1);
-        }
 
-        private void TryEnqueueWaitingMessage()
+        private void EnqueueEventStream(ProcessingEvent processingEvent)
         {
-            while (_waitingProcessingEventDict.TryRemove(_nextExpectingEventVersion, out ProcessingEvent nextProcessingEvent))
+            lock (_lockObj)
             {
-                EnqueueEventStream(nextProcessingEvent);
+                processingEvent.MailBox = this;
+                _processingEventQueue.Enqueue(processingEvent);
+                _nextExpectingEventVersion = processingEvent.Message.Version + 1;
+                if (_logger.IsDebugEnabled)
+                {
+                    _logger.DebugFormat("{0} enqueued new message, aggregateRootType: {1}, aggregateRootId: {2}, commandId: {3}, eventVersion: {4}, eventStreamId: {5}, eventTypes: {6}, eventIds: {7}",
+                        GetType().Name,
+                        processingEvent.Message.AggregateRootTypeName,
+                        processingEvent.Message.AggregateRootId,
+                        processingEvent.Message.CommandId,
+                        processingEvent.Message.Version,
+                        processingEvent.Message.Id,
+                        string.Join("|", processingEvent.Message.Events.Select(x => x.GetType().Name)),
+                        string.Join("|", processingEvent.Message.Events.Select(x => x.Id))
+                    );
+                }
             }
         }
+
         private void ProcessMessage()
         {
             if (_processingEventQueue.TryDequeue(out ProcessingEvent message))
@@ -171,34 +199,23 @@ namespace ENode.Eventing
                 CompleteRun();
             }
         }
-        private void SetAsRunning()
-        {
-            Interlocked.Exchange(ref _isRunning, 1);
-        }
+
         private void SetAsNotRunning()
         {
             Interlocked.Exchange(ref _isRunning, 0);
         }
-        private void EnqueueEventStream(ProcessingEvent processingEvent)
+
+        private void SetAsRunning()
         {
-            lock (_lockObj)
+            Interlocked.Exchange(ref _isRunning, 1);
+        }
+
+        private void TryEnqueueWaitingMessage()
+        {
+            while (_waitingProcessingEventDict.TryRemove(_nextExpectingEventVersion, out ProcessingEvent nextProcessingEvent))
             {
-                processingEvent.MailBox = this;
-                _processingEventQueue.Enqueue(processingEvent);
-                _nextExpectingEventVersion = processingEvent.Message.Version + 1;
-                if (_logger.IsDebugEnabled)
-                {
-                    _logger.DebugFormat("{0} enqueued new message, aggregateRootType: {1}, aggregateRootId: {2}, commandId: {3}, eventVersion: {4}, eventStreamId: {5}, eventTypes: {6}, eventIds: {7}",
-                        GetType().Name,
-                        processingEvent.Message.AggregateRootTypeName,
-                        processingEvent.Message.AggregateRootId,
-                        processingEvent.Message.CommandId,
-                        processingEvent.Message.Version,
-                        processingEvent.Message.Id,
-                        string.Join("|", processingEvent.Message.Events.Select(x => x.GetType().Name)),
-                        string.Join("|", processingEvent.Message.Events.Select(x => x.Id))
-                    );
-                }
+                EnqueueEventStream(nextProcessingEvent);
+                _logger.InfoFormat("{0} enqueued waiting processingEvent, aggregateRootId: {1}, aggregateRootTypeName: {2}, eventVersion: {3}", GetType().Name, AggregateRootId, AggregateRootTypeName, nextProcessingEvent.Message.Version);
             }
         }
     }

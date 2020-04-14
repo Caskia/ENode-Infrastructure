@@ -6,6 +6,10 @@ namespace ENode.Eventing
     /// </summary>
     public interface IProcessingEventProcessor
     {
+        /// <summary>The name of the processor
+        /// </summary>
+        string Name { get; }
+
         /// <summary>Process the given processingEvent.
         /// </summary>
         /// <param name="processingEvent"></param>
