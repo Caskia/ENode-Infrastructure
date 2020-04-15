@@ -175,7 +175,10 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 .UseLog4Net()
                 .UseJsonNet()
                 .RegisterUnhandledExceptionHandler()
-                .CreateENode()
+                .CreateENode(new ConfigurationSetting()
+                {
+                    ProcessProblemAggregateIntervalMilliseconds = 1000
+                })
                 .RegisterENodeComponents()
                 .UseEventStore(useMockEventStore)
                 .UsePublishedVersionStore(useMockPublishedVersionStore)
