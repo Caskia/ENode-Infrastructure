@@ -22,7 +22,10 @@ namespace ENode.Kafka.Tests.Kafka
                 .RegisterCommonComponents()
                 .UseLog4Net()
                 .UseJsonNet()
-                .CreateENode(new ConfigurationSetting())
+                .CreateENode(new ConfigurationSetting()
+                {
+                    ProcessProblemAggregateIntervalMilliseconds = 1000
+                })
                 .RegisterBusinessComponents(assemblies)
                 .RegisterENodeComponents();
 
