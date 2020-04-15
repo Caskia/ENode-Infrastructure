@@ -72,7 +72,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             bool useMockPublishedVersionStore = false,
             bool useMockDomainEventPublisher = false,
             bool useMockApplicationMessagePublisher = false,
-            bool useMockPublishableExceptionPublisher = false)
+            bool useMockDomainExceptionPublisher = false)
         {
             BuildConfiguration();
 
@@ -80,7 +80,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 useMockPublishedVersionStore,
                 useMockDomainEventPublisher,
                 useMockApplicationMessagePublisher,
-                useMockPublishableExceptionPublisher);
+                useMockDomainExceptionPublisher);
         }
 
         private void BuildConfiguration()
@@ -159,7 +159,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             bool useMockPublishedVersionStore = false,
             bool useMockDomainEventPublisher = false,
             bool useMockApplicationMessagePublisher = false,
-            bool useMockPublishableExceptionPublisher = false)
+            bool useMockDomainExceptionPublisher = false)
         {
             var brokerAddresses = Root["Kafka:BrokerAddresses"];
 
@@ -185,7 +185,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                 .UseAggregateSnapshot(useMockPublishedVersionStore)
                 .RegisterBusinessComponents(assemblies)
                 .InitializeKafka(GetIPEndPointFromAddresses(brokerAddresses))
-                .UseKafka(useMockDomainEventPublisher, useMockApplicationMessagePublisher, useMockPublishableExceptionPublisher)
+                .UseKafka(useMockDomainEventPublisher, useMockApplicationMessagePublisher, useMockDomainExceptionPublisher)
                 .BuildContainer();
 
             var eventStoreConnectionString = Root["ENode:EventStoreConnectionString"];

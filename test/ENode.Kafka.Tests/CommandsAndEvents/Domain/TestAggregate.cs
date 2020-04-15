@@ -37,11 +37,11 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Domain
             ApplyEvents(new Event1(), new Event2(), new Event3());
         }
 
-        public void ThrowException(bool publishableException)
+        public void ThrowException(bool isDomainException)
         {
-            if (publishableException)
+            if (isDomainException)
             {
-                throw new TestPublishableException(Id);
+                throw new TestDomainException(Id);
             }
             else
             {
@@ -100,9 +100,9 @@ namespace ENode.Kafka.Tests.CommandsAndEvents.Domain
         public string Title { get; private set; }
     }
 
-    public class TestPublishableException : PublishableException
+    public class TestDomainException : DomainException
     {
-        public TestPublishableException(string aggregateRootId) : base()
+        public TestDomainException(string aggregateRootId) : base()
         {
             AggregateRootId = aggregateRootId;
         }
