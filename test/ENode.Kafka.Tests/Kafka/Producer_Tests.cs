@@ -1,4 +1,8 @@
-﻿using ENode.Kafka.Producers;
+﻿using Confluent.Kafka;
+using ECommon.Components;
+using ECommon.Logging;
+using ENode.Kafka.Consumers;
+using ENode.Kafka.Producers;
 using ENode.Kafka.Utils;
 using Shouldly;
 using System;
@@ -12,7 +16,7 @@ namespace ENode.Kafka.Tests.Kafka
 {
     public class Producer_Tests : KafkaTestBase
     {
-        public ProducerSetting GetProducerSetting()
+        public IList<IPEndPoint> GetBrokerEndPoints()
         {
             var strBrokerAddresses = Root["Kafka:BrokerAddresses"];
             var ipEndPoints = new List<IPEndPoint>();
@@ -24,10 +28,50 @@ namespace ENode.Kafka.Tests.Kafka
                 ipEndPoints.Add(endpoint);
             }
 
+            return ipEndPoints;
+        }
+
+        public ConsumerSetting GetConsumerSetting()
+        {
+            return new ConsumerSetting()
+            {
+                BrokerEndPoints = GetBrokerEndPoints()
+            };
+        }
+
+        public ProducerSetting GetProducerSetting()
+        {
             return new ProducerSetting()
             {
-                BrokerEndPoints = ipEndPoints
+                BrokerEndPoints = GetBrokerEndPoints()
             };
+        }
+
+        [Fact]
+        public async Task Should_Consume()
+        {
+            var loggfactory = ObjectContainer.Resolve<ILoggerFactory>();
+            var logger = loggfactory.Create(nameof(Producer_Tests));
+
+            var consumer = new Consumer(GetConsumerSetting());
+            consumer.Subscribe(new List<string>()
+            {
+                "CommandTopic",
+                //"EventTopic",
+                //"ApplicationMessageTopic",
+                //"DomainExceptionTopic"
+            });
+            consumer.OnLog += (_, info) =>
+            {
+                logger.InfoFormat(info.Message);
+            };
+            consumer.OnError = (_, error) =>
+            {
+            };
+
+            consumer
+                .SetMessageHandler(new TestMessageHandler())
+                .Start();
         }
 
         [Fact(DisplayName = "Should_Produce")]
@@ -61,6 +105,13 @@ namespace ENode.Kafka.Tests.Kafka
             }
 
             await Task.WhenAll(tasks);
+        }
+    }
+
+    public class TestMessageHandler : IMessageHandler<Ignore, string>
+    {
+        public void Handle(ConsumeResult<Ignore, string> message, IMessageContext<Ignore, string> context)
+        {
         }
     }
 }
