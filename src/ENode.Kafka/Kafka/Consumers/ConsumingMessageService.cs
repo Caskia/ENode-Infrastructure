@@ -1,10 +1,11 @@
 ﻿using Confluent.Kafka;
+using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Scheduling;
-using System.Collections.Concurrent;
-using System;
-using ECommon.Components;
 using ENode.Kafka.Extensions;
+using ENode.Kafka.Scheduling;
+using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Consumers
@@ -13,7 +14,7 @@ namespace ENode.Kafka.Consumers
     {
         #region Private Variables
 
-        private readonly Worker _consumeMessageWorker;
+        private readonly AsyncWorker _consumeMessageWorker;
         private readonly BlockingCollection<ConsumeResult<Ignore, string>> _consumeWaitingQueue;
         private readonly ConcurrentDictionary<string, TopicPartitionProcessQueue<Ignore, string>> _consumingQueues;
         private readonly ILogger _logger;
@@ -45,7 +46,7 @@ namespace ENode.Kafka.Consumers
             if (_isSequentialConsume)
             {
                 _consumeWaitingQueue = new BlockingCollection<ConsumeResult<Ignore, string>>();
-                _consumeMessageWorker = new Worker("ConsumeMessage", () => HandleMessage(_consumeWaitingQueue.Take()));
+                _consumeMessageWorker = new AsyncWorker("ConsumeMessage", async () => await HandleMessageAsync(_consumeWaitingQueue.Take()));
             }
             _consumingQueues = new ConcurrentDictionary<string, TopicPartitionProcessQueue<Ignore, string>>();
             _retryQueue = new BlockingCollection<ConsumeResult<Ignore, string>>();
@@ -72,7 +73,10 @@ namespace ENode.Kafka.Consumers
             }
             else
             {
-                Task.Factory.StartNew(HandleMessage, message);
+                Task.Factory.StartNew(async m =>
+                {
+                    await HandleMessageAsync(m);
+                }, message);
             }
         }
 
@@ -89,10 +93,10 @@ namespace ENode.Kafka.Consumers
             }
             if (_isSequentialConsume)
             {
-                _consumeMessageWorker.Start();
+                Task.Run(async () => await _consumeMessageWorker.StartAsync());
             }
 
-            _scheduleService.StartTask("RetryMessage", RetryMessage, 1000, _consumer.Setting.RetryMessageInterval);
+            _scheduleService.StartTask("RetryMessage", async () => { await RetryMessageAsync(); }, 1000, _consumer.Setting.RetryMessageInterval);
             _scheduleService.StartTask("CommitOffsets", async () => { await CommitOffsetsAsync(); }, 1000, _consumer.Setting.CommitConsumerOffsetInterval);
 
             _logger.InfoFormat("{0} startted.", GetType().Name);
@@ -102,7 +106,7 @@ namespace ENode.Kafka.Consumers
         {
             if (_isSequentialConsume)
             {
-                _consumeMessageWorker.Stop();
+                Task.Run(async () => await _consumeMessageWorker.StopAsync());
             }
 
             _scheduleService.StopTask("RetryMessage");
@@ -131,7 +135,7 @@ namespace ENode.Kafka.Consumers
             }
         }
 
-        private void HandleMessage(object parameter)
+        private async Task HandleMessageAsync(object parameter)
         {
             var message = parameter as ConsumeResult<Ignore, string>;
             if (_consumer.Stopped) return;
@@ -139,7 +143,7 @@ namespace ENode.Kafka.Consumers
 
             try
             {
-                _messageHandler.Handle(message, new MessageContext(currentQueueMessage => { RemoveHandledMessage(message); }));
+                await _messageHandler.HandleAsync(message, new MessageContext(currentQueueMessage => { RemoveHandledMessage(message); }));
             }
             catch (Exception ex)
             {
@@ -163,11 +167,11 @@ namespace ENode.Kafka.Consumers
             }
         }
 
-        private void RetryMessage()
+        private async Task RetryMessageAsync()
         {
             if (_retryQueue.TryTake(out var message))
             {
-                HandleMessage(message);
+                await HandleMessageAsync(message);
             }
         }
 

@@ -110,8 +110,9 @@ namespace ENode.Kafka.Tests.Kafka
 
     public class TestMessageHandler : IMessageHandler<Ignore, string>
     {
-        public void Handle(ConsumeResult<Ignore, string> message, IMessageContext<Ignore, string> context)
+        public Task HandleAsync(ConsumeResult<Ignore, string> message, IMessageContext<Ignore, string> context)
         {
+            return Task.CompletedTask;
         }
     }
 }

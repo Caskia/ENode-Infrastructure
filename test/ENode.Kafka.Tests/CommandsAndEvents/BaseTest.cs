@@ -7,7 +7,6 @@ using ENode.Configurations;
 using ENode.Domain;
 using ENode.Eventing;
 using ENode.EventStore.MongoDb;
-using ENode.Infrastructure;
 using ENode.Kafka.Utils;
 using ENode.Messaging;
 using Microsoft.Extensions.Configuration;

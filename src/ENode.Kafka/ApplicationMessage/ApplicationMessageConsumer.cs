@@ -5,6 +5,7 @@ using ENode.Infrastructure;
 using ENode.Kafka.Consumers;
 using ENode.Messaging;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
 using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
@@ -20,14 +21,14 @@ namespace ENode.Kafka
         private ITypeNameProvider _typeNameProvider;
         public Consumer Consumer { get; private set; }
 
-        void IKafkaMessageHandler.Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public async Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
-            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Message.Value);
             var applicationMessageType = _typeNameProvider.GetType(eNodeMessage.Tag);
             var applicationMessage = _jsonSerializer.Deserialize(eNodeMessage.Body, applicationMessageType) as IApplicationMessage;
             _logger.DebugFormat("ENode application message received, messageId: {0}, messageType: {1}", applicationMessage.Id, applicationMessage.GetType().Name);
 
-            _messageDispatcher.DispatchMessageAsync(applicationMessage).ContinueWith(x =>
+            await _messageDispatcher.DispatchMessageAsync(applicationMessage).ContinueWith(x =>
             {
                 context.OnMessageHandled(kafkaMessage);
             });

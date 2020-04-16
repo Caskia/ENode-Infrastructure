@@ -17,7 +17,7 @@ namespace ENode.Eventing.Impl
         private readonly IOHelper _ioHelper;
         private readonly object _lockObj = new object();
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<string, ProcessingEventMailBox> _mailboxDict;
+        private readonly ConcurrentDictionary<string, Lazy<Task<ProcessingEventMailBox>>> _mailboxDict;
         private readonly ConcurrentDictionary<string, ProcessingEventMailBox> _problemAggregateRootMailBoxDict;
         private readonly int _processProblemAggregateIntervalMilliseconds;
         private readonly string _processProblemAggregateTaskName;
@@ -29,7 +29,7 @@ namespace ENode.Eventing.Impl
 
         public DefaultProcessingEventProcessor(IPublishedVersionStore publishedVersionStore, IMessageDispatcher dispatcher, IOHelper ioHelper, ILoggerFactory loggerFactory, IScheduleService scheduleService)
         {
-            _mailboxDict = new ConcurrentDictionary<string, ProcessingEventMailBox>();
+            _mailboxDict = new ConcurrentDictionary<string, Lazy<Task<ProcessingEventMailBox>>>();
             _problemAggregateRootMailBoxDict = new ConcurrentDictionary<string, ProcessingEventMailBox>();
             _publishedVersionStore = publishedVersionStore;
             _dispatcher = dispatcher;
@@ -53,11 +53,7 @@ namespace ENode.Eventing.Impl
             {
                 throw new ArgumentException("aggregateRootId of domain event stream cannot be null or empty, domainEventStreamId:" + processingMessage.Message.Id);
             }
-            if (!_mailboxDict.TryGetValue(aggregateRootId, out ProcessingEventMailBox mailbox))
-            {
-                mailbox = await BuildProcessingEventMailBoxAsync(processingMessage);
-                _mailboxDict.TryAdd(aggregateRootId, mailbox);
-            }
+            var mailbox = await _mailboxDict.GetOrAdd(aggregateRootId, x => new Lazy<Task<ProcessingEventMailBox>>(async () => await BuildProcessingEventMailBoxAsync(processingMessage))).Value;
             var mailboxTryUsingCount = 0L;
             while (!mailbox.TryUsing())
             {
@@ -70,8 +66,9 @@ namespace ENode.Eventing.Impl
             }
             if (mailbox.IsRemoved)
             {
-                mailbox = await BuildProcessingEventMailBoxAsync(processingMessage);
-                _mailboxDict.TryAdd(aggregateRootId, mailbox);
+                var mailBoxTask = new Lazy<Task<ProcessingEventMailBox>>(async () => await BuildProcessingEventMailBoxAsync(processingMessage));
+                _mailboxDict.TryAdd(aggregateRootId, mailBoxTask);
+                mailbox = await mailBoxTask.Value;
             }
             ProcessingEventMailBox.EnqueueMessageResult enqueueResult = mailbox.EnqueueMessage(processingMessage);
             if (enqueueResult == ProcessingEventMailBox.EnqueueMessageResult.Ignored)
@@ -87,7 +84,7 @@ namespace ENode.Eventing.Impl
 
         public void Start()
         {
-            _scheduleService.StartTask(_scanInactiveMailBoxTaskName, CleanInactiveMailbox, _scanExpiredAggregateIntervalMilliseconds, _scanExpiredAggregateIntervalMilliseconds);
+            _scheduleService.StartTask(_scanInactiveMailBoxTaskName, async () => { await CleanInactiveMailboxAsync(); }, _scanExpiredAggregateIntervalMilliseconds, _scanExpiredAggregateIntervalMilliseconds);
             _scheduleService.StartTask(_processProblemAggregateTaskName, async () => { await ProcessProblemAggregates(); }, _processProblemAggregateIntervalMilliseconds, _processProblemAggregateIntervalMilliseconds);
         }
 
@@ -110,25 +107,26 @@ namespace ENode.Eventing.Impl
             return new ProcessingEventMailBox(processingMessage.Message.AggregateRootTypeName, processingMessage.Message.AggregateRootId, latestHandledEventVersion + 1, y => DispatchProcessingMessageAsync(y, 0), _logger);
         }
 
-        private void CleanInactiveMailbox()
+        private async Task CleanInactiveMailboxAsync()
         {
-            var inactiveList = new List<KeyValuePair<string, ProcessingEventMailBox>>();
+            var inactiveList = new List<KeyValuePair<string, Lazy<Task<ProcessingEventMailBox>>>>();
             foreach (var pair in _mailboxDict)
             {
-                if (IsMailBoxAllowRemove(pair.Value))
+                if (IsMailBoxAllowRemove(await pair.Value.Value))
                 {
                     inactiveList.Add(pair);
                 }
             }
             foreach (var pair in inactiveList)
             {
-                var mailbox = pair.Value;
+                var mailbox = await pair.Value.Value;
                 if (mailbox.TryUsing())
                 {
                     if (IsMailBoxAllowRemove(mailbox))
                     {
-                        if (_mailboxDict.TryRemove(pair.Key, out ProcessingEventMailBox removed))
+                        if (_mailboxDict.TryRemove(pair.Key, out Lazy<Task<ProcessingEventMailBox>> lazyRemoved))
                         {
+                            var removed = await lazyRemoved.Value;
                             removed.MarkAsRemoved();
                             _logger.InfoFormat("Removed inactive domain event stream mailbox, aggregateRootTypeName: {0}, aggregateRootId: {1}", removed.AggregateRootTypeName, removed.AggregateRootId);
                         }

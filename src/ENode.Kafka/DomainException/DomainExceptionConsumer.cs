@@ -7,7 +7,7 @@ using ENode.Kafka.Consumers;
 using ENode.Messaging;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using System.Text;
+using System.Threading.Tasks;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
 using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
@@ -24,9 +24,9 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        public void Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public async Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
-            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Message.Value);
             var exceptionMessage = _jsonSerializer.Deserialize<DomainExceptionMessage>(eNodeMessage.Body);
             var exceptionType = _typeNameProvider.GetType(eNodeMessage.Tag);
             var exception = FormatterServices.GetUninitializedObject(exceptionType) as IDomainException;
@@ -38,7 +38,7 @@ namespace ENode.Kafka
                 exceptionMessage.UniqueId,
                 exceptionType.Name);
 
-            _messageDispatcher.DispatchMessageAsync(exception).ContinueWith(x =>
+            await _messageDispatcher.DispatchMessageAsync(exception).ContinueWith(x =>
             {
                 context.OnMessageHandled(kafkaMessage);
             });

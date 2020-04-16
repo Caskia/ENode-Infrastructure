@@ -29,10 +29,10 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        void IKafkaMessageHandler.Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
             var commandItems = new Dictionary<string, string>();
-            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Message.Value);
             var commandMessage = _jsonSerializer.Deserialize<CommandMessage>(eNodeMessage.Body);
             var commandType = _typeNameProvider.GetType(eNodeMessage.Tag);
             var command = _jsonSerializer.Deserialize(commandMessage.CommandData, commandType) as ICommand;
@@ -40,6 +40,8 @@ namespace ENode.Kafka
             commandItems["CommandReplyAddress"] = commandMessage.ReplyAddress;
             _logger.DebugFormat("ENode command message received, messageId: {0}, aggregateRootId: {1}", command.Id, command.AggregateRootId);
             _commandProcessor.Process(new ProcessingCommand(command, commandExecuteContext, commandItems));
+
+            return Task.CompletedTask;
         }
 
         public CommandConsumer InitializeENode()

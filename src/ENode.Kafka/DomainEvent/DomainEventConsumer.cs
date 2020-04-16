@@ -5,6 +5,7 @@ using ENode.Commanding;
 using ENode.Eventing;
 using ENode.Kafka.Consumers;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using IKafkaMessageContext = ENode.Kafka.Consumers.IMessageContext<Confluent.Kafka.Ignore, string>;
 using IKafkaMessageHandler = ENode.Kafka.Consumers.IMessageHandler<Confluent.Kafka.Ignore, string>;
 using KafkaMessage = Confluent.Kafka.ConsumeResult<Confluent.Kafka.Ignore, string>;
@@ -23,15 +24,15 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        public void Handle(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public async Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
-            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Value);
+            var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Message.Value);
             var eventStreamMessage = _jsonSerializer.Deserialize<EventStreamMessage>(eNodeMessage.Body);
             var domainEventStreamMessage = ConvertToDomainEventStream(eventStreamMessage);
             var processContext = new DomainEventStreamProcessContext(this, domainEventStreamMessage, kafkaMessage, context);
             var processingMessage = new ProcessingEvent(domainEventStreamMessage, processContext);
             _logger.DebugFormat("ENode event message received, messageId: {0}, aggregateRootId: {1}, aggregateRootType: {2}, version: {3}", domainEventStreamMessage.Id, domainEventStreamMessage.AggregateRootId, domainEventStreamMessage.AggregateRootTypeName, domainEventStreamMessage.Version);
-            _messageProcessor.ProcessAsync(processingMessage);
+            await _messageProcessor.ProcessAsync(processingMessage);
         }
 
         public DomainEventConsumer InitializeENode(bool sendEventHandledMessage = true)
