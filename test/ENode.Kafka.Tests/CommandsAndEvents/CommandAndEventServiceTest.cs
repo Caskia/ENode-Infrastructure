@@ -202,27 +202,6 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         [Fact]
         public async Task create_and_update_aggregate_test()
         {
-            //var tasks = new List<Task>();
-            //for (int i = 0; i < 100000; i++)
-            //{
-            //    tasks.Add(_commandService.SendAsync(new CreateTestAggregateCommand()
-            //    {
-            //        AggregateRootId = ObjectId.GenerateNewStringId(),
-            //        Title = ObjectId.GenerateNewStringId()
-            //    }));
-            //}
-
-            //await Task.WhenAll(tasks);
-            //var aId = "5e0f2641f5dd054a1474e9ae";
-            //var command3 = new ChangeTestAggregateTitleCommand
-            //{
-            //    AggregateRootId = aId,
-            //    Title = "Changed Note2"
-            //};
-            //var commandResult1 = await _commandService.ExecuteAsync(command3);
-
-            //await Task.Delay(6000 * 1000);
-
             var aggregateId = ObjectId.GenerateNewStringId();
             var command = new CreateTestAggregateCommand
             {
@@ -388,6 +367,26 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var commandResult = await _commandService.ExecuteAsync(command);
             Assert.NotNull(commandResult);
             Assert.Equal(CommandStatus.Failed, commandResult.Status);
+        }
+
+        [Fact]
+        public async Task send_concurrent_command_test()
+        {
+            var tasks = new List<Task<CommandResult>>();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                var aggregateId = ObjectId.GenerateNewStringId();
+                var command = new CreateTestAggregateCommand
+                {
+                    AggregateRootId = aggregateId,
+                    Title = "Sample Note"
+                };
+
+                tasks.Add(_commandService.ExecuteAsync(command, CommandReturnType.CommandExecuted));
+            }
+
+            await Task.WhenAll(tasks);
         }
 
         [Fact]
