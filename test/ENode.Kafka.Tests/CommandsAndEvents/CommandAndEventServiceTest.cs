@@ -390,8 +390,6 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             }
 
             await Task.WhenAll(tasks);
-
-            await Task.Delay(300 * 1000);
         }
 
         [Fact]

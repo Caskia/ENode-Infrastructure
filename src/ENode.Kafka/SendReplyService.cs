@@ -91,12 +91,6 @@ namespace ENode.Kafka
                 };
 
                 await remotingClient.Channel.WriteAndFlushAsync(request);
-
-                while (true)
-                {
-                    _logger.InfoFormat("event message received");
-                    await Task.Delay(5000);
-                }
             }
             catch (Exception ex)
             {
