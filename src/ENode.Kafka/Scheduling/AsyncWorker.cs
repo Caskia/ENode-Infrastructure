@@ -90,6 +90,8 @@ namespace ENode.Kafka.Scheduling
                 {
                     _logger.Error(string.Format("Worker thread has exception, actionName:{0}", _actionName), ex);
                 }
+
+                await Task.Yield();
             }
         }
     }

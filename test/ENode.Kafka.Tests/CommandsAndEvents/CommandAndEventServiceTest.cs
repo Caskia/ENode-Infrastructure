@@ -372,9 +372,12 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         [Fact]
         public async Task send_concurrent_command_test()
         {
+            ThreadPool.SetMinThreads(1, 1);
+            ThreadPool.SetMaxThreads(2, 2);
+
             var tasks = new List<Task<CommandResult>>();
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 100; i++)
             {
                 var aggregateId = ObjectId.GenerateNewStringId();
                 var command = new CreateTestAggregateCommand
@@ -383,10 +386,12 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
                     Title = "Sample Note"
                 };
 
-                tasks.Add(_commandService.ExecuteAsync(command, CommandReturnType.CommandExecuted));
+                tasks.Add(_commandService.ExecuteAsync(command, CommandReturnType.EventHandled));
             }
 
             await Task.WhenAll(tasks);
+
+            await Task.Delay(300 * 1000);
         }
 
         [Fact]

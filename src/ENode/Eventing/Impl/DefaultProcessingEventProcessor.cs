@@ -57,7 +57,7 @@ namespace ENode.Eventing.Impl
             var mailboxTryUsingCount = 0L;
             while (!mailbox.TryUsing())
             {
-                Thread.Sleep(1);
+                await Task.Delay(1);
                 mailboxTryUsingCount++;
                 if (mailboxTryUsingCount % 10000 == 0)
                 {
