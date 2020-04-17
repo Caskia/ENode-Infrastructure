@@ -1,5 +1,4 @@
 ﻿using ECommon.Components;
-using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using ECommon.Serializing;
@@ -18,34 +17,31 @@ namespace ENode.Kafka
 {
     public class SendReplyService
     {
-        private readonly IOHelper _ioHelper;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly ILogger _logger;
         private readonly string _name;
-        private readonly ConcurrentDictionary<string, NettyClient> _remotingClientDict;
+        private readonly ConcurrentDictionary<string, Lazy<Task<NettyClient>>> _remotingClientDict;
         private readonly string _scanInactiveCommandRemotingClientTaskName;
         private readonly IScheduleService _scheduleService;
-        private readonly Object lockObject = new object();
 
         public SendReplyService(string name)
         {
             _name = name;
-            _remotingClientDict = new ConcurrentDictionary<string, NettyClient>();
+            _remotingClientDict = new ConcurrentDictionary<string, Lazy<Task<NettyClient>>>();
             _jsonSerializer = ObjectContainer.Resolve<IJsonSerializer>();
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
-            _ioHelper = ObjectContainer.Resolve<IOHelper>();
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(GetType().FullName);
             _scanInactiveCommandRemotingClientTaskName = "ScanInactiveCommandRemotingClient_" + DateTime.Now.Ticks + new Random().Next(10000);
         }
 
         public void SendReply(short replyType, object replyData, string replyAddress)
         {
-            Task.Factory.StartNew(obj =>
+            Task.Factory.StartNew(async obj =>
             {
                 var context = obj as SendReplyContext;
                 try
                 {
-                    var remotingClient = GetRemotingClient(context.ReplyAddress);
+                    var remotingClient = await GetRemotingClientAsync(context.ReplyAddress);
                     if (remotingClient == null) return;
 
                     if (!remotingClient.Channel.Active)
@@ -62,7 +58,7 @@ namespace ENode.Kafka
                         Body = body
                     };
 
-                    remotingClient.Channel.WriteAndFlushAsync(request);
+                    await remotingClient.Channel.WriteAndFlushAsync(request);
                 }
                 catch (Exception ex)
                 {
@@ -76,7 +72,8 @@ namespace ENode.Kafka
             var context = new SendReplyContext(replyType, replyData, replyAddress);
             try
             {
-                var remotingClient = GetRemotingClient(context.ReplyAddress);
+                var remotingClient = await GetRemotingClientAsync(context.ReplyAddress);
+
                 if (remotingClient == null) return;
 
                 if (!remotingClient.Channel.Active)
@@ -103,67 +100,58 @@ namespace ENode.Kafka
 
         public void Start()
         {
-            _scheduleService.StartTask(_scanInactiveCommandRemotingClientTaskName, ScanInactiveRemotingClients, 5000, 5000);
+            _scheduleService.StartTask(_scanInactiveCommandRemotingClientTaskName, async () => await ScanInactiveRemotingClientsAsync(), 5000, 5000);
         }
 
         public void Stop()
         {
-            _scheduleService.StopTask(_scanInactiveCommandRemotingClientTaskName);
-            foreach (var remotingClient in _remotingClientDict.Values)
+            Task.Run(async () =>
             {
-                remotingClient.ShutdownAsync().Wait();
-            }
-        }
-
-        private NettyClient CreateReplyRemotingClient(string replyAddress, IPEndPoint replyEndpoint)
-        {
-            lock (lockObject)
-            {
-                return _remotingClientDict.GetOrAdd(replyAddress, key =>
+                _scheduleService.StopTask(_scanInactiveCommandRemotingClientTaskName);
+                foreach (var remotingClient in _remotingClientDict.Values)
                 {
-                    return new NettyClient(replyEndpoint, null).StartAsync().Result;
-                });
-            }
+                    await (await remotingClient.Value).ShutdownAsync();
+                }
+            });
         }
 
-        private NettyClient GetRemotingClient(string replyAddress)
+        private async Task<NettyClient> GetOrCreateReplyRemotingClientAsync(string replyAddress, IPEndPoint replyEndpoint)
+        {
+            return await _remotingClientDict.GetOrAdd(replyAddress, new Lazy<Task<NettyClient>>(async () =>
+            {
+                var client = new NettyClient(replyEndpoint, null);
+
+                await client.StartAsync();
+
+                return client;
+            })).Value;
+        }
+
+        private Task<NettyClient> GetRemotingClientAsync(string replyAddress)
         {
             var replyEndpoint = TryParseReplyAddress(replyAddress);
             if (replyEndpoint == null) return null;
 
-            NettyClient remotingClient;
-            if (_remotingClientDict.TryGetValue(replyAddress, out remotingClient))
-            {
-                return remotingClient;
-            }
-
-            _ioHelper.TryIOAction("CreateReplyRemotingClient", () => "replyAddress:" + replyAddress, () => CreateReplyRemotingClient(replyAddress, replyEndpoint), 3);
-
-            if (_remotingClientDict.TryGetValue(replyAddress, out remotingClient))
-            {
-                return remotingClient;
-            }
-
-            return null;
+            return GetOrCreateReplyRemotingClientAsync(replyAddress, replyEndpoint);
         }
 
-        private void ScanInactiveRemotingClients()
+        private async Task ScanInactiveRemotingClientsAsync()
         {
-            var inactiveList = new List<KeyValuePair<string, NettyClient>>();
+            var inactiveList = new List<string>();
             foreach (var pair in _remotingClientDict)
             {
-                if (pair.Value.Channel == null || !pair.Value.Channel.Active)
+                var client = (await pair.Value.Value);
+                if (client.Channel == null || !client.Channel.Active)
                 {
-                    inactiveList.Add(pair);
+                    inactiveList.Add(pair.Key);
                 }
             }
-            foreach (var pair in inactiveList)
+            foreach (var key in inactiveList)
             {
-                NettyClient removed;
-                if (_remotingClientDict.TryRemove(pair.Key, out removed))
+                if (_remotingClientDict.TryRemove(key, out Lazy<Task<NettyClient>> removed))
                 {
-                    removed.ShutdownAsync().Wait();
-                    _logger.InfoFormat("Removed disconnected command remoting client, remotingAddress: {0}", pair.Key);
+                    await (await removed.Value).ShutdownAsync();
+                    _logger.InfoFormat("Removed disconnected command remoting client, remotingAddress: {0}", key);
                 }
             }
         }
