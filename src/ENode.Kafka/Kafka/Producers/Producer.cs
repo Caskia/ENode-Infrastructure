@@ -72,6 +72,7 @@ namespace ENode.Kafka.Producers
 
             var kafkaConfig = new ProducerConfig()
             {
+                LingerMs = 5,
                 BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port))
             };
 
