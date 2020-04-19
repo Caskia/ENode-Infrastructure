@@ -377,7 +377,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
 
             var tasks = new List<Task<CommandResult>>();
 
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 100; i++)
             {
                 var aggregateId = ObjectId.GenerateNewStringId();
                 var command = new CreateTestAggregateCommand

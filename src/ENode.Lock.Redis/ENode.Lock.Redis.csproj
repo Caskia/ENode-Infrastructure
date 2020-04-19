@@ -17,6 +17,6 @@
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.11.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\enode\src\ENode\ENode.csproj" />
+    <ProjectReference Include="..\ENode\ENode.csproj" />
   </ItemGroup>
 </Project>
