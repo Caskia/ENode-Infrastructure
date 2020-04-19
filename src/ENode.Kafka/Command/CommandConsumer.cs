@@ -29,7 +29,7 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        public Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public async Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
             var commandItems = new Dictionary<string, string>();
             var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Message.Value);
@@ -39,9 +39,7 @@ namespace ENode.Kafka
             var commandExecuteContext = new CommandExecuteContext(_repository, _aggregateStorage, kafkaMessage, context, commandMessage, _sendReplyService);
             commandItems["CommandReplyAddress"] = commandMessage.ReplyAddress;
             _logger.DebugFormat("ENode command message received, messageId: {0}, aggregateRootId: {1}", command.Id, command.AggregateRootId);
-            _commandProcessor.Process(new ProcessingCommand(command, commandExecuteContext, commandItems));
-
-            return Task.CompletedTask;
+            await _commandProcessor.ProcessAsync(new ProcessingCommand(command, commandExecuteContext, commandItems));
         }
 
         public CommandConsumer InitializeENode()
