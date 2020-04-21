@@ -2,7 +2,6 @@
 using ECommon.Logging;
 using ENode.Infrastructure;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Scheduling
@@ -50,7 +49,7 @@ namespace ENode.Kafka.Scheduling
                 if (_status == Status.Running) return this;
 
                 _status = Status.Running;
-                await Task.Factory.StartNew(async () => await LoopAsync(this));
+                await Task.Factory.StartNew(async () => await LoopAsync(this), TaskCreationOptions.LongRunning);
             }
 
             return this;
@@ -80,18 +79,10 @@ namespace ENode.Kafka.Scheduling
                 {
                     await _action();
                 }
-                catch (ThreadAbortException)
-                {
-                    _logger.InfoFormat("Worker thread caught ThreadAbortException, try to resetting, actionName:{0}", _actionName);
-                    Thread.ResetAbort();
-                    _logger.InfoFormat("Worker thread ThreadAbortException resetted, actionName:{0}", _actionName);
-                }
                 catch (Exception ex)
                 {
-                    _logger.Error(string.Format("Worker thread has exception, actionName:{0}", _actionName), ex);
+                    _logger.Error(string.Format("Async Worker has exception, actionName:{0}", _actionName), ex);
                 }
-
-                await Task.Yield();
             }
         }
     }
