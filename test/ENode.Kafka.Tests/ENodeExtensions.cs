@@ -4,7 +4,6 @@ using ENode.Configurations;
 using ENode.Domain;
 using ENode.Eventing;
 using ENode.EventStore.MongoDb;
-using ENode.Infrastructure;
 using ENode.Kafka.Consumers;
 using ENode.Kafka.Producers;
 using ENode.Kafka.Tests.CommandsAndEvents.Mocks;
@@ -22,35 +21,16 @@ namespace ENode.Kafka.Tests
         private static ApplicationMessagePublisher _applicationMessagePublisher;
         private static List<IPEndPoint> _brokerEndPoints;
         private static CommandConsumer _commandConsumer;
+        private static CommandResultProcessor _commandResultProcessor;
         private static CommandService _commandService;
         private static DomainExceptionConsumer _domainExceptionConsumer;
         private static DomainExceptionPublisher _domainExceptionPublisher;
         private static DomainEventConsumer _eventConsumer;
         private static DomainEventPublisher _eventPublisher;
-        private static bool _isKafkaInitialized;
-        private static bool _isKafkaStarted;
-
-        public static ENodeConfiguration BuildContainer(this ENodeConfiguration enodeConfiguration)
-        {
-            enodeConfiguration.GetCommonConfiguration().BuildContainer();
-            return enodeConfiguration;
-        }
 
         public static ENodeConfiguration InitializeKafka(this ENodeConfiguration enodeConfiguration, List<IPEndPoint> brokerEndPoints)
         {
-            if (_isKafkaInitialized)
-            {
-                return enodeConfiguration;
-            }
-
-            _commandService = new CommandService();
-            _eventPublisher = new DomainEventPublisher();
-            _applicationMessagePublisher = new ApplicationMessagePublisher();
-            _domainExceptionPublisher = new DomainExceptionPublisher();
-
             _brokerEndPoints = brokerEndPoints;
-
-            _isKafkaInitialized = true;
 
             return enodeConfiguration;
         }
@@ -72,50 +52,45 @@ namespace ENode.Kafka.Tests
 
         public static ENodeConfiguration StartKafka(this ENodeConfiguration enodeConfiguration)
         {
-            if (_isKafkaStarted)
-            {
-                _commandService.InitializeENode();
-                _eventPublisher.InitializeENode();
-                _applicationMessagePublisher.InitializeENode();
-                _domainExceptionPublisher.InitializeENode();
-
-                _commandConsumer.InitializeENode();
-                _eventConsumer.InitializeENode();
-                _applicationMessageConsumer.InitializeENode();
-                _domainExceptionConsumer.InitializeENode();
-
-                return enodeConfiguration;
-            }
-
             var produceSetting = new ProducerSetting()
             {
                 BrokerEndPoints = _brokerEndPoints
             };
-            _commandService.InitializeKafka(produceSetting, new CommandResultProcessor().Initialize(SocketUtils.GetLocalIPV4().ToString(), 9001));//Dns.GetHostName()
-            _eventPublisher.InitializeKafka(produceSetting);
-            _applicationMessagePublisher.InitializeKafka(produceSetting);
-            _domainExceptionPublisher.InitializeKafka(produceSetting);
-
             var consumerSetting = new ConsumerSetting()
             {
                 BrokerEndPoints = _brokerEndPoints,
                 CommitConsumerOffsetInterval = 100
             };
-            _commandConsumer = new CommandConsumer().InitializeKafka(consumerSetting).Subscribe("CommandTopic");
-            _eventConsumer = new DomainEventConsumer().InitializeKafka(consumerSetting).Subscribe("EventTopic");
-            _applicationMessageConsumer = new ApplicationMessageConsumer().InitializeKafka(consumerSetting).Subscribe("ApplicationMessageTopic");
-            _domainExceptionConsumer = new DomainExceptionConsumer().InitializeKafka(consumerSetting).Subscribe("DomainExceptionTopic");
 
-            _eventConsumer.Start();
+            _commandConsumer = new CommandConsumer()
+                .InitializeKafka(consumerSetting)
+                .Subscribe("CommandTopic");
+            _eventConsumer = new DomainEventConsumer()
+                .InitializeKafka(consumerSetting)
+                .Subscribe("EventTopic");
+            _applicationMessageConsumer = new ApplicationMessageConsumer()
+                .InitializeKafka(consumerSetting)
+                .Subscribe("ApplicationMessageTopic");
+            _domainExceptionConsumer = new DomainExceptionConsumer()
+                .InitializeKafka(consumerSetting)
+                .Subscribe("DomainExceptionTopic");
+
+            _commandResultProcessor = new CommandResultProcessor()
+               .Initialize(new IPEndPoint(SocketUtils.GetLocalIPV4(), 9003));
+            _commandService.InitializeKafka(produceSetting, _commandResultProcessor);
+            _eventPublisher.InitializeKafka(produceSetting);
+            _applicationMessagePublisher.InitializeKafka(produceSetting);
+            _domainExceptionPublisher.InitializeKafka(produceSetting);
+
             _commandConsumer.Start();
+            _eventConsumer.Start();
             _applicationMessageConsumer.Start();
             _domainExceptionConsumer.Start();
+
+            _commandService.Start();
+            _eventPublisher.Start();
             _applicationMessagePublisher.Start();
             _domainExceptionPublisher.Start();
-            _eventPublisher.Start();
-            _commandService.Start();
-
-            _isKafkaStarted = true;
 
             return enodeConfiguration;
         }
@@ -154,12 +129,16 @@ namespace ENode.Kafka.Tests
 
             var configuration = enodeConfiguration.GetCommonConfiguration();
 
+            _commandService = new CommandService();
+            configuration.SetDefault<ICommandService, CommandService>(_commandService);
+
             if (useMockDomainEventPublisher)
             {
                 configuration.SetDefault<IMessagePublisher<DomainEventStreamMessage>, MockDomainEventPublisher>();
             }
             else
             {
+                _eventPublisher = new DomainEventPublisher();
                 configuration.SetDefault<IMessagePublisher<DomainEventStreamMessage>, DomainEventPublisher>(_eventPublisher);
             }
 
@@ -169,6 +148,7 @@ namespace ENode.Kafka.Tests
             }
             else
             {
+                _applicationMessagePublisher = new ApplicationMessagePublisher();
                 configuration.SetDefault<IMessagePublisher<IApplicationMessage>, ApplicationMessagePublisher>(_applicationMessagePublisher);
             }
 
@@ -178,10 +158,9 @@ namespace ENode.Kafka.Tests
             }
             else
             {
+                _domainExceptionPublisher = new DomainExceptionPublisher();
                 configuration.SetDefault<IMessagePublisher<IDomainException>, DomainExceptionPublisher>(_domainExceptionPublisher);
             }
-
-            configuration.SetDefault<ICommandService, CommandService>(_commandService);
 
             return enodeConfiguration;
         }
