@@ -23,6 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ENode\ENode.csproj" />
+    <ProjectReference Include="..\..\enode\src\ENode\ENode.csproj" />
   </ItemGroup>
 </Project>

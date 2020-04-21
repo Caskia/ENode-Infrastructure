@@ -56,23 +56,42 @@ namespace ENode.Kafka.Tests
             {
                 BrokerEndPoints = _brokerEndPoints
             };
-            var consumerSetting = new ConsumerSetting()
+            var commandConsumerSetting = new ConsumerSetting
             {
                 BrokerEndPoints = _brokerEndPoints,
-                CommitConsumerOffsetInterval = 100
+                CommitConsumerOffsetInterval = 100,
+                GroupName = "CommandConsumerGroup"
+            };
+            var eventConsumerSetting = new ConsumerSetting
+            {
+                BrokerEndPoints = _brokerEndPoints,
+                CommitConsumerOffsetInterval = 100,
+                GroupName = "DomainEventConsumerGroup"
+            };
+            var applicationMessageConsumerSetting = new ConsumerSetting
+            {
+                BrokerEndPoints = _brokerEndPoints,
+                CommitConsumerOffsetInterval = 100,
+                GroupName = "ApplicationMessageConsumerGroup"
+            };
+            var domainExceptionConsumerSetting = new ConsumerSetting
+            {
+                BrokerEndPoints = _brokerEndPoints,
+                CommitConsumerOffsetInterval = 100,
+                GroupName = "DomainExceptionConsumerGroup"
             };
 
             _commandConsumer = new CommandConsumer()
-                .InitializeKafka(consumerSetting)
+                .InitializeKafka(commandConsumerSetting)
                 .Subscribe("CommandTopic");
             _eventConsumer = new DomainEventConsumer()
-                .InitializeKafka(consumerSetting)
+                .InitializeKafka(eventConsumerSetting)
                 .Subscribe("EventTopic");
             _applicationMessageConsumer = new ApplicationMessageConsumer()
-                .InitializeKafka(consumerSetting)
+                .InitializeKafka(applicationMessageConsumerSetting)
                 .Subscribe("ApplicationMessageTopic");
             _domainExceptionConsumer = new DomainExceptionConsumer()
-                .InitializeKafka(consumerSetting)
+                .InitializeKafka(domainExceptionConsumerSetting)
                 .Subscribe("DomainExceptionTopic");
 
             _commandResultProcessor = new CommandResultProcessor()
