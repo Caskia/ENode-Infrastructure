@@ -14,11 +14,11 @@ using Xunit;
 
 namespace ENode.Kafka.Tests.Kafka
 {
-    public class Producer_Tests : KafkaTestBase
+    public class Producer_Tests : ENodeKafkaTestBase
     {
         public IList<IPEndPoint> GetBrokerEndPoints()
         {
-            var strBrokerAddresses = Root["Kafka:BrokerAddresses"];
+            var strBrokerAddresses = ENodeKafkaFixture.Root["Kafka:BrokerAddresses"];
             var ipEndPoints = new List<IPEndPoint>();
             var addressList = strBrokerAddresses.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var address in addressList)

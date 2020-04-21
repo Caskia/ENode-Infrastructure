@@ -55,6 +55,21 @@ namespace ENode.Kafka.Tests
             return enodeConfiguration;
         }
 
+        public static ENodeConfiguration ShutdownKafka(this ENodeConfiguration enodeConfiguration)
+        {
+            _commandService.Shutdown();
+            _eventPublisher.Shutdown();
+            _applicationMessagePublisher.Shutdown();
+            _domainExceptionPublisher.Shutdown();
+
+            _commandConsumer.Shutdown();
+            _eventConsumer.Shutdown();
+            _applicationMessageConsumer.Shutdown();
+            _domainExceptionConsumer.Shutdown();
+
+            return enodeConfiguration;
+        }
+
         public static ENodeConfiguration StartKafka(this ENodeConfiguration enodeConfiguration)
         {
             if (_isKafkaStarted)

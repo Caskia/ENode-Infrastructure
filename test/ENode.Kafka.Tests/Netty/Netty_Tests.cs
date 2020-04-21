@@ -12,7 +12,7 @@ using Xunit;
 
 namespace ENode.Kafka.Tests.Netty
 {
-    public class Netty_Tests : NettyTestBase
+    public class Netty_Tests : ENodeKafkaTestBase
     {
         [Fact(DisplayName = "Should_Communicates_Between_Server_And_Client")]
         public async Task Should_Communicates_Between_Server_And_Client()

@@ -15,7 +15,7 @@ using Xunit;
 
 namespace ENode.Kafka.Tests.CommandsAndEvents
 {
-    public class CommandAndEventServiceTest : BaseTest
+    public class CommandAndEventServiceTest : ENodeKafkaTestBase
     {
         public readonly static ConcurrentDictionary<int, IList<string>> HandlerTypes = new ConcurrentDictionary<int, IList<string>>();
 
