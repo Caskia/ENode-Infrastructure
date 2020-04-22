@@ -20,9 +20,6 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\enode\src\ENode\ENode.csproj" />
+    <PackageReference Include="RENode" Version="2.9.6" />
   </ItemGroup>
 </Project>
