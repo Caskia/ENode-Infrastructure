@@ -2,10 +2,12 @@
 using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Scheduling;
+using ECommon.Utilities;
 using ENode.Kafka.Extensions;
 using ENode.Kafka.Scheduling;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka.Consumers
@@ -56,15 +58,17 @@ namespace ENode.Kafka.Consumers
 
         public void EnterConsumingQueue(ConsumeResult<Ignore, string> message)
         {
-            if (_consumingQueues.TryGetValue(message.ToKeyString(), out var processQueue))
+            TopicPartitionProcessQueue<Ignore, string> processQueue;
+
+            if (_consumingQueues.TryGetValue(message.ToKeyString(), out processQueue))
             {
                 processQueue.AddMessage(message);
             }
             else
             {
-                var queue = new TopicPartitionProcessQueue<Ignore, string>(message.Topic, message.Partition);
-                queue.AddMessage(message);
-                _consumingQueues.TryAdd(message.ToKeyString(), queue);
+                processQueue = new TopicPartitionProcessQueue<Ignore, string>(message.Topic, message.Partition);
+                processQueue.AddMessage(message);
+                _consumingQueues.TryAdd(message.ToKeyString(), processQueue);
             }
 
             if (_isSequentialConsume)
@@ -77,6 +81,22 @@ namespace ENode.Kafka.Consumers
                 {
                     await HandleMessageAsync(m);
                 }, message);
+            }
+
+            var unconsumedMessageCount = processQueue.GetMessageCount();
+
+            if (unconsumedMessageCount > _consumer.Setting.ConsumeFlowControlThreshold)
+            {
+                var delayMilliseconds = FlowControlUtil.CalculateFlowControlTimeMilliseconds
+                (
+                    unconsumedMessageCount,
+                    _consumer.Setting.ConsumeFlowControlThreshold,
+                    _consumer.Setting.ConsumeFlowControlStepPercent,
+                    _consumer.Setting.ConsumeFlowControlStepWaitMilliseconds
+                );
+
+                _logger.InfoFormat($"{message.ToKeyString()} unconsumed message[{unconsumedMessageCount}], consume too slow, need to wait {delayMilliseconds}ms.");
+                Thread.Sleep(delayMilliseconds);
             }
         }
 
