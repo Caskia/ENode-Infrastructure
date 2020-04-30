@@ -5,6 +5,7 @@ using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -87,5 +88,69 @@ namespace ENode.AggregateSnapshot.Tests.MySql
             restoredProduct.Name.ShouldBe(product.Name);
             restoredProduct.IsPublished.ShouldBe(product.IsPublished);
         }
+
+        //[Fact]
+        //public async Task SaveSnapshotThreadSafe_Test()
+        //{
+        //    //Arrange
+        //    var product = new Product
+        //        (
+        //            1L,
+        //            "banana",
+        //            true,
+        //            new List<long>()
+        //            {
+        //                1L,
+        //                2L,
+        //                3L
+        //            },
+        //            new List<ProductRecord>()
+        //            {
+        //                new ProductRecord(1L,"a",DateTime.UtcNow),
+        //                new ProductRecord(2L,"b",DateTime.UtcNow),
+        //                new ProductRecord(3L,"c",DateTime.UtcNow),
+        //                new ProductRecord(4L,"d",DateTime.UtcNow),
+        //            }
+        //        );
+
+        //    //Act
+        //    var thread = new Thread(() =>
+        //    {
+        //        while (true)
+        //        {
+        //            var records = new List<ProductRecord>();
+        //            var count = new Random().Next(50000, 80000);
+        //            for (int i = 0; i < count; i++)
+        //            {
+        //                records.Add(new ProductRecord(i, Guid.NewGuid().ToString(), DateTime.UtcNow));
+        //            }
+        //            product.SetRecords(records);
+        //        }
+        //    });
+        //    thread.Start();
+
+        //    var list = new List<Thread>();
+        //    for (int i = 0; i < 10; i++)
+        //    {
+        //        var saverThread = new Thread(async () =>
+        //        {
+        //            for (int i = 0; i < 100000; i++)
+        //            {
+        //                try
+        //                {
+        //                    await _savableAggregateSnapshotter.SaveSnapshotAsync(product, typeof(Product), (product as IAggregateRoot).Version);
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                }
+        //            }
+        //        });
+
+        //        list.Add(saverThread);
+        //        saverThread.Start();
+        //    }
+
+        //    await Task.Delay(30000 * 1000);
+        //}
     }
 }
