@@ -16,10 +16,10 @@ namespace ENode.EventStore.MongoDb
     {
         #region Private Variables
 
+        private readonly IAggregateSnapshotSaver _aggregateSnapshotSaver;
         private readonly IOHelper _ioHelper;
         private readonly ILogger _logger;
         private readonly IPublishedVersionCollection _publishedVersionCollection;
-        private readonly ISavableAggregateSnapshotter _savableAggregateSnapshotter;
         private readonly ITypeNameProvider _typeNameProvider;
 
         #endregion Private Variables
@@ -27,17 +27,17 @@ namespace ENode.EventStore.MongoDb
         #region Ctor
 
         public MongoDbPublishedVersionStore(
+            IAggregateSnapshotSaver aggregateSnapshotSaver,
             IOHelper ioHelper,
             ILoggerFactory loggerFactory,
             IPublishedVersionCollection publishedVersionCollection,
-            ISavableAggregateSnapshotter savableAggregateSnapshotter,
             ITypeNameProvider typeNameProvider
             )
         {
+            _aggregateSnapshotSaver = aggregateSnapshotSaver;
             _ioHelper = ioHelper;
             _logger = loggerFactory.Create(GetType().FullName);
             _publishedVersionCollection = publishedVersionCollection;
-            _savableAggregateSnapshotter = savableAggregateSnapshotter;
             _typeNameProvider = typeNameProvider;
         }
 
@@ -117,7 +117,7 @@ namespace ENode.EventStore.MongoDb
                     await _publishedVersionCollection.GetCollection(aggregateRootId)
                         .UpdateOneAsync(filter, update);
 
-                    await _savableAggregateSnapshotter.SaveSnapshotAsync(aggregateRootId, _typeNameProvider.GetType(aggregateRootTypeName), publishedVersion);
+                    await _aggregateSnapshotSaver.SaveAsync(aggregateRootId, _typeNameProvider.GetType(aggregateRootTypeName), publishedVersion);
                 }
                 catch (MongoException ex)
                 {
