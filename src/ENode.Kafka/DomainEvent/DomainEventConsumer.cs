@@ -24,7 +24,7 @@ namespace ENode.Kafka
 
         public Consumer Consumer { get; private set; }
 
-        public async Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
+        public Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
         {
             var eNodeMessage = _jsonSerializer.Deserialize<ENodeMessage>(kafkaMessage.Message.Value);
             var eventStreamMessage = _jsonSerializer.Deserialize<EventStreamMessage>(eNodeMessage.Body);
@@ -32,7 +32,8 @@ namespace ENode.Kafka
             var processContext = new DomainEventStreamProcessContext(this, domainEventStreamMessage, kafkaMessage, context);
             var processingMessage = new ProcessingEvent(domainEventStreamMessage, processContext);
             _logger.DebugFormat("ENode event message received, messageId: {0}, aggregateRootId: {1}, aggregateRootType: {2}, version: {3}", domainEventStreamMessage.Id, domainEventStreamMessage.AggregateRootId, domainEventStreamMessage.AggregateRootTypeName, domainEventStreamMessage.Version);
-            await _messageProcessor.ProcessAsync(processingMessage);
+            _messageProcessor.Process(processingMessage);
+            return Task.CompletedTask;
         }
 
         public DomainEventConsumer InitializeENode(bool sendEventHandledMessage = true)

@@ -672,7 +672,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         }
 
         [Fact]
-        public async Task sequence_domain_event_process_test()
+        public void sequence_domain_event_process_test()
         {
             var processor = ObjectContainer.Resolve<IProcessingEventProcessor>();
 
@@ -691,9 +691,9 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var waitHandle = new ManualResetEvent(false);
             var versionList = new List<int>();
 
-            await processor.ProcessAsync(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
-            await processor.ProcessAsync(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
-            await processor.ProcessAsync(new ProcessingEvent(message2, new DomainEventStreamProcessContext(message2, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message2, new DomainEventStreamProcessContext(message2, waitHandle, versionList)));
 
             waitHandle.WaitOne();
 
@@ -704,7 +704,7 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
         }
 
         [Fact]
-        public async Task sequence_domain_event_process_test2()
+        public void sequence_domain_event_process_test2()
         {
             var processor = ObjectContainer.Resolve<IProcessingEventProcessor>();
 
@@ -724,8 +724,8 @@ namespace ENode.Kafka.Tests.CommandsAndEvents
             var versionList = new List<int>();
 
             //模拟从publishedVersionStore中取到的publishedVersion不是最新的场景
-            await processor.ProcessAsync(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
-            await processor.ProcessAsync(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message1, new DomainEventStreamProcessContext(message1, waitHandle, versionList)));
+            processor.Process(new ProcessingEvent(message3, new DomainEventStreamProcessContext(message3, waitHandle, versionList)));
 
             //等待5秒后更新publishedVersion为2
             Thread.Sleep(5000);
