@@ -104,7 +104,7 @@ namespace ENode.Kafka.Tests
                .RegisterUnhandledExceptionHandler()
                .CreateENode(new ConfigurationSetting()
                {
-                   ProcessProblemAggregateIntervalMilliseconds = 1000
+                   ProcessTryToRefreshAggregateIntervalMilliseconds = 1000
                })
                .RegisterENodeComponents()
                .UseEventStore(false)
