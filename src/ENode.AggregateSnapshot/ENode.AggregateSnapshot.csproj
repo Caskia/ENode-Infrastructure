@@ -21,5 +21,6 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="ENode" Version="2.9.8" />
+    <PackageReference Include="System.Reactive" Version="4.4.1" />
   </ItemGroup>
 </Project>
