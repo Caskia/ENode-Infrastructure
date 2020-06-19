@@ -1,9 +1,7 @@
 ﻿using ECommon.Components;
 using ENode.AggregateSnapshot.Configurations;
 using ENode.AggregateSnapshot.Repositories;
-using ENode.AggregateSnapshot.Serializers;
 using ENode.Configurations;
-using ENode.Domain;
 
 namespace ENode.AggregateSnapshot
 {
@@ -16,11 +14,12 @@ namespace ENode.AggregateSnapshot
             string connectionString,
             string tableName = "AggregateSnapshot",
             int tableCount = 1,
-            int versionInterval = 50
+            int versionInterval = 50,
+            int batchStoreIntervalSeconds = 1000,
+            int batchStoreMaximumCumulativeCount = 100
             )
         {
-            var aggregateSnapshotConfiguration = ObjectContainer.Resolve<IAggregateSnapshotConfiguration>();
-            aggregateSnapshotConfiguration.VersionInterval = versionInterval;
+            eNodeConfiguration.InitializeAggregateSnapshotter(versionInterval, batchStoreIntervalSeconds, batchStoreMaximumCumulativeCount);
 
             var snapshotMySqlConfiguration = ObjectContainer.Resolve<ISnapshotMySqlConfiguration>();
             snapshotMySqlConfiguration.ConnectionString = connectionString;
@@ -35,12 +34,11 @@ namespace ENode.AggregateSnapshot
         /// </summary>
         public static ENodeConfiguration UseMySqlAggregateSnapshotter(this ENodeConfiguration eNodeConfiguration)
         {
+            eNodeConfiguration.UseAggregateSnapshotter();
+
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotMySqlConfiguration, SnapshotMySqlConfiguration>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotRepository, SnapshotRepository>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotConfiguration, AggregateSnapshotConfiguration>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotSerializer, JsonAggregateSnapshotSerializer>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotter, MySqlAggregateSnapshotter>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<ISavableAggregateSnapshotter, SavableMySqlAggregateSnapshotter>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotStore, MySqlAggregateSnapshotStore>();
             return eNodeConfiguration;
         }
     }

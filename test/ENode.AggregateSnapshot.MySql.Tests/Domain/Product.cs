@@ -49,6 +49,16 @@ namespace ENode.AggregateSnapshot.Tests.Domain
         protected Product()
         {
         }
+
+        public void SetName(string name)
+        {
+            _name = name;
+        }
+
+        public void SetRecords(List<ProductRecord> records)
+        {
+            _records = records.ToDictionary(r => r.Id, r => r);
+        }
     }
 
     [Serializable]

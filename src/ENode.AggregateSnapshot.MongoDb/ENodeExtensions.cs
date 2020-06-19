@@ -1,9 +1,7 @@
 ﻿using ECommon.Components;
 using ENode.AggregateSnapshot.Collections;
 using ENode.AggregateSnapshot.Configurations;
-using ENode.AggregateSnapshot.Serializers;
 using ENode.Configurations;
-using ENode.Domain;
 
 namespace ENode.AggregateSnapshot
 {
@@ -19,13 +17,14 @@ namespace ENode.AggregateSnapshot
         /// <returns></returns>
         public static ENodeConfiguration InitializeMongoDbAggregateSnapshotter(this ENodeConfiguration eNodeConfiguration,
             MongoDbConfiguration dbConfiguration,
-            int versionInterval = 50,
             string storeEntityName = "AggregateSnapshot",
-            int collectionCount = 1
+            int collectionCount = 1,
+            int versionInterval = 50,
+            int batchStoreIntervalMilliseconds = 1000,
+            int batchStoreMaximumCumulativeCount = 100
             )
         {
-            var aggregateSnapshotConfiguration = ObjectContainer.Resolve<IAggregateSnapshotConfiguration>();
-            aggregateSnapshotConfiguration.VersionInterval = versionInterval;
+            eNodeConfiguration.InitializeAggregateSnapshotter(versionInterval, batchStoreIntervalMilliseconds, batchStoreMaximumCumulativeCount);
 
             var mongoDbConfiguration = ObjectContainer.Resolve<ISnapshotMongoDbConfiguration>();
             mongoDbConfiguration.ConnectionString = dbConfiguration.ConnectionString;
@@ -44,14 +43,13 @@ namespace ENode.AggregateSnapshot
         /// <returns></returns>
         public static ENodeConfiguration UseMongoDbAggregateSnapshotter(this ENodeConfiguration eNodeConfiguration)
         {
+            eNodeConfiguration.UseAggregateSnapshotter();
+
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotMongoDbConfiguration, SnapshotMongoDbConfiguration>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotMongoDbProvider, SnapshotMongoDbProvider>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotCollectionConfiguration, SnapshotCollectionConfiguration>();
             eNodeConfiguration.GetCommonConfiguration().SetDefault<ISnapshotCollection, SnapshotCollection>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotConfiguration, AggregateSnapshotConfiguration>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotSerializer, JsonAggregateSnapshotSerializer>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotter, MongoDbAggregateSnapshotter>();
-            eNodeConfiguration.GetCommonConfiguration().SetDefault<ISavableAggregateSnapshotter, SavableMongoDbAggregateSnapshotter>();
+            eNodeConfiguration.GetCommonConfiguration().SetDefault<IAggregateSnapshotStore, MongoDbAggregateSnapshotStore>();
             return eNodeConfiguration;
         }
     }
