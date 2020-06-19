@@ -10,7 +10,7 @@ namespace ENode.AggregateSnapshot.Tests
     {
         private readonly MongoDbConfiguration _mongoDbConfiguration = new MongoDbConfiguration()
         {
-            ConnectionString = "mongodb://127.0.0.1:20000/aggregatesnapshot_test",
+            ConnectionString = "mongodb://mongo:20000/aggregatesnapshot_test",
             DatabaseName = "aggregatesnapshot_test",
         };
 

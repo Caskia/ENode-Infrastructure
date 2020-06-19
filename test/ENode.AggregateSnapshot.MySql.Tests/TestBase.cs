@@ -41,7 +41,7 @@ namespace ENode.AggregateSnapshot.Tests
 
             enode.InitializeBusinessAssemblies(assemblies)
                 .InitializeMySqlAggregateSnapshotter(
-                "Datasource=127.0.0.1;Database=eventstore;uid=root;pwd=admin!@#;Allow User Variables=True;AutoEnlist=false;"
+                "Datasource=mysql;Database=eventstore;uid=root;pwd=admin!@#;Allow User Variables=True;AutoEnlist=false;"
                 );
         }
     }

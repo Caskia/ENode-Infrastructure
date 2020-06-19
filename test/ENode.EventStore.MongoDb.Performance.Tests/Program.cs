@@ -19,7 +19,7 @@ namespace ENode.EventStore.MongoDb.Performance.Tests
 
         private static MongoDbConfiguration _mongoDbConfiguration = new MongoDbConfiguration()
         {
-            ConnectionString = "mongodb://127.0.0.1:20000/eventsotre_test",
+            ConnectionString = "mongodb://mongo:20000/eventsotre_test",
             DatabaseName = "eventsotre_test",
         };
 

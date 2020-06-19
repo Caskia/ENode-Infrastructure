@@ -19,7 +19,7 @@ namespace ENode.EventStore.MongoDb.Tests
     {
         private readonly MongoDbConfiguration _mongoDbConfiguration = new MongoDbConfiguration()
         {
-            ConnectionString = "mongodb://127.0.0.1:20000/eventsotre_test?maxPoolSize=500",
+            ConnectionString = "mongodb://mongo:20000/eventsotre_test?maxPoolSize=500",
             DatabaseName = "eventsotre_test",
         };
 
@@ -70,7 +70,7 @@ namespace ENode.EventStore.MongoDb.Tests
         }
 
         [Fact(DisplayName = "Should_Insert_Published_Version_Concurrent")]
-        public async Task Should_Insert_Published_Version_Concurrent()
+        public Task Should_Insert_Published_Version_Concurrent()
         {
             var tasks = new List<Task>();
 
@@ -96,6 +96,8 @@ namespace ENode.EventStore.MongoDb.Tests
             //        await _store.UpdatePublishedVersionAsync(processName, aggregateTypeName, aggregateId, version);
             //    }
             //});
+
+            return Task.CompletedTask;
         }
 
         [Fact(DisplayName = "Should_Update_Published_Version")]

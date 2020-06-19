@@ -11,23 +11,25 @@ namespace ENode.Kafka.Utils
     {
         public static IPEndPoint GetIPEndPointFromHostName(string hostName, int port, AddressFamily? addressFamily = AddressFamily.InterNetwork, bool throwIfMoreThanOneIP = true)
         {
-            var ipAddresses = Dns.GetHostAddresses(hostName);
+            var ipAddresses = Dns.GetHostAddresses(hostName)
+                .Distinct()
+                .ToList();
 
             if (addressFamily.HasValue)
             {
                 ipAddresses = ipAddresses
                     .Where(a => a.AddressFamily == addressFamily.Value)
-                    .ToArray();
+                    .ToList();
             }
 
-            if (ipAddresses.Length == 0)
+            if (ipAddresses.Count == 0)
             {
                 throw new ArgumentException(
                     "Unable to retrieve address from specified host name.",
                     "hostName"
                 );
             }
-            else if (throwIfMoreThanOneIP && ipAddresses.Length > 1)
+            else if (throwIfMoreThanOneIP && ipAddresses.Count > 1)
             {
                 throw new ArgumentException(
                    "There is more that one IP address to the specified host.",
