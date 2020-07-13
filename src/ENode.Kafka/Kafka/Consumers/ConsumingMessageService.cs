@@ -175,7 +175,7 @@ namespace ENode.Kafka.Consumers
         private void LogMessageHandlingException(ConsumeResult<Ignore, string> message, Exception exception)
         {
             _logger.Error(
-                $"Message handling has exception, message info:[topic:{message.Topic}, partition:{message.Partition}, partitionOffset:{message.Offset.Value}, createdTime:{message.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")}, consumerGroup:{_consumer.Setting.GroupName}]",
+                $"Message handling has exception, message info:[topic:{message.Topic}, partition:{message.Partition}, partitionOffset:{message.Offset.Value}, createdTime:{message.Message.Timestamp.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")}, consumerGroup:{_consumer.Setting.GroupName}]",
                 exception);
         }
 

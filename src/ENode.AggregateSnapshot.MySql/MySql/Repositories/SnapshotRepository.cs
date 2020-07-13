@@ -1,5 +1,5 @@
 ﻿using ENode.AggregateSnapshot.Configurations;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using System;
 
 namespace ENode.AggregateSnapshot.Repositories
