@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Description>enode infrastructure</Description>
-    <Copyright>Copyright © Caskia 2020</Copyright>
+    <Copyright>Copyright © Caskia 2021</Copyright>
     <PackageLicense>https://github.com/Caskia/ENode-Infrastructure/blob/master/LICENSE</PackageLicense>
     <PackageProjectUrl>https://github.com/Caskia/ENode-Infrastructure</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Caskia/ENode-Infrastructure</RepositoryUrl>
