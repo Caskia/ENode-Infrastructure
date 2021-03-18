@@ -1,5 +1,6 @@
 ﻿using Confluent.Kafka;
 using ECommon.Components;
+using ECommon.Extensions;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using System;
@@ -145,6 +146,7 @@ namespace ENode.Kafka.Consumers
         {
             var needToSubscribedTopic = topics.Where(t => !SubscribedTopics.Contains(t)).ToList();
 
+            topics.ForEach(t => SubscribedTopics.Add(t));
             _kafkaConsumer.Subscribe(needToSubscribedTopic);
             return this;
         }

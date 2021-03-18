@@ -63,7 +63,7 @@ namespace ENode.Kafka
         public ApplicationMessageConsumer Start()
         {
             //create topic
-            _topicsManager.CheckAndCreateTopicsAsync(Consumer.SubscribedTopics).Wait();
+            _topicsManager.CheckAndCreateTopicsAsync(Consumer.SubscribedTopics).GetAwaiter().GetResult();
 
             Consumer.OnLog += (_, info) => _logger.Info(info.Message);
             Consumer.OnError = (_, error) => _logger.Error($"consumer has an error: {error}");
