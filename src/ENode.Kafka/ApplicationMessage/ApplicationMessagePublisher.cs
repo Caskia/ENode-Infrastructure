@@ -15,6 +15,7 @@ namespace ENode.Kafka
         private ILogger _logger;
         private ITopicProvider<IApplicationMessage> _messageTopicProvider;
         private SendQueueMessageService _sendMessageService;
+        private TopicsManager _topicsManager;
         private ITypeNameProvider _typeNameProvider;
         public Producer Producer { get; private set; }
 
@@ -28,10 +29,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        public ApplicationMessagePublisher InitializeKafka(ProducerSetting producerSetting, Dictionary<string, object> kafkaConfig = null)
+        public ApplicationMessagePublisher InitializeKafka(ProducerSetting setting, Dictionary<string, object> kafkaConfig = null)
         {
             InitializeENode();
-            Producer = new Producer(producerSetting);
+
+            Producer = new Producer(setting);
+
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -49,6 +53,9 @@ namespace ENode.Kafka
 
         public ApplicationMessagePublisher Start()
         {
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(_messageTopicProvider.GetAllTopics()).GetAwaiter().GetResult();
+
             Producer.OnLog = (_, info) => _logger.Info($"ENode ApplicationMessagePublisher: {info}");
             Producer.OnError = (_, error) => _logger.Error($"ENode ApplicationMessagePublisher has an error: {error}");
             Producer.Start();

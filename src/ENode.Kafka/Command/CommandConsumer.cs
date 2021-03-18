@@ -25,8 +25,8 @@ namespace ENode.Kafka
         private ILogger _logger;
         private IRepository _repository;
         private SendReplyService _sendReplyService;
+        private TopicsManager _topicsManager;
         private ITypeNameProvider _typeNameProvider;
-
         public Consumer Consumer { get; private set; }
 
         public Task HandleAsync(KafkaMessage kafkaMessage, IKafkaMessageContext context)
@@ -55,12 +55,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        public CommandConsumer InitializeKafka(ConsumerSetting consumerSetting)
+        public CommandConsumer InitializeKafka(ConsumerSetting setting)
         {
             InitializeENode();
 
-            Consumer = new Consumer(consumerSetting);
+            Consumer = new Consumer(setting);
 
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -74,6 +75,9 @@ namespace ENode.Kafka
         public CommandConsumer Start()
         {
             _sendReplyService.Start();
+
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(Consumer.SubscribedTopics).Wait();
 
             Consumer.OnLog += (_, info) => _logger.Info(info.Message);
             Consumer.OnError += (_, error) => _logger.Error($"consumer has an error: {error}");

@@ -1,5 +1,4 @@
 ﻿using ECommon.Components;
-using ECommon.IO;
 using ECommon.Logging;
 using ECommon.Serializing;
 using ENode.Domain;
@@ -7,7 +6,6 @@ using ENode.Infrastructure;
 using ENode.Kafka.Producers;
 using ENode.Messaging;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ENode.Kafka
@@ -18,8 +16,8 @@ namespace ENode.Kafka
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private SendQueueMessageService _sendMessageService;
+        private TopicsManager _topicsManager;
         private ITypeNameProvider _typeNameProvider;
-
         public Producer Producer { get; private set; }
 
         public DomainExceptionPublisher InitializeENode()
@@ -32,10 +30,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        public DomainExceptionPublisher InitializeKafka(ProducerSetting producerSetting)
+        public DomainExceptionPublisher InitializeKafka(ProducerSetting setting)
         {
             InitializeENode();
-            Producer = new Producer(producerSetting);
+
+            Producer = new Producer(setting);
+
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -53,6 +54,9 @@ namespace ENode.Kafka
 
         public DomainExceptionPublisher Start()
         {
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(_exceptionTopicProvider.GetAllTopics()).GetAwaiter().GetResult();
+
             Producer.OnLog = (_, info) => _logger.Info($"ENode DomainExceptionPublisher: {info}");
             Producer.OnError = (_, error) => _logger.Error($"ENode DomainExceptionPublisher has an error: {error}");
             Producer.Start();

@@ -37,6 +37,8 @@ namespace ENode.Kafka.Consumers
 
         public bool Stopped { get; private set; }
 
+        public HashSet<string> SubscribedTopics { get; private set; } = new HashSet<string>();
+
         #endregion Public Properties
 
         #region Ctor
@@ -129,13 +131,21 @@ namespace ENode.Kafka.Consumers
 
         public Consumer Subscribe(string topic)
         {
+            if (SubscribedTopics.Contains(topic))
+            {
+                return this;
+            }
+
+            SubscribedTopics.Add(topic);
             _kafkaConsumer.Subscribe(topic);
             return this;
         }
 
         public Consumer Subscribe(IList<string> topics)
         {
-            _kafkaConsumer.Subscribe(topics);
+            var needToSubscribedTopic = topics.Where(t => !SubscribedTopics.Contains(t)).ToList();
+
+            _kafkaConsumer.Subscribe(needToSubscribedTopic);
             return this;
         }
 
@@ -145,7 +155,7 @@ namespace ENode.Kafka.Consumers
 
         private void ConsumeMessage()
         {
-            if (!Stopped && !_cancellationToken.IsCancellationRequested)
+            if (!Stopped && !_cancellationToken.IsCancellationRequested && SubscribedTopics.Any())
             {
                 var message = _kafkaConsumer.Consume(_cancellationToken);
                 _consumingMessageService.EnterConsumingQueue(message);
@@ -158,7 +168,7 @@ namespace ENode.Kafka.Consumers
 
             var kafkaConfig = new ConsumerConfig()
             {
-                BootstrapServers = string.Join(",", setting.BrokerEndPoints.Select(e => e.Address.ToString() + ":" + e.Port)),
+                BootstrapServers = setting.BootstrapServers,
                 EnableAutoCommit = false,
                 SessionTimeoutMs = 20000,
                 AutoOffsetReset = AutoOffsetReset.Earliest

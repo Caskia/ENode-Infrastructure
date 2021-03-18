@@ -18,6 +18,7 @@ namespace ENode.Kafka
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private IMessageDispatcher _messageDispatcher;
+        private TopicsManager _topicsManager;
         private ITypeNameProvider _typeNameProvider;
         public Consumer Consumer { get; private set; }
 
@@ -43,12 +44,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        public ApplicationMessageConsumer InitializeKafka(ConsumerSetting consumerSetting)
+        public ApplicationMessageConsumer InitializeKafka(ConsumerSetting setting)
         {
             InitializeENode();
 
-            Consumer = new Consumer(consumerSetting);
+            Consumer = new Consumer(setting);
 
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -60,6 +62,9 @@ namespace ENode.Kafka
 
         public ApplicationMessageConsumer Start()
         {
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(Consumer.SubscribedTopics).Wait();
+
             Consumer.OnLog += (_, info) => _logger.Info(info.Message);
             Consumer.OnError = (_, error) => _logger.Error($"consumer has an error: {error}");
             Consumer.SetMessageHandler(this).Start();

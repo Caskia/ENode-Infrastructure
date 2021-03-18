@@ -17,7 +17,7 @@ namespace ENode.Kafka
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private SendQueueMessageService _sendMessageService;
-
+        private TopicsManager _topicsManager;
         public Producer Producer { get; private set; }
 
         public DomainEventPublisher InitializeENode()
@@ -30,10 +30,13 @@ namespace ENode.Kafka
             return this;
         }
 
-        public DomainEventPublisher InitializeKafka(ProducerSetting producerSetting)
+        public DomainEventPublisher InitializeKafka(ProducerSetting setting)
         {
             InitializeENode();
-            Producer = new Producer(producerSetting);
+
+            Producer = new Producer(setting);
+
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -51,6 +54,9 @@ namespace ENode.Kafka
 
         public DomainEventPublisher Start()
         {
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(_eventTopicProvider.GetAllTopics()).GetAwaiter().GetResult();
+
             Producer.OnLog = (_, info) => _logger.Info($"ENode DomainEventPublisher: {info}");
             Producer.OnError = (_, error) => _logger.Error($"ENode DomainEventPublisher has an error: {error}");
             Producer.Start();

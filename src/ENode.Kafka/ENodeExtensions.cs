@@ -28,6 +28,7 @@ namespace ENode.Kafka
                     }
                 }
             }
+
             return enodeConfiguration;
         }
 

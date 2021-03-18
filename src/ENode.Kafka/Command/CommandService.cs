@@ -16,6 +16,7 @@ namespace ENode.Kafka
         private IJsonSerializer _jsonSerializer;
         private ILogger _logger;
         private SendQueueMessageService _sendMessageService;
+        private TopicsManager _topicsManager;
         private ITypeNameProvider _typeNameProvider;
         public string CommandExecutedMessageTopic { get; private set; }
         public string DomainEventHandledMessageTopic { get; private set; }
@@ -58,8 +59,12 @@ namespace ENode.Kafka
         public CommandService InitializeKafka(ProducerSetting setting = null, CommandResultProcessor commandResultProcessor = null)
         {
             InitializeENode();
+
             _commandResultProcessor = commandResultProcessor;
+
             Producer = new Producer(setting);
+
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -84,6 +89,10 @@ namespace ENode.Kafka
             {
                 _commandResultProcessor.Start();
             }
+
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(_commandTopicProvider.GetAllTopics()).GetAwaiter().GetResult();
+
             Producer.OnLog = (_, info) => _logger.Info($"ENode CommandService: {info}");
             Producer.OnError = (_, error) => _logger.Error($"ENode CommandService has an error: {error}");
             Producer.Start();
