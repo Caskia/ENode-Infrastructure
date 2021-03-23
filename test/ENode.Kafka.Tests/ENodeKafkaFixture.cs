@@ -65,7 +65,7 @@ namespace ENode.Kafka.Tests
                 var skipDirectory = dirPath.Length;
                 if (!dirPath.EndsWith("" + Path.DirectorySeparatorChar)) skipDirectory++;
                 var fileNames = Directory.EnumerateFiles(dirPath, "*.json", SearchOption.AllDirectories)
-                    .Select(f => f.Substring(skipDirectory));
+                    .Select(f => f[skipDirectory..]);
                 foreach (var fileName in fileNames)
                 {
                     builder = builder.AddJsonFile($"{configDirName}{Path.DirectorySeparatorChar}{fileName}", optional: true, reloadOnChange: true);
@@ -127,23 +127,12 @@ namespace ENode.Kafka.Tests
             {
                 var array = address.Split(new string[] { ":" }, StringSplitOptions.RemoveEmptyEntries);
                 var hostNameType = Uri.CheckHostName(array[0]);
-                IPEndPoint ipEndPoint;
-                switch (hostNameType)
+                var ipEndPoint = hostNameType switch
                 {
-                    case UriHostNameType.Dns:
-                        ipEndPoint = SocketUtils.GetIPEndPointFromHostName(array[0], int.Parse(array[1]), AddressFamily.InterNetwork, false);
-                        break;
-
-                    case UriHostNameType.IPv4:
-                    case UriHostNameType.IPv6:
-                        ipEndPoint = new IPEndPoint(IPAddress.Parse(array[0]), int.Parse(array[1]));
-                        break;
-
-                    case UriHostNameType.Unknown:
-                    default:
-                        throw new Exception($"Host name type[{hostNameType}] can not resolve.");
-                }
-
+                    UriHostNameType.Dns => SocketUtils.GetIPEndPointFromHostName(array[0], int.Parse(array[1]), AddressFamily.InterNetwork, false),
+                    UriHostNameType.IPv4 or UriHostNameType.IPv6 => new IPEndPoint(IPAddress.Parse(array[0]), int.Parse(array[1])),
+                    _ => throw new Exception($"Host name type[{hostNameType}] can not resolve."),
+                };
                 ipEndPoints.Add(ipEndPoint);
             }
 

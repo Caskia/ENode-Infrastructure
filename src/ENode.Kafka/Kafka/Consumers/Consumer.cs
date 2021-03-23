@@ -19,8 +19,8 @@ namespace ENode.Kafka.Consumers
         private readonly ILogger _logger;
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
-        private CancellationToken _cancellationToken;
-        private CancellationTokenSource _cancellationTokenSource;
+        private readonly CancellationToken _cancellationToken;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private IConsumer<Ignore, string> _kafkaConsumer;
 
         #endregion Private Variables

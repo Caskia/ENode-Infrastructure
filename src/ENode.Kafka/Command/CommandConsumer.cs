@@ -125,7 +125,7 @@ namespace ENode.Kafka
             {
                 if (aggregateRoot == null)
                 {
-                    throw new ArgumentNullException("aggregateRoot");
+                    throw new ArgumentNullException(nameof(aggregateRoot));
                 }
                 if (!_trackingAggregateRootDict.TryAdd(aggregateRoot.UniqueId, aggregateRoot))
                 {
@@ -154,7 +154,7 @@ namespace ENode.Kafka
             {
                 if (id == null)
                 {
-                    throw new ArgumentNullException("id");
+                    throw new ArgumentNullException(nameof(id));
                 }
 
                 var aggregateRootId = id.ToString();
