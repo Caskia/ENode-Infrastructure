@@ -15,12 +15,12 @@ namespace ENode.Kafka.Consumers
     {
         #region Private Variables
 
+        private readonly CancellationToken _cancellationToken;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly ConsumingMessageService _consumingMessageService;
         private readonly ILogger _logger;
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
-        private readonly CancellationToken _cancellationToken;
-        private readonly CancellationTokenSource _cancellationTokenSource;
         private IConsumer<Ignore, string> _kafkaConsumer;
 
         #endregion Private Variables
@@ -38,7 +38,7 @@ namespace ENode.Kafka.Consumers
 
         public bool Stopped { get; private set; }
 
-        public HashSet<string> SubscribedTopics { get; private set; } = new HashSet<string>();
+        public HashSet<string> SubscribedTopics { get; private set; } = new();
 
         #endregion Public Properties
 
@@ -145,8 +145,12 @@ namespace ENode.Kafka.Consumers
         public Consumer Subscribe(IList<string> topics)
         {
             var needToSubscribedTopic = topics.Where(t => !SubscribedTopics.Contains(t)).ToList();
+            if (!needToSubscribedTopic.Any())
+            {
+                return this;
+            }
 
-            topics.ForEach(t => SubscribedTopics.Add(t));
+            needToSubscribedTopic.ForEach(t => SubscribedTopics.Add(t));
             _kafkaConsumer.Subscribe(needToSubscribedTopic);
             return this;
         }
