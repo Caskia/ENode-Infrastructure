@@ -5,6 +5,7 @@ using ECommon.Serializing;
 using ECommon.Utilities;
 using ENode.Kafka.Netty;
 using ENode.Kafka.Utils;
+using Google.Protobuf;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -51,11 +52,10 @@ namespace ENode.Kafka
                     }
 
                     var message = _jsonSerializer.Serialize(context.ReplyData);
-                    var body = Encoding.UTF8.GetBytes(message);
                     var request = new Request()
                     {
                         Code = context.ReplyType,
-                        Body = body
+                        Body = ByteString.CopyFromUtf8(message)
                     };
 
                     await remotingClient.Channel.WriteAndFlushAsync(request);
@@ -83,11 +83,10 @@ namespace ENode.Kafka
                 }
 
                 var message = _jsonSerializer.Serialize(context.ReplyData);
-                var body = Encoding.UTF8.GetBytes(message);
                 var request = new Request()
                 {
                     Code = context.ReplyType,
-                    Body = body
+                    Body = ByteString.CopyFromUtf8(message)
                 };
 
                 await remotingClient.Channel.WriteAndFlushAsync(request);

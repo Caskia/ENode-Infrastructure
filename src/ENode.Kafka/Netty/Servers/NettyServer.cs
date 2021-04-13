@@ -41,7 +41,7 @@ namespace ENode.Kafka.Netty
                 pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
                 pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                 pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
-                pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+                pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder(Request.Parser));
             });
             _logger = ObjectContainer.Resolve<ILoggerFactory>().Create(name ?? GetType().Name);
 

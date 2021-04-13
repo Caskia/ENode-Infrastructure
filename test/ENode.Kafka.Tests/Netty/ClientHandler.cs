@@ -3,7 +3,6 @@ using ECommon.Components;
 using ECommon.Logging;
 using ENode.Kafka.Netty;
 using System;
-using System.Text;
 
 namespace ENode.Kafka.Tests.Netty
 {
@@ -26,12 +25,21 @@ namespace ENode.Kafka.Tests.Netty
 
         public override void ChannelRead(IChannelHandlerContext context, object message)
         {
-            if (message != null)
+            if (message == null)
             {
-                var request = message as Request;
+                _logger.Info("message content is null.");
+                return;
+            }
+
+            if (message is Request request)
+            {
                 _messageBox.AddAsync(request).Wait();
 
-                _logger.Info("Received from server: " + Encoding.UTF8.GetString(request.Body));
+                _logger.Info("Received from server: " + request.Body.ToStringUtf8());
+            }
+            else
+            {
+                _logger.Warn($"message type[{message.GetType().FullName}] not match Request[{typeof(Request).FullName}]");
             }
         }
 

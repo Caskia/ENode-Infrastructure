@@ -23,12 +23,21 @@ namespace ENode.Kafka.Tests.Netty
 
         public override void ChannelRead(IChannelHandlerContext context, object message)
         {
-            if (message != null)
+            if (message == null)
             {
-                var request = message as Request;
+                _logger.Info("message content is null.");
+                return;
+            }
+
+            if (message is Request request)
+            {
                 _messageBox.AddAsync(request).Wait();
 
-                _logger.Info("Received from client: " + Encoding.UTF8.GetString(request.Body));
+                _logger.Info("Received from client: " + request.Body.ToStringUtf8());
+            }
+            else
+            {
+                _logger.Warn($"message type[{message.GetType().FullName}] not match Request[{typeof(Request).FullName}]");
             }
         }
 

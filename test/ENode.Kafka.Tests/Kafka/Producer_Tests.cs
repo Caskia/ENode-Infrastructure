@@ -79,13 +79,13 @@ namespace ENode.Kafka.Tests.Kafka
         {
             //Arrange
             var producer = new Producer(GetProducerSetting());
-            (string topic, string routingKey, string content) message = ("test", "1234", "testtesttesttest");
+            (string topic, string routingKey, string content) = ("test", "1234", "testtesttesttest");
 
             //Act
-            var result = await producer.ProduceAsync(message.topic, message.routingKey, message.content);
+            var result = await producer.ProduceAsync(topic, routingKey, content);
 
             //Assert
-            result.Key.ShouldBe(message.routingKey);
+            result.Key.ShouldBe(routingKey);
         }
 
         [Fact(DisplayName = "Should_Produce_Concurrent")]
@@ -93,14 +93,14 @@ namespace ENode.Kafka.Tests.Kafka
         {
             //Arrange
             var producer = new Producer(GetProducerSetting());
-            (string topic, string routingKey, string content) message = ("test", "1234", Encoding.UTF8.GetString(new byte[2048]));
+            (string topic, string routingKey, string content) = ("test", "1234", Encoding.UTF8.GetString(new byte[2048]));
 
             //Act
             var tasks = new List<Task>();
 
             for (int i = 0; i < 100000; i++)
             {
-                var task = producer.ProduceAsync(message.topic, message.routingKey, message.content);
+                var task = producer.ProduceAsync(topic, routingKey, content);
                 tasks.Add(task);
             }
 

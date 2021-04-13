@@ -27,7 +27,6 @@ namespace ENode.Kafka
         private ILogger _logger;
         private NettyServer _server;
         private bool _started;
-        private byte[] ByteArray = new byte[0];
         public IPEndPoint BindingAddress { get; private set; }
         public string BindingHostname { get; private set; }
 
@@ -47,13 +46,13 @@ namespace ENode.Kafka
         {
             if (remotingRequest.Code == (int)CommandReturnType.CommandExecuted)
             {
-                var json = Encoding.UTF8.GetString(remotingRequest.Body);
+                var json = remotingRequest.Body.ToStringUtf8();
                 var result = _jsonSerializer.Deserialize<CommandResult>(json);
                 _commandExecutedMessageLocalQueue.Add(result);
             }
             else if (remotingRequest.Code == (int)CommandReturnType.EventHandled)
             {
-                var json = Encoding.UTF8.GetString(remotingRequest.Body);
+                var json = remotingRequest.Body.ToStringUtf8();
                 var message = _jsonSerializer.Deserialize<DomainEventHandledMessage>(json);
                 _domainEventHandledMessageLocalQueue.Add(message);
             }
@@ -80,7 +79,7 @@ namespace ENode.Kafka
                     pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
                     pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                     pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
-                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder(Request.Parser));
                     pipeline.AddLast(typeof(CommandResultChannelHandler).Name, new CommandResultChannelHandler(this));
                 }
             );

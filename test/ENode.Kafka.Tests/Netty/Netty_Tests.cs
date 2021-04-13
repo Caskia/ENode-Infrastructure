@@ -2,6 +2,7 @@
 using ECommon.Components;
 using ENode.Kafka.Netty;
 using ENode.Kafka.Netty.Codecs;
+using Google.Protobuf;
 using Shouldly;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,15 +29,17 @@ namespace ENode.Kafka.Tests.Netty
                     pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
                     pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                     pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
-                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder(Request.Parser));
                     pipeline.AddLast(typeof(ServerHandler).Name, new ServerHandler(ObjectContainer.Resolve<ServerMessageBox>()));
                 }
             );
             var server = new NettyServer(serverEndPoint, serverSetting);
             server.Start();
 
-            var clientChannelHandlerTypes = new List<ChannelHandlerInstance>();
-            clientChannelHandlerTypes.Add(new ChannelHandlerInstance() { Type = typeof(ClientHandler), Args = new List<object>() { ObjectContainer.Resolve<ClientMessageBox>() } });
+            var clientChannelHandlerTypes = new List<ChannelHandlerInstance>
+            {
+                new ChannelHandlerInstance() { Type = typeof(ClientHandler), Args = new List<object>() { ObjectContainer.Resolve<ClientMessageBox>() } }
+            };
 
             var clientSetting = new NettyClientSetting(
                 channel =>
@@ -46,7 +49,7 @@ namespace ENode.Kafka.Tests.Netty
                     pipeline.AddLast(typeof(LengthFieldPrepender).Name, new LengthFieldPrepender(2));
                     pipeline.AddLast(typeof(LengthFieldBasedFrameDecoder).Name, new LengthFieldBasedFrameDecoder(ushort.MaxValue, 0, 2, 0, 2));
                     pipeline.AddLast(typeof(RequestEncoder).Name, new RequestEncoder());
-                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder());
+                    pipeline.AddLast(typeof(RequestDecoder).Name, new RequestDecoder(Request.Parser));
                     pipeline.AddLast(typeof(ClientHandler).Name, new ClientHandler(ObjectContainer.Resolve<ClientMessageBox>()));
                 }
             );
@@ -56,7 +59,7 @@ namespace ENode.Kafka.Tests.Netty
             var request = new Request()
             {
                 Code = 1,
-                Body = Encoding.UTF8.GetBytes("test")
+                Body = ByteString.CopyFromUtf8("test")
             };
 
             //Act

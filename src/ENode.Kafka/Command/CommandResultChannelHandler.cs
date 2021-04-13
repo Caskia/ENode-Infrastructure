@@ -19,9 +19,19 @@ namespace ENode.Kafka
 
         public override void ChannelRead(IChannelHandlerContext context, object message)
         {
-            if (message != null)
+            if (message == null)
             {
-                _commandResultProcessor.HandleRequest(message as Request);
+                _logger.Info("message content is null.");
+                return;
+            }
+
+            if (message is Request request)
+            {
+                _commandResultProcessor.HandleRequest(request);
+            }
+            else
+            {
+                _logger.Warn($"message type[{message.GetType().FullName}] not match Request[{typeof(Request).FullName}]");
             }
         }
 

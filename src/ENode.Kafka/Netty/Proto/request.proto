@@ -1,0 +1,8 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "ENode.Kafka.Netty";
+
+message Request {
+    int32 code = 1;
+    bytes body = 2;
+}  
