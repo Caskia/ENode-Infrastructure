@@ -35,19 +35,6 @@ namespace ENode.Kafka
             {
                 Name = t
             }));
-
-            while (true)
-            {
-                var data = adminClient.GetMetadata(TimeSpan.FromSeconds(10));
-                var allTopics = data.Topics.Select(t => t.Topic);
-
-                if (needToCreateTopics.All(a => allTopics.Contains(a)))
-                {
-                    break;
-                }
-
-                await Task.Delay(5000);
-            }
         }
     }
 }

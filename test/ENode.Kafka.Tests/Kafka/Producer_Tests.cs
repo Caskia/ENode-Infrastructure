@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using ECommon.Components;
 using ECommon.Logging;
+using ECommon.Utilities;
 using ENode.Kafka.Consumers;
 using ENode.Kafka.Producers;
 using ENode.Kafka.Utils;
@@ -56,6 +57,10 @@ namespace ENode.Kafka.Tests.Kafka
             var consumer = new Consumer(GetConsumerSetting());
             consumer.Subscribe(new List<string>()
             {
+                ObjectId.GenerateNewStringId(),
+                ObjectId.GenerateNewStringId(),
+                ObjectId.GenerateNewStringId(),
+                ObjectId.GenerateNewStringId(),
                 "CommandTopic",
                 //"EventTopic",
                 //"ApplicationMessageTopic",

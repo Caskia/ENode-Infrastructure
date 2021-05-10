@@ -21,7 +21,9 @@ namespace ENode.Kafka.Consumers
         private readonly ILogger _logger;
         private readonly Worker _pollingMessageWorker;
         private readonly IScheduleService _scheduleService;
+        private ConsumerConfig _kafkaConfig;
         private IConsumer<Ignore, string> _kafkaConsumer;
+        private TopicsManager _topicsManager;
 
         #endregion Private Variables
 
@@ -33,6 +35,14 @@ namespace ENode.Kafka.Consumers
         #endregion Public Variables
 
         #region Public Properties
+
+        public bool NeedCreateTopicWhenSubcribe
+        {
+            get
+            {
+                return !_kafkaConfig.AllowAutoCreateTopics.HasValue || (_kafkaConfig.AllowAutoCreateTopics.HasValue && _kafkaConfig.AllowAutoCreateTopics.Value);
+            }
+        }
 
         public ConsumerSetting Setting { get; private set; }
 
@@ -50,6 +60,8 @@ namespace ENode.Kafka.Consumers
             _scheduleService = ObjectContainer.Resolve<IScheduleService>();
             _cancellationTokenSource = new CancellationTokenSource();
             _cancellationToken = _cancellationTokenSource.Token;
+
+            _topicsManager = new TopicsManager(setting.BootstrapServers);
 
             InitializeKafkaConsumer(setting);
 
@@ -109,6 +121,9 @@ namespace ENode.Kafka.Consumers
 
         public void Start()
         {
+            //create topic
+            _topicsManager.CheckAndCreateTopicsAsync(SubscribedTopics).GetAwaiter().GetResult();
+
             _pollingMessageWorker.Start();
             _consumingMessageService.Start();
 
@@ -137,6 +152,11 @@ namespace ENode.Kafka.Consumers
                 return this;
             }
 
+            if (NeedCreateTopicWhenSubcribe)
+            {
+                _topicsManager.CheckAndCreateTopicsAsync(new List<string> { topic }).GetAwaiter().GetResult();
+            }
+
             SubscribedTopics.Add(topic);
             _kafkaConsumer.Subscribe(topic);
             return this;
@@ -148,6 +168,11 @@ namespace ENode.Kafka.Consumers
             if (!needToSubscribedTopic.Any())
             {
                 return this;
+            }
+
+            if (NeedCreateTopicWhenSubcribe)
+            {
+                _topicsManager.CheckAndCreateTopicsAsync(needToSubscribedTopic).GetAwaiter().GetResult();
             }
 
             needToSubscribedTopic.ForEach(t => SubscribedTopics.Add(t));
@@ -172,7 +197,7 @@ namespace ENode.Kafka.Consumers
         {
             Setting = setting ?? throw new ArgumentNullException(nameof(setting));
 
-            var kafkaConfig = new ConsumerConfig()
+            _kafkaConfig = new ConsumerConfig()
             {
                 BootstrapServers = setting.BootstrapServers,
                 EnableAutoCommit = false,
@@ -182,10 +207,10 @@ namespace ENode.Kafka.Consumers
 
             if (!string.IsNullOrEmpty(setting.GroupName))
             {
-                kafkaConfig.GroupId = setting.GroupName;
+                _kafkaConfig.GroupId = setting.GroupName;
             }
 
-            _kafkaConsumer = new ConsumerBuilder<Ignore, string>(kafkaConfig)
+            _kafkaConsumer = new ConsumerBuilder<Ignore, string>(_kafkaConfig)
                 .SetLogHandler((sender, message) => OnLog?.Invoke(sender, message))
                 .SetErrorHandler((sender, error) => OnError?.Invoke(sender, error))
                 .Build();

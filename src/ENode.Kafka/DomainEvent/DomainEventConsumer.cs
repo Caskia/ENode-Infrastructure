@@ -21,7 +21,6 @@ namespace ENode.Kafka
         private IProcessingEventProcessor _messageProcessor;
         private bool _sendEventHandledMessage;
         private SendReplyService _sendReplyService;
-        private TopicsManager _topicsManager;
 
         public Consumer Consumer { get; private set; }
 
@@ -54,7 +53,6 @@ namespace ENode.Kafka
 
             Consumer = new Consumer(setting);
 
-            _topicsManager = new TopicsManager(setting.BootstrapServers);
             return this;
         }
 
@@ -71,9 +69,6 @@ namespace ENode.Kafka
         public DomainEventConsumer Start()
         {
             _sendReplyService.Start();
-
-            //create topic
-            _topicsManager.CheckAndCreateTopicsAsync(Consumer.SubscribedTopics).GetAwaiter().GetResult();
 
             Consumer.OnLog += (_, info) => _logger.Info(info.Message);
             Consumer.OnError += (_, error) => _logger.Error($"consumer has an error: {error}");
