@@ -39,7 +39,7 @@ namespace ENode.Lock.Redis
             var context = new WorkContext()
             {
                 LockKey = lockKey,
-                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously),
                 ExpirationTime = DateTime.UtcNow + _timeout,
                 Action = () =>
                 {
@@ -58,7 +58,7 @@ namespace ENode.Lock.Redis
             var context = new WorkContext()
             {
                 LockKey = lockKey,
-                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously),
                 ExpirationTime = DateTime.UtcNow + _timeout,
                 Action = action
             };
@@ -73,7 +73,7 @@ namespace ENode.Lock.Redis
             var context = new WorkContext()
             {
                 LockKey = lockKey,
-                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously),
                 ExpirationTime = DateTime.UtcNow + _timeout,
                 Action = () =>
                 {
@@ -92,7 +92,7 @@ namespace ENode.Lock.Redis
             var context = new WorkContext()
             {
                 LockKey = lockKey,
-                TaskCompletionSource = new TaskCompletionSource<bool>(TaskContinuationOptions.RunContinuationsAsynchronously),
+                TaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously),
                 ExpirationTime = DateTime.UtcNow + _timeout,
                 Action = async () =>
                 {
