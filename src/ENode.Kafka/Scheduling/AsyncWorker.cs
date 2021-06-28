@@ -1,4 +1,4 @@
-﻿using ECommon.Components;
+using ECommon.Components;
 using ECommon.Logging;
 using ENode.Infrastructure;
 using System;

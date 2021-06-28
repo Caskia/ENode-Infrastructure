@@ -1,4 +1,4 @@
-﻿using ECommon.Components;
+using ECommon.Components;
 using ECommon.Logging;
 using ECommon.Scheduling;
 using ECommon.Serializing;
