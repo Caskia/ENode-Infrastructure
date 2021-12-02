@@ -49,7 +49,7 @@ namespace ENode.Kafka.Tests.Kafka
         }
 
         [Fact]
-        public async Task Should_Consume()
+        public void Should_Consume()
         {
             var loggfactory = ObjectContainer.Resolve<ILoggerFactory>();
             var logger = loggfactory.Create(nameof(Producer_Tests));

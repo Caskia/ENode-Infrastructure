@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ecommon.autofac" Version="2.5.2" />
-    <PackageReference Include="ecommon.jsonnet" Version="2.5.1" />
-    <PackageReference Include="ecommon.log4net" Version="2.5.3" />
+    <PackageReference Include="ecommon.autofac" Version="2.5.4" />
+    <PackageReference Include="ecommon.jsonnet" Version="2.5.2" />
+    <PackageReference Include="ecommon.log4net" Version="2.5.4" />
   </ItemGroup>
 
   <ItemGroup>

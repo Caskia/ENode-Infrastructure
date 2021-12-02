@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Version>0.5.0</Version>
     <Description>enode infrastructure</Description>
     <Copyright>Copyright © Caskia 2021</Copyright>
@@ -15,13 +15,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="1.6.3" />
-    <PackageReference Include="DotNetty.Codecs.Protobuf" Version="0.6.0" />
-    <PackageReference Include="DotNetty.Handlers" Version="0.6.0" />
-    <PackageReference Include="DotNetty.Transport.Libuv" Version="0.6.0" />
-    <PackageReference Include="ENode" Version="3.0.2" />
-    <PackageReference Include="Google.Protobuf" Version="3.15.8" />
-    <PackageReference Include="Grpc.Tools" Version="2.37.0">
+    <PackageReference Include="Confluent.Kafka" Version="1.8.2" />
+    <PackageReference Include="DotNetty.Codecs.Protobuf" Version="0.7.0" />
+    <PackageReference Include="DotNetty.Handlers" Version="0.7.0" />
+    <PackageReference Include="DotNetty.Transport.Libuv" Version="0.7.0" />
+    <PackageReference Include="ENode" Version="3.0.3" />
+    <PackageReference Include="Google.Protobuf" Version="3.19.1" />
+    <PackageReference Include="Grpc.Tools" Version="2.42.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

@@ -169,7 +169,7 @@ namespace ENode.Lock.Redis.Tests
             var tasks = new List<Task>();
             var dic = new Dictionary<int, int>();
 
-            for (int i = 0; i < 100000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 //tasks.Add(Task.Factory.StartNew(t => RunLock(database, (int)t), i));
 

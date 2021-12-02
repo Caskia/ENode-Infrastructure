@@ -29,7 +29,7 @@ namespace ENode.AggregateSnapshot.Tests
             var enode = ECommonConfiguration.Create()
                 .UseAutofac()
                 .RegisterCommonComponents()
-                .UseLog4Net()
+                .UseLog4Net("log4net.config", "testRepository")
                 .UseJsonNet()
                 .CreateENode(new ConfigurationSetting())
                 .RegisterBusinessComponents(assemblies)

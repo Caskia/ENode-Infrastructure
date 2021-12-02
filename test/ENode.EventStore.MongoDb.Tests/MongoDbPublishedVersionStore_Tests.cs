@@ -19,7 +19,7 @@ namespace ENode.EventStore.MongoDb.Tests
     {
         private readonly MongoDbConfiguration _mongoDbConfiguration = new MongoDbConfiguration()
         {
-            ConnectionString = "mongodb://mongo:20000/eventsotre_test?maxPoolSize=500",
+            ConnectionString = "mongodb://mongo:20000/eventsotre_test?maxPoolSize=1024",
             DatabaseName = "eventsotre_test",
         };
 
@@ -33,7 +33,7 @@ namespace ENode.EventStore.MongoDb.Tests
             var enode = ECommonConfiguration.Create()
                 .UseAutofac()
                 .RegisterCommonComponents()
-                .UseLog4Net()
+                .UseLog4Net("log4net.config", "testRepository")
                 .UseJsonNet()
                 .CreateENode(new ConfigurationSetting())
                 .RegisterBusinessComponents(assemblies)
@@ -74,7 +74,7 @@ namespace ENode.EventStore.MongoDb.Tests
         {
             var tasks = new List<Task>();
 
-            Parallel.For(0, 50000, async i =>
+            Parallel.For(0, 10000, async i =>
             {
                 var processName = "test" + i;
                 var aggregateId = ObjectId.GenerateNewStringId();
