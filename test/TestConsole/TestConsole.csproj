@@ -14,4 +14,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ENode.Lock.Redis\ENode.Lock.Redis.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

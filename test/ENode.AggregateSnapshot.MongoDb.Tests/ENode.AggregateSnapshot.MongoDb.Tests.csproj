@@ -20,4 +20,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ENode.AggregateSnapshot.MongoDb\ENode.AggregateSnapshot.MongoDb.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

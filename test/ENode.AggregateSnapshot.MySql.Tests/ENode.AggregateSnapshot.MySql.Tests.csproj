@@ -20,4 +20,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ENode.AggregateSnapshot.MySql\ENode.AggregateSnapshot.MySql.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
